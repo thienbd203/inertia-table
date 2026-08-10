@@ -17,6 +17,7 @@ The proposed v0.1 contract is documented in [docs/architecture.md](docs/architec
 - Inertia Laravel 2 or 3
 - Spatie Laravel Query Builder 7
 - Vue 3.4+, Reka UI 2.10+, and `@lucide/vue` 1.30+
+- Tailwind CSS 4.1+ (the Vue renderer vendors shadcn-vue source)
 
 ## Installation
 
