@@ -83,6 +83,30 @@ describe("DataTable shadcn renderer", () => {
         expect(wrapper.text()).toContain("Edit");
     });
 
+    it("forwards public feature slots through internal components", () => {
+        const wrapper = mount(DataTable, {
+            props: { resource: topicResource() },
+            slots: {
+                beforeActions: () =>
+                    h("span", { "data-before-actions": "" }, "Before"),
+                "filter(status)": () =>
+                    h("span", { "data-custom-filter": "" }, "Filter"),
+                "header(name)": () =>
+                    h("span", { "data-custom-header": "" }, "Topic"),
+                "cell(name)": ({ item }: { item: { name: string } }) =>
+                    h("strong", { "data-custom-cell": "" }, item.name),
+            },
+            global: { stubs: { Teleport: true } },
+        });
+
+        expect(wrapper.get("[data-before-actions]").text()).toBe("Before");
+        expect(wrapper.get("[data-custom-filter]").text()).toBe("Filter");
+        expect(wrapper.get("[data-custom-header]").text()).toBe("Topic");
+        expect(
+            wrapper.findAll("[data-custom-cell]").map((cell) => cell.text()),
+        ).toEqual(["Alpha", "Beta"]);
+    });
+
     it("renders the column chooser with shadcn dropdown primitives", () => {
         const wrapper = mount(DataTable, {
             props: { resource: topicResource() },

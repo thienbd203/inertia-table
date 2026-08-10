@@ -138,3 +138,7 @@ export function useActions<T extends TableItem>(
         toggleItem,
     };
 }
+
+export type UseActions<T extends TableItem = TableItem> = ReturnType<
+    typeof useActions<T>
+>;
