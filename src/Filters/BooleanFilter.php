@@ -6,6 +6,11 @@ use Spatie\QueryBuilder\AllowedFilter;
 
 class BooleanFilter extends Filter
 {
+    public function defaultClause(): string
+    {
+        return 'equals';
+    }
+
     public function allowedFilter(): AllowedFilter
     {
         return AllowedFilter::exact($this->attribute);
@@ -18,6 +23,6 @@ class BooleanFilter extends Filter
 
     public function toArray(): array
     {
-        return [...parent::toArray(), 'type' => 'boolean'];
+        return [...parent::toArray(), 'type' => 'boolean', 'options' => []];
     }
 }

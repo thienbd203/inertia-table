@@ -6,6 +6,11 @@ use Spatie\QueryBuilder\AllowedFilter;
 
 class TextFilter extends Filter
 {
+    public function defaultClause(): string
+    {
+        return 'contains';
+    }
+
     public function allowedFilter(): AllowedFilter
     {
         return AllowedFilter::partial($this->attribute);
@@ -24,6 +29,6 @@ class TextFilter extends Filter
 
     public function toArray(): array
     {
-        return [...parent::toArray(), 'type' => 'text'];
+        return [...parent::toArray(), 'type' => 'text', 'options' => []];
     }
 }

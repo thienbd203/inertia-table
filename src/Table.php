@@ -10,6 +10,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use LogicException;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
+use Toolbelt\InertiaTable\Actions\Action;
 use Toolbelt\InertiaTable\Columns\Column;
 use Toolbelt\InertiaTable\Filters\Filter;
 
@@ -43,6 +44,12 @@ abstract class Table implements Arrayable
         return [];
     }
 
+    /** @return array<int, mixed> */
+    public function actions(): array
+    {
+        return [];
+    }
+
     public function name(): string
     {
         return $this->name ?? str(class_basename(static::class))
@@ -69,6 +76,7 @@ abstract class Table implements Arrayable
         $request ??= request();
         $columns = $this->validatedColumns();
         $filters = $this->validatedFilters();
+        $actions = $this->validatedActions();
         $perPageOptions = config('inertia-table.per_page_options', [10, 25, 50, 100]);
         $state = TableState::fromRequest(
             $request,
@@ -76,9 +84,13 @@ abstract class Table implements Arrayable
             $this->defaultSort,
             (int) config('inertia-table.per_page', 25),
             $perPageOptions,
+            collect($columns)->mapWithKeys(fn (Column $column) => [
+                $column->attribute => $column->isVisibleByDefault(),
+            ])->all(),
         );
         $state = $this->normalizeSort($columns, $state);
         $state = $this->normalizeFilters($filters, $state);
+        $state = $this->normalizeColumns($columns, $state);
         $query = QueryBuilder::for(
             $this->query(),
             $this->queryBuilderRequest($request, $state),
@@ -96,11 +108,22 @@ abstract class Table implements Arrayable
             name: $this->name(),
             columns: array_map(fn (Column $column) => $column->toArray(), $columns),
             filters: array_map(fn (Filter $filter) => $filter->toArray(), $filters),
+            actions: array_map(fn (Action $action) => $action->toArray(), $actions),
+            capabilities: [
+                'searchable' => collect($columns)->contains(fn (Column $column) => $column->isSearchable()),
+                'selectable' => collect($actions)->contains(
+                    fn (Action $action) => in_array($action->toArray()['scope'], ['bulk', 'both'], true)
+                        && $action->toArray()['authorized'],
+                ),
+                'paginated' => true,
+            ],
             state: $state,
             results: $this->paginate($query, $state),
-            reloadProps: $this->reloadProps,
-            debounceTime: (int) config('inertia-table.debounce', 300),
-            perPageOptions: $perPageOptions,
+            options: [
+                'debounceTime' => (int) config('inertia-table.debounce', 300),
+                'perPage' => $perPageOptions,
+                'reloadProps' => $this->reloadProps,
+            ],
         );
     }
 
@@ -149,7 +172,7 @@ abstract class Table implements Arrayable
                 continue;
             }
 
-            $value = $filter->normalize($state->filters[$filter->attribute]);
+            $value = $filter->normalizeState($state->filters[$filter->attribute]);
 
             if ($value === null) {
                 continue;
@@ -159,6 +182,20 @@ abstract class Table implements Arrayable
         }
 
         return $state->withFilters($active);
+    }
+
+    /** @param array<int, Column> $columns */
+    protected function normalizeColumns(array $columns, TableState $state): TableState
+    {
+        $visibility = [];
+
+        foreach ($columns as $column) {
+            $visibility[$column->attribute] = $column->isToggleable()
+                ? ($state->columns[$column->attribute] ?? $column->isVisibleByDefault())
+                : true;
+        }
+
+        return $state->withColumns($visibility);
     }
 
     /**
@@ -207,7 +244,11 @@ abstract class Table implements Arrayable
     protected function queryBuilderRequest(Request $request, TableState $state): Request
     {
         $queryBuilderRequest = Request::createFrom($request);
-        $filter = $state->filters;
+        $filter = collect($state->filters)
+            ->mapWithKeys(fn (array $filter, string $attribute) => [
+                $attribute => $filter['value'],
+            ])
+            ->all();
 
         if ($state->search !== '') {
             $filter['__search'] = $state->search;
@@ -299,5 +340,19 @@ abstract class Table implements Arrayable
         }
 
         return array_values($filters);
+    }
+
+    /** @return array<int, Action> */
+    private function validatedActions(): array
+    {
+        $actions = $this->actions();
+
+        foreach ($actions as $action) {
+            if (! $action instanceof Action) {
+                throw new LogicException('Every table action must be an instance of '.Action::class.'.');
+            }
+        }
+
+        return array_values($actions);
     }
 }

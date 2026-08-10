@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
+use Toolbelt\InertiaTable\Actions\Action;
+use Toolbelt\InertiaTable\Columns\ActionColumn;
 use Toolbelt\InertiaTable\Columns\BooleanColumn;
 use Toolbelt\InertiaTable\Columns\NumberColumn;
 use Toolbelt\InertiaTable\Columns\TextColumn;
@@ -45,6 +47,18 @@ class TopicsTable extends Table
             TextColumn::make('name', 'Name')->searchable()->sortable(),
             NumberColumn::make('score', 'Score')->sortable(),
             BooleanColumn::make('is_featured', 'Featured'),
+            ActionColumn::new(),
+        ];
+    }
+
+    public function actions(): array
+    {
+        return [
+            Action::make('delete')
+                ->bulk()
+                ->destructive()
+                ->endpoint('delete', '/topics/bulk')
+                ->confirm('Delete topics', 'This action cannot be undone.'),
         ];
     }
 
@@ -91,18 +105,38 @@ it('serializes a versioned table resource', function () {
     expect($resource)
         ->schemaVersion->toBe(1)
         ->name->toBe('topics')
-        ->columns->toHaveCount(4)
+        ->columns->toHaveCount(5)
         ->filters->toHaveCount(3)
-        ->debounceTime->toBe(300)
-        ->perPageOptions->toBe([10, 25, 50, 100])
+        ->actions->toHaveCount(1)
+        ->capabilities->toBe([
+            'searchable' => true,
+            'selectable' => true,
+            'paginated' => true,
+        ])
+        ->options->toBe([
+            'debounceTime' => 300,
+            'perPage' => [10, 25, 50, 100],
+            'reloadProps' => [],
+        ])
         ->state->sort->toBe('name')
+        ->state->columns->toBe([
+            'id' => true,
+            'name' => true,
+            'score' => true,
+            'is_featured' => true,
+            '__actions' => true,
+        ])
         ->results->total->toBe(3)
         ->and($resource['columns'][0])
         ->toMatchArray([
             'attribute' => 'id',
-            'type' => 'number',
+            'header' => 'ID',
+            'type' => 'numeric',
             'sortable' => true,
             'toggleable' => false,
+            'visibleByDefault' => true,
+            'alignment' => 'left',
+            'meta' => [],
         ]);
 });
 
@@ -131,13 +165,21 @@ it('keeps commas intact in the global search filter', function () {
 
 it('delegates partial text filtering to spatie query builder', function () {
     $resource = (new TopicsTable)->resolve(tableRequest([
-        'filters' => ['name' => 'amm'],
+        'filters' => ['name' => [
+            'enabled' => true,
+            'clause' => 'contains',
+            'value' => 'amm',
+        ]],
     ]))->toArray();
 
     expect($resource['results']['data'])
         ->toHaveCount(1)
         ->and($resource['results']['data'][0]['name'])->toBe('Gamma')
-        ->and($resource['state']['filters'])->toBe(['name' => 'amm']);
+        ->and($resource['state']['filters'])->toBe(['name' => [
+            'enabled' => true,
+            'clause' => 'contains',
+            'value' => 'amm',
+        ]]);
 });
 
 it('sorts only declared sortable columns', function () {
@@ -154,15 +196,27 @@ it('sorts only declared sortable columns', function () {
 
 it('normalizes and applies declared filters', function () {
     $featured = (new TopicsTable)->resolve(tableRequest([
-        'filters' => ['status' => 'featured'],
+        'filters' => ['status' => [
+            'enabled' => true,
+            'clause' => 'equals',
+            'value' => 'featured',
+        ]],
     ]))->toArray();
     $invalid = (new TopicsTable)->resolve(tableRequest([
-        'filters' => ['status' => 'missing'],
+        'filters' => ['status' => [
+            'enabled' => true,
+            'clause' => 'equals',
+            'value' => 'missing',
+        ]],
     ]))->toArray();
 
     expect(array_column($featured['results']['data'], 'name'))
         ->toBe(['Beta', 'Gamma'])
-        ->and($featured['state']['filters'])->toBe(['status' => 'featured'])
+        ->and($featured['state']['filters'])->toBe(['status' => [
+            'enabled' => true,
+            'clause' => 'equals',
+            'value' => 'featured',
+        ]])
         ->and($invalid['results']['total'])->toBe(3)
         ->and($invalid['state']['filters'])->toBe([]);
 });
@@ -192,7 +246,38 @@ it('declares extra inertia props to reload', function () {
         ->resolve(tableRequest())
         ->toArray();
 
-    expect($resource['reloadProps'])->toBe(['featuredCount', 'trashedCount']);
+    expect($resource['options']['reloadProps'])->toBe(['featuredCount', 'trashedCount']);
+});
+
+it('normalizes column visibility and never hides non-toggleable columns', function () {
+    $resource = (new TopicsTable)->resolve(tableRequest([
+        'columns' => ['id' => '0', 'score' => '0', 'unknown' => '0'],
+    ]))->toArray();
+
+    expect($resource['state']['columns'])
+        ->id->toBeTrue()
+        ->score->toBeFalse()
+        ->not->toHaveKey('unknown');
+});
+
+it('serializes server-declared actions', function () {
+    $resource = (new TopicsTable)->resolve(tableRequest())->toArray();
+
+    expect($resource['actions'][0])->toBe([
+        'key' => 'delete',
+        'label' => 'Delete',
+        'scope' => 'bulk',
+        'authorized' => true,
+        'variant' => 'destructive',
+        'confirmation' => [
+            'title' => 'Delete topics',
+            'message' => 'This action cannot be undone.',
+            'confirmLabel' => 'Confirm',
+            'cancelLabel' => 'Cancel',
+        ],
+        'endpoint' => ['method' => 'delete', 'url' => '/topics/bulk'],
+        'meta' => [],
+    ]);
 });
 
 it('can be passed directly as an inertia prop', function () {

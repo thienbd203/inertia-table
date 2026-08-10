@@ -13,6 +13,11 @@ class SelectFilter extends Filter
 
     protected ?Closure $applyUsing = null;
 
+    public function defaultClause(): string
+    {
+        return 'equals';
+    }
+
     /**
      * @param  array<string|int, string>  $options
      */
@@ -66,7 +71,13 @@ class SelectFilter extends Filter
         return [
             ...parent::toArray(),
             'type' => 'select',
-            'options' => $this->options,
+            'options' => collect($this->options)
+                ->map(fn (string $label, string|int $value) => [
+                    'value' => $value,
+                    'label' => $label,
+                ])
+                ->values()
+                ->all(),
         ];
     }
 }

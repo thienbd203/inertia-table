@@ -6,6 +6,6 @@ class NumberColumn extends Column
 {
     public function toArray(): array
     {
-        return [...parent::toArray(), 'type' => 'number'];
+        return [...parent::toArray(), 'type' => 'numeric'];
     }
 }

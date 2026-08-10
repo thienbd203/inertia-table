@@ -89,6 +89,7 @@ type TableResource<T> = {
     options: {
         debounceTime: number;
         perPage: number[];
+        reloadProps: string[];
     };
 };
 ```

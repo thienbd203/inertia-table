@@ -15,6 +15,13 @@ class Column implements Arrayable
 
     protected bool $toggleable = true;
 
+    protected bool $visibleByDefault = true;
+
+    protected ColumnAlignment $alignment = ColumnAlignment::Left;
+
+    /** @var array<string, mixed> */
+    protected array $meta = [];
+
     final public function __construct(
         public readonly string $attribute,
         public readonly string $label,
@@ -46,6 +53,43 @@ class Column implements Arrayable
         return $this;
     }
 
+    public function visible(bool $visible = true): static
+    {
+        $this->visibleByDefault = $visible;
+
+        return $this;
+    }
+
+    public function align(ColumnAlignment $alignment): static
+    {
+        $this->alignment = $alignment;
+
+        return $this;
+    }
+
+    public function leftAligned(): static
+    {
+        return $this->align(ColumnAlignment::Left);
+    }
+
+    public function centerAligned(): static
+    {
+        return $this->align(ColumnAlignment::Center);
+    }
+
+    public function rightAligned(): static
+    {
+        return $this->align(ColumnAlignment::Right);
+    }
+
+    /** @param array<string, mixed> $meta */
+    public function meta(array $meta): static
+    {
+        $this->meta = $meta;
+
+        return $this;
+    }
+
     public function isSearchable(): bool
     {
         return $this->searchable;
@@ -54,6 +98,16 @@ class Column implements Arrayable
     public function isSortable(): bool
     {
         return $this->sortable;
+    }
+
+    public function isToggleable(): bool
+    {
+        return $this->toggleable;
+    }
+
+    public function isVisibleByDefault(): bool
+    {
+        return $this->visibleByDefault;
     }
 
     public function applySearch(Builder $query, string $search, string $boolean = 'or'): void
@@ -78,11 +132,13 @@ class Column implements Arrayable
     {
         return [
             'attribute' => $this->attribute,
-            'label' => $this->label,
+            'header' => $this->label,
             'type' => 'text',
-            'searchable' => $this->searchable,
             'sortable' => $this->sortable,
             'toggleable' => $this->toggleable,
+            'visibleByDefault' => $this->visibleByDefault,
+            'alignment' => $this->alignment->value,
+            'meta' => $this->meta,
         ];
     }
 }
