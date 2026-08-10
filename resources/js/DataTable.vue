@@ -3,6 +3,12 @@ import { Link } from "@inertiajs/vue3";
 import { computed, toRef } from "vue";
 import { UiButton } from "./components/ui/button";
 import { UiCheckbox } from "./components/ui/checkbox";
+import {
+    UiDropdownMenu,
+    UiDropdownMenuCheckboxItem,
+    UiDropdownMenuContent,
+    UiDropdownMenuTrigger,
+} from "./components/ui/dropdown-menu";
 import { UiInput } from "./components/ui/input";
 import { UiSelect } from "./components/ui/select";
 import {
@@ -127,34 +133,32 @@ function displayValue(
                             {{ action.label }}
                         </UiButton>
                     </slot>
-                    <details
+                    <UiDropdownMenu
                         v-if="
                             resource.columns.some((column) => column.toggleable)
                         "
-                        class="tb-column-toggle"
                     >
-                        <summary>Columns</summary>
-                        <div class="tb-column-toggle-panel">
-                            <label
+                        <UiDropdownMenuTrigger>
+                            <UiButton variant="outline">Columns</UiButton>
+                        </UiDropdownMenuTrigger>
+                        <UiDropdownMenuContent>
+                            <UiDropdownMenuCheckboxItem
                                 v-for="column in resource.columns.filter(
                                     (candidate) => candidate.toggleable,
                                 )"
                                 :key="column.attribute"
+                                :model-value="
+                                    resource.state.columns[column.attribute] !==
+                                    false
+                                "
+                                @update:model-value="
+                                    table.toggleColumn(column.attribute)
+                                "
                             >
-                                <UiCheckbox
-                                    :model-value="
-                                        resource.state.columns[
-                                            column.attribute
-                                        ] !== false
-                                    "
-                                    @update:model-value="
-                                        table.toggleColumn(column.attribute)
-                                    "
-                                />
-                                <span>{{ column.header }}</span>
-                            </label>
-                        </div>
-                    </details>
+                                {{ column.header }}
+                            </UiDropdownMenuCheckboxItem>
+                        </UiDropdownMenuContent>
+                    </UiDropdownMenu>
                     <slot name="afterActions" v-bind="scope" />
                 </div>
             </div>
@@ -585,40 +589,6 @@ function displayValue(
 .tb-confirmation-actions {
     justify-content: flex-end;
     margin-top: 1.5rem;
-}
-
-.tb-column-toggle {
-    position: relative;
-}
-
-.tb-column-toggle > summary {
-    height: 2.25rem;
-    padding: 0.45rem 0.75rem;
-    list-style: none;
-    cursor: pointer;
-    border: 1px solid var(--border, #e4e4e7);
-    border-radius: calc(var(--radius, 0.625rem) - 2px);
-}
-
-.tb-column-toggle-panel {
-    position: absolute;
-    z-index: 20;
-    top: calc(100% + 0.375rem);
-    right: 0;
-    display: grid;
-    min-width: 12rem;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    background: var(--popover, white);
-    border: 1px solid var(--border, #e4e4e7);
-    border-radius: calc(var(--radius, 0.625rem) - 2px);
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%);
-}
-
-.tb-column-toggle-panel label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 
 .tb-selected-count {

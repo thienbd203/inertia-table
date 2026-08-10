@@ -21,6 +21,11 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import DataTable from "../resources/js/DataTable.vue";
+import {
+    UiDropdownMenu,
+    UiDropdownMenuContent,
+    UiDropdownMenuTrigger,
+} from "../resources/js/components/ui/dropdown-menu";
 
 describe("DataTable shadcn renderer", () => {
     beforeEach(() => listeners.clear());
@@ -72,5 +77,21 @@ describe("DataTable shadcn renderer", () => {
         expect(wrapper.get("[data-custom-delete]").text()).toBe("Remove 0");
         expect(wrapper.text()).not.toContain("Delete");
         expect(wrapper.text()).toContain("Edit");
+    });
+
+    it("renders the column chooser with shadcn dropdown primitives", () => {
+        const wrapper = mount(DataTable, {
+            props: { resource: topicResource() },
+            global: { stubs: { Teleport: true } },
+        });
+
+        expect(wrapper.findComponent(UiDropdownMenu).exists()).toBe(true);
+        expect(wrapper.findComponent(UiDropdownMenuTrigger).text()).toBe(
+            "Columns",
+        );
+        expect(wrapper.findComponent(UiDropdownMenuContent).exists()).toBe(
+            true,
+        );
+        expect(wrapper.find("details").exists()).toBe(false);
     });
 });
