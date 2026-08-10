@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { X } from "@lucide/vue";
 import { computed, ref, watch } from "vue";
-import { UiButton } from "@/components/ui/button";
 import { UiInput } from "@/components/ui/input";
 import {
     UiPopover,
@@ -13,6 +12,7 @@ import { useTableContext } from "@/context/tableContext";
 import { clauseSymbol, filterDisplayValue } from "@/filters";
 import type { TableFilter } from "@/types";
 import SlotOutlet from "./SlotOutlet";
+import { Filter } from "@lucide/vue";
 
 const props = defineProps<{ filter: TableFilter }>();
 const emit = defineEmits<{ remove: [] }>();
@@ -54,6 +54,9 @@ const valueOptions = computed(() =>
               value: String(option.value),
           })),
 );
+const isRangeClause = computed(() =>
+    ["between", "not_between"].includes(clause.value),
+);
 
 function apply(nextValue: unknown = value.value) {
     value.value = nextValue;
@@ -70,29 +73,43 @@ function updateClause(nextClause: string) {
 function setDisplayValue(nextValue: string | null) {
     displayValue.value = nextValue;
 }
+
+function rangeValue(index: 0 | 1): string {
+    return Array.isArray(value.value) ? String(value.value[index] ?? "") : "";
+}
+
+function updateRangeValue(index: 0 | 1, nextValue: string | number) {
+    const nextRange = [rangeValue(0), rangeValue(1)];
+    nextRange[index] = String(nextValue);
+    value.value = nextRange;
+
+    if (nextRange[0] !== "" && nextRange[1] !== "") {
+        apply(nextRange);
+    }
+}
 </script>
 
 <template>
     <div class="tb-active-filter">
         <UiPopover>
-            <UiPopoverTrigger as-child>
+            <UiPopoverTrigger
+                as-child
+                class="flex items-center rounded-md border border-gray-400 bg-gray-200/75 text-xs font-medium text-gray-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            >
                 <div
-                    class="tb-filter-chip"
+                    class="tb-filter-chip space-x-1 py-1 ps-2 text-sm font-medium"
                     role="button"
                     tabindex="0"
                     :aria-label="`Edit ${filter.label} filter`"
                 >
                     <span>{{ filter.label }}</span>
-                    <span
-                        v-if="filter.showClause !== false"
-                        class="tb-filter-symbol"
-                    >
+                    <span class="tb-filter-symbol">
                         {{ clauseSymbol(clause) }}
                     </span>
                     <em v-if="display">{{ display }}</em>
                     <button
                         type="button"
-                        class="tb-remove-filter"
+                        class="tb-remove-filter ms-2 h-full py-1 pe-2 text-gray-500 transition-colors hover:text-red-500"
                         :aria-label="`Remove ${filter.label} filter`"
                         @click.stop="emit('remove')"
                     >
@@ -111,25 +128,37 @@ function setDisplayValue(nextValue: string | null) {
                         table,
                     }"
                 >
-                    <div class="tb-filter-editor">
-                        <UiSelect
+                    <div class="tb-filter-editor gap-2">
+                        <div
                             v-if="
                                 filter.showClause !== false &&
                                 clauseOptions.length > 1
                             "
-                            :model-value="clause"
-                            :options="clauseOptions"
-                            @update:model-value="updateClause"
-                        />
-                        <UiSelect
+                            class="flex items-center gap-2"
+                        >
+                            <Filter class="size-5" />
+                            <UiSelect
+                                :model-value="clause"
+                                :options="clauseOptions"
+                                @update:model-value="updateClause"
+                                class="w-full"
+                            />
+                        </div>
+                        <div
                             v-if="
                                 filter.type === 'select' ||
                                 filter.type === 'set'
                             "
-                            :model-value="String(value)"
-                            :options="valueOptions"
-                            @update:model-value="apply"
-                        />
+                            class="flex items-center gap-2"
+                        >
+                            <Filter class="size-5" />
+                            <UiSelect
+                                :model-value="String(value)"
+                                :options="valueOptions"
+                                @update:model-value="apply"
+                                class="w-full"
+                            />
+                        </div>
                         <span
                             v-else-if="
                                 [
@@ -143,12 +172,40 @@ function setDisplayValue(nextValue: string | null) {
                         >
                             This filter does not require a value.
                         </span>
+                        <div v-else-if="isRangeClause" class="tb-filter-range">
+                            <UiInput
+                                :type="
+                                    filter.type === 'date' ? 'date' : 'number'
+                                "
+                                :model-value="rangeValue(0)"
+                                @update:model-value="
+                                    (nextValue) =>
+                                        updateRangeValue(0, nextValue)
+                                "
+                            />
+                            <span aria-hidden="true">–</span>
+                            <UiInput
+                                :type="
+                                    filter.type === 'date' ? 'date' : 'number'
+                                "
+                                :model-value="rangeValue(1)"
+                                @update:model-value="
+                                    (nextValue) =>
+                                        updateRangeValue(1, nextValue)
+                                "
+                            />
+                        </div>
                         <UiInput
                             v-else
-                            :model-value="String(value)"
-                            @change="
-                                apply(($event.target as HTMLInputElement).value)
+                            :type="
+                                filter.type === 'date'
+                                    ? 'date'
+                                    : filter.type === 'numeric'
+                                      ? 'number'
+                                      : 'text'
                             "
+                            :model-value="String(value)"
+                            @update:model-value="apply"
                         />
                     </div>
                 </SlotOutlet>

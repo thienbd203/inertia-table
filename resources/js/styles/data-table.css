@@ -104,6 +104,13 @@
     gap: 0.75rem;
 }
 
+.tb-filter-range {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .tb-table-container {
     position: relative;
     overflow-x: auto;

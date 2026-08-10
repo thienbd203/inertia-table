@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { UiButton } from "@/components/ui/button";
 import { useTableContext } from "@/context/tableContext";
 import { computed } from "vue";
 import ActiveFilter from "./ActiveFilter.vue";
 
-const { resource, activeFilterAttributes, removeFilter, clearFilters } =
-    useTableContext();
+const { resource, activeFilterAttributes, removeFilter } = useTableContext();
 const activeFilters = computed(() =>
     activeFilterAttributes.value
         .map((attribute) =>
@@ -28,8 +26,5 @@ const activeFilters = computed(() =>
             :filter="filter"
             @remove="removeFilter(filter.attribute)"
         />
-        <UiButton variant="ghost" size="sm" @click="clearFilters">
-            Clear filters
-        </UiButton>
     </div>
 </template>
