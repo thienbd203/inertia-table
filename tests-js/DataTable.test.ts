@@ -267,4 +267,25 @@ describe("DataTable shadcn renderer", () => {
         expect(wrapper.find(".tb-image-rounded").exists()).toBe(true);
         expect(wrapper.get("[data-image-fallback]").text()).toBe("Fallback");
     });
+
+    it("only navigates a row when the server declares a row URL", async () => {
+        const { router } = await import("@inertiajs/vue3");
+        const visit = vi.mocked(router.visit);
+        visit.mockClear();
+        const resource = topicResource();
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        await wrapper.findAll("tbody tr")[0].trigger("click");
+        expect(visit).toHaveBeenCalledWith(
+            "/topics/1",
+            expect.objectContaining({ method: "get" }),
+        );
+
+        visit.mockClear();
+        await wrapper.findAll("tbody tr")[1].trigger("click");
+        expect(visit).not.toHaveBeenCalled();
+    });
 });

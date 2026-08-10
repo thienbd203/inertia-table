@@ -5,7 +5,11 @@ export function cellValue(item: TableItem, attribute: string): unknown {
 }
 
 export function cellUrl(item: TableItem, attribute: string): string | null {
-    return item._table?.columns[attribute] ?? item._table?.url ?? null;
+    return item._table?.columns[attribute] ?? null;
+}
+
+export function rowUrl(item: TableItem): string | null {
+    return item._table?.url ?? null;
 }
 
 export function displayValue(item: TableItem, column: TableColumn): unknown {

@@ -1,15 +1,35 @@
 <script setup lang="ts">
-import { Link } from "@inertiajs/vue3";
+import { Link, router } from "@inertiajs/vue3";
 import { UiCheckbox } from "@/components/ui/checkbox";
 import { UiTableBody, UiTableCell, UiTableRow } from "@/components/ui/table";
 import { useTableContext } from "@/context/tableContext";
-import { cellUrl, cellValue } from "@/helpers/cells";
+import { cellUrl, cellValue, rowUrl } from "@/helpers/cells";
+import type { TableItem } from "@/types";
 import SlotOutlet from "./SlotOutlet";
 import TableActionButton from "./TableActionButton.vue";
 import TableCellContent from "./TableCellContent.vue";
 
 defineProps<{ canSelect: boolean }>();
 const { resource, table, actions } = useTableContext();
+
+function handleRowClick(event: MouseEvent, item: TableItem) {
+    const url = rowUrl(item);
+    if (!url || event.defaultPrevented) return;
+
+    const target = event.target;
+    if (
+        target instanceof Element &&
+        target.closest("a, button, input, select, textarea, [role=checkbox]")
+    ) {
+        return;
+    }
+
+    router.visit(url, {
+        method: "get",
+        preserveScroll: true,
+        preserveState: true,
+    });
+}
 </script>
 
 <template>
@@ -29,6 +49,9 @@ const { resource, table, actions } = useTableContext();
             v-else
             :key="String(item.id ?? index)"
             :data-selected="actions.isItemSelected(item, index) || undefined"
+            :data-row-clickable="rowUrl(item) ? true : undefined"
+            :class="rowUrl(item) ? 'tb-row-clickable' : undefined"
+            @click="handleRowClick($event, item)"
         >
             <UiTableCell v-if="canSelect" class="tb-selection-cell">
                 <UiCheckbox

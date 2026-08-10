@@ -95,6 +95,10 @@
     background: var(--muted, #f4f4f5);
 }
 
+.tb-table .tb-row-clickable {
+    cursor: pointer;
+}
+
 .tb-selection-cell {
     width: 1%;
     white-space: nowrap;
