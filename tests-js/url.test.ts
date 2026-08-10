@@ -11,7 +11,14 @@ describe("tableUrl", () => {
             {
                 search: "life",
                 sort: "-name",
-                filters: { status: "featured" },
+                filters: {
+                    status: {
+                        enabled: true,
+                        clause: "equals",
+                        value: "featured",
+                    },
+                },
+                columns: { name: true, is_featured: false },
                 page: 2,
                 perPage: 50,
             },
@@ -22,9 +29,18 @@ describe("tableUrl", () => {
         expect(parsed.searchParams.get("table[authors][page]")).toBe("3");
         expect(parsed.searchParams.get("table[topics][search]")).toBe("life");
         expect(parsed.searchParams.get("table[topics][sort]")).toBe("-name");
-        expect(parsed.searchParams.get("table[topics][filters][status]")).toBe(
-            "featured",
-        );
+        expect(
+            parsed.searchParams.get("table[topics][filters][status][enabled]"),
+        ).toBe("1");
+        expect(
+            parsed.searchParams.get("table[topics][filters][status][clause]"),
+        ).toBe("equals");
+        expect(
+            parsed.searchParams.get("table[topics][filters][status][value]"),
+        ).toBe("featured");
+        expect(
+            parsed.searchParams.get("table[topics][columns][is_featured]"),
+        ).toBe("0");
         expect(parsed.searchParams.get("table[topics][page]")).toBe("2");
         expect(parsed.searchParams.get("table[topics][perPage]")).toBe("50");
     });
@@ -34,6 +50,7 @@ describe("tableUrl", () => {
             search: "",
             sort: null,
             filters: {},
+            columns: { name: true, is_featured: true },
             page: 1,
             perPage: 25,
         });

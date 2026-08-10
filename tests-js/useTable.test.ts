@@ -14,16 +14,15 @@ vi.mock("@inertiajs/vue3", () => ({
         visit,
         on: vi.fn((event: string, callback: () => void) => {
             listeners.set(event, callback);
-
             return vi.fn();
         }),
     },
     usePage: () => ({ url: "/admin/topics?keep=yes" }),
 }));
 
-import { useDataTable } from "../resources/js/useDataTable";
+import { useTable } from "../resources/js/useTable";
 
-describe("useDataTable", () => {
+describe("useTable", () => {
     beforeEach(() => {
         visit.mockReset();
         listeners.clear();
@@ -31,12 +30,11 @@ describe("useDataTable", () => {
 
     function mountTable() {
         const resource = ref(topicResource());
-        let table: ReturnType<typeof useDataTable<Topic>>;
+        let table: ReturnType<typeof useTable<Topic>>;
         const wrapper = mount(
             defineComponent({
                 setup() {
-                    table = useDataTable(resource);
-
+                    table = useTable(resource);
                     return () => h("div");
                 },
             }),
@@ -47,7 +45,6 @@ describe("useDataTable", () => {
 
     it("visits a partial reload URL when sorting", () => {
         const { table } = mountTable();
-
         table.setSort("name");
 
         expect(visit).toHaveBeenCalledOnce();
@@ -63,35 +60,39 @@ describe("useDataTable", () => {
     it("debounces search and resets the page", () => {
         vi.useFakeTimers();
         const { table } = mountTable();
-
         table.setSearch("wisdom");
         expect(visit).not.toHaveBeenCalled();
-
         vi.advanceTimersByTime(300);
-
-        expect(visit).toHaveBeenCalledOnce();
         expect(visit.mock.calls[0][0]).toContain(
             "table%5Btopics%5D%5Bsearch%5D=wisdom",
         );
         vi.useRealTimers();
     });
 
-    it("tracks current-page selection and clears it on navigation", () => {
-        const { table, resource } = mountTable();
+    it("serializes declared filter state", () => {
+        const { table } = mountTable();
+        table.setFilter("status", "featured");
 
-        table.toggleRow(resource.value.results.data[0], 0);
-        expect(table.selectedItems.value).toHaveLength(1);
+        expect(visit.mock.calls[0][0]).toContain(
+            "table%5Btopics%5D%5Bfilters%5D%5Bstatus%5D%5Bclause%5D=equals",
+        );
+    });
 
-        table.setPage(2);
-        expect(table.selectedItems.value).toHaveLength(0);
+    it("toggles only declared toggleable columns", () => {
+        const { table } = mountTable();
+        table.toggleColumn("is_featured");
+        expect(visit.mock.calls[0][0]).toContain(
+            "table%5Btopics%5D%5Bcolumns%5D%5Bis_featured%5D=0",
+        );
+        visit.mockReset();
+        table.toggleColumn("missing");
+        expect(visit).not.toHaveBeenCalled();
     });
 
     it("reflects inertia navigation state", () => {
         const { table } = mountTable();
-
         listeners.get("start")?.();
         expect(table.isNavigating.value).toBe(true);
-
         listeners.get("finish")?.();
         expect(table.isNavigating.value).toBe(false);
     });

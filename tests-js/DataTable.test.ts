@@ -27,7 +27,6 @@ describe("DataTable shadcn renderer", () => {
         const wrapper = mount(DataTable, {
             props: {
                 resource: topicResource(),
-                selectable: true,
             },
             global: {
                 stubs: { Teleport: true },

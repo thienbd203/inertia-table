@@ -1,5 +1,8 @@
+import "./components/ui/ui.css";
+
 export { default as DataTable } from "./DataTable.vue";
-export { useDataTable } from "./useDataTable";
+export { useActions } from "./useActions";
+export { useTable } from "./useTable";
 export { tableUrl } from "./url";
 export {
     UiButton,
@@ -18,10 +21,13 @@ export type {
     DataTableOptions,
     PaginationLink,
     TableColumn,
+    TableAction,
     TableFilter,
+    TableFilterState,
     TableItem,
     TableKey,
     TableResource,
     TableResults,
     TableState,
+    TableOptions,
 } from "./types";

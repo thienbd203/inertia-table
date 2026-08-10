@@ -6,26 +6,59 @@ export type TableItem = {
 
 export type TableColumn = {
     attribute: string;
-    label: string;
-    type: "text" | "number" | "boolean" | "date" | string;
-    searchable: boolean;
+    header: string;
+    type: "text" | "numeric" | "boolean" | "date" | "action" | string;
     sortable: boolean;
     toggleable: boolean;
+    visibleByDefault: boolean;
+    alignment: "left" | "center" | "right";
+    meta: Record<string, unknown>;
 };
 
-export type TableFilterOption = string | number;
+export type TableFilterOption = {
+    value: string | number | boolean;
+    label: string;
+};
 
 export type TableFilter = {
     attribute: string;
     label: string;
     type: "text" | "select" | "boolean" | string;
-    options?: Record<string, string> | string[];
+    clauses: string[];
+    options: TableFilterOption[];
+    meta: Record<string, unknown>;
+};
+
+export type TableFilterState = {
+    enabled: boolean;
+    clause: string;
+    value: unknown;
+};
+
+export type TableAction = {
+    key: string;
+    label: string;
+    scope: "row" | "bulk" | "both";
+    authorized: boolean;
+    variant: "default" | "destructive";
+    confirmation: null | {
+        title: string;
+        message: string;
+        confirmLabel: string;
+        cancelLabel: string;
+    };
+    endpoint: {
+        method: "post" | "patch" | "delete";
+        url: string;
+    };
+    meta: Record<string, unknown>;
 };
 
 export type TableState = {
     search: string;
     sort: string | null;
-    filters: Record<string, unknown>;
+    filters: Record<string, TableFilterState>;
+    columns: Record<string, boolean>;
     page: number;
     perPage: number;
 };
@@ -52,13 +85,23 @@ export type TableResource<T extends TableItem = TableItem> = {
     name: string;
     columns: TableColumn[];
     filters: TableFilter[];
+    actions: TableAction[];
+    capabilities: {
+        searchable: boolean;
+        selectable: boolean;
+        paginated: boolean;
+    };
     state: TableState;
     results: TableResults<T>;
-    reloadProps: string[];
-    debounceTime: number;
-    perPageOptions: number[];
+    options: {
+        debounceTime: number;
+        perPage: number[];
+        reloadProps: string[];
+    };
 };
 
-export type DataTableOptions<T extends TableItem> = {
+export type TableOptions<T extends TableItem> = {
     rowKey?: (item: T, index: number) => TableKey;
 };
+
+export type DataTableOptions<T extends TableItem> = TableOptions<T>;

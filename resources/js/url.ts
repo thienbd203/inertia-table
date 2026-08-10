@@ -6,8 +6,13 @@ function stateKey(table: string, key: string): string {
     return `table[${table}][${key}]`;
 }
 
-function filterKey(table: string, filter: string): string {
-    return `table[${table}][filters][${filter}]`;
+function nestedKey(
+    table: string,
+    group: string,
+    key: string,
+    leaf?: string,
+): string {
+    return `table[${table}][${group}][${key}]${leaf ? `[${leaf}]` : ""}`;
 }
 
 export function tableUrl<T extends TableItem>(
@@ -40,10 +45,22 @@ export function tableUrl<T extends TableItem>(
 
     params.set(stateKey(table, "perPage"), String(state.perPage));
 
-    for (const [attribute, value] of Object.entries(state.filters)) {
-        if (value !== null && value !== undefined && value !== "") {
-            params.set(filterKey(table, attribute), String(value));
-        }
+    for (const [attribute, filter] of Object.entries(state.filters)) {
+        if (!filter.enabled) continue;
+
+        params.set(nestedKey(table, "filters", attribute, "enabled"), "1");
+        params.set(
+            nestedKey(table, "filters", attribute, "clause"),
+            filter.clause,
+        );
+        params.set(
+            nestedKey(table, "filters", attribute, "value"),
+            String(filter.value),
+        );
+    }
+
+    for (const [attribute, visible] of Object.entries(state.columns)) {
+        params.set(nestedKey(table, "columns", attribute), visible ? "1" : "0");
     }
 
     return `${url.pathname}${url.search}${url.hash}`;
