@@ -14,6 +14,7 @@ Server-driven data tables for Laravel and Inertia.js, powered by [Spatie Laravel
 - Laravel 12 or 13
 - Inertia Laravel 2 or 3
 - Spatie Laravel Query Builder 7
+- Vue 3.4+, Reka UI 2.10+, and `@lucide/vue` 1.30+
 
 ## Installation
 
@@ -92,6 +93,8 @@ return inertia('Admin/Topics/Index', [
 ```
 
 Render the resource in Vue:
+
+The default renderer ships with its own minimal shadcn-vue component set built on Reka UI. It uses shadcn CSS variables such as `--background`, `--foreground`, `--primary`, `--border`, and `--radius`, so it follows the host application's theme without importing components through an application-specific alias.
 
 ```vue
 <script setup lang="ts">

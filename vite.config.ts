@@ -12,7 +12,7 @@ export default defineConfig({
             cssFileName: "inertia-table",
         },
         rollupOptions: {
-            external: ["vue", "@inertiajs/vue3"],
+            external: ["vue", "@inertiajs/vue3", "@lucide/vue", "reka-ui"],
         },
     },
     test: {
