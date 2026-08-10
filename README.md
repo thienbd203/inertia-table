@@ -153,7 +153,7 @@ Render the resource in Vue. The renderer vendors the shadcn-vue component source
 
 ```css
 /* resources/css/app.css */
-@source '../node_modules/@toolbelt/inertia-table-vue/resources/js/**/*.vue';
+@source '../../node_modules/@toolbelt/inertia-table-vue/resources/js/**/*.vue';
 ```
 
 ```vue
