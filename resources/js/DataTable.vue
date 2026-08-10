@@ -102,22 +102,31 @@ function displayValue(
                     >
                         {{ actions.selectedItems.value.length }} selected
                     </span>
-                    <UiButton
+                    <slot
                         v-for="action in actions.bulkActions.value"
                         :key="action.key"
-                        :variant="
-                            action.variant === 'destructive'
-                                ? 'outline'
-                                : 'default'
-                        "
-                        :disabled="
-                            actions.selectedItems.value.length === 0 ||
-                            actions.isPerformingAction.value
-                        "
-                        @click="actions.performAction(action)"
+                        :name="`action(${action.key})`"
+                        :action="action"
+                        :item="null"
+                        :selected-items="actions.selectedItems.value"
+                        :execute="() => actions.performAction(action)"
+                        v-bind="scope"
                     >
-                        {{ action.label }}
-                    </UiButton>
+                        <UiButton
+                            :variant="
+                                action.variant === 'destructive'
+                                    ? 'outline'
+                                    : 'default'
+                            "
+                            :disabled="
+                                actions.selectedItems.value.length === 0 ||
+                                actions.isPerformingAction.value
+                            "
+                            @click="actions.performAction(action)"
+                        >
+                            {{ action.label }}
+                        </UiButton>
+                    </slot>
                     <details
                         v-if="
                             resource.columns.some((column) => column.toggleable)
@@ -323,27 +332,44 @@ function displayValue(
                                             v-if="column.type === 'action'"
                                             class="tb-row-actions"
                                         >
-                                            <UiButton
+                                            <slot
                                                 v-for="action in actions.rowActionsFor(
                                                     item,
                                                 )"
                                                 :key="action.key"
-                                                :variant="
-                                                    action.variant ===
-                                                    'destructive'
-                                                        ? 'outline'
-                                                        : 'ghost'
+                                                :name="`action(${action.key})`"
+                                                :action="action"
+                                                :item="item"
+                                                :selected-items="
+                                                    actions.selectedItems.value
                                                 "
-                                                size="sm"
-                                                @click="
-                                                    actions.performAction(
-                                                        action,
-                                                        item,
-                                                    )
+                                                :execute="
+                                                    () =>
+                                                        actions.performAction(
+                                                            action,
+                                                            item,
+                                                        )
                                                 "
+                                                v-bind="scope"
                                             >
-                                                {{ action.label }}
-                                            </UiButton>
+                                                <UiButton
+                                                    :variant="
+                                                        action.variant ===
+                                                        'destructive'
+                                                            ? 'outline'
+                                                            : 'ghost'
+                                                    "
+                                                    size="sm"
+                                                    @click="
+                                                        actions.performAction(
+                                                            action,
+                                                            item,
+                                                        )
+                                                    "
+                                                >
+                                                    {{ action.label }}
+                                                </UiButton>
+                                            </slot>
                                         </div>
                                         <Link
                                             v-else-if="

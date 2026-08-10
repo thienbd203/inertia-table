@@ -1,4 +1,5 @@
 import { mount } from "@vue/test-utils";
+import { h } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { topicResource } from "./fixtures";
 
@@ -48,5 +49,28 @@ describe("DataTable shadcn renderer", () => {
         expect(wrapper.text()).toContain("Edit");
         expect(wrapper.text()).toContain("Delete");
         expect(wrapper.text()).toContain("Columns");
+    });
+
+    it("allows one action renderer to be replaced by its dynamic slot", () => {
+        const wrapper = mount(DataTable, {
+            props: { resource: topicResource() },
+            slots: {
+                "action(delete)": ({
+                    selectedItems,
+                }: {
+                    selectedItems: unknown[];
+                }) =>
+                    h(
+                        "button",
+                        { "data-custom-delete": "" },
+                        `Remove ${selectedItems.length}`,
+                    ),
+            },
+            global: { stubs: { Teleport: true } },
+        });
+
+        expect(wrapper.get("[data-custom-delete]").text()).toBe("Remove 0");
+        expect(wrapper.text()).not.toContain("Delete");
+        expect(wrapper.text()).toContain("Edit");
     });
 });
