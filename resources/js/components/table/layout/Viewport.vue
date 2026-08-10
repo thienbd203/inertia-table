@@ -2,9 +2,9 @@
 import { computed } from "vue";
 import { UiTable } from "@/components/ui/table";
 import { useTableContext } from "@/context/tableContext";
-import SlotOutlet from "./SlotOutlet";
-import TableBody from "./TableBody.vue";
-import TableHeader from "./TableHeader.vue";
+import { Header } from "../columns";
+import { Body } from "../rows";
+import { SlotOutlet } from "../shared";
 
 const { resource, table, actions } = useTableContext();
 const canSelect = computed(
@@ -19,10 +19,10 @@ const canSelect = computed(
         <SlotOutlet name="table">
             <UiTable class="tb-table">
                 <SlotOutlet name="thead">
-                    <TableHeader :can-select="canSelect" />
+                    <Header :can-select="canSelect" />
                 </SlotOutlet>
                 <SlotOutlet name="tbody">
-                    <TableBody :can-select="canSelect" />
+                    <Body :can-select="canSelect" />
                 </SlotOutlet>
             </UiTable>
         </SlotOutlet>

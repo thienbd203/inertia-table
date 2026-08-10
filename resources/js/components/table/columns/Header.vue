@@ -11,7 +11,7 @@ import {
 import { UiTableHead, UiTableHeader, UiTableRow } from "@/components/ui/table";
 import { useTableContext } from "@/context/tableContext";
 import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from "@lucide/vue";
-import SlotOutlet from "./SlotOutlet";
+import { SlotOutlet } from "../shared";
 
 defineProps<{ canSelect: boolean }>();
 const { resource, table, actions } = useTableContext();

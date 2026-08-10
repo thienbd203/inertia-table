@@ -5,9 +5,9 @@ import { UiTableBody, UiTableCell, UiTableRow } from "@/components/ui/table";
 import { useTableContext } from "@/context/tableContext";
 import { cellUrl, cellValue, rowUrl } from "@/helpers/cells";
 import type { TableItem } from "@/types";
-import SlotOutlet from "./SlotOutlet";
-import TableActionButton from "./TableActionButton.vue";
-import TableCellContent from "./TableCellContent.vue";
+import { ActionButton } from "../actions";
+import { CellContent } from "../cells";
+import { SlotOutlet } from "../shared";
 
 defineProps<{ canSelect: boolean }>();
 const { resource, table, actions } = useTableContext();
@@ -98,7 +98,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                                     actions.performAction(action, item),
                             }"
                         >
-                            <TableActionButton :action="action" :item="item" />
+                            <ActionButton :action="action" :item="item" />
                         </SlotOutlet>
                     </div>
                     <Link
@@ -106,9 +106,9 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                         :href="cellUrl(item, column.attribute) ?? '#'"
                         class="tb-cell-link"
                     >
-                        <TableCellContent :item="item" :column="column" />
+                        <CellContent :item="item" :column="column" />
                     </Link>
-                    <TableCellContent v-else :item="item" :column="column" />
+                    <CellContent v-else :item="item" :column="column" />
                 </SlotOutlet>
             </UiTableCell>
         </UiTableRow>

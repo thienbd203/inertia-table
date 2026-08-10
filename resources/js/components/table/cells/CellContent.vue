@@ -4,7 +4,7 @@ import { useTableContext } from "@/context/tableContext";
 import { cellMeta, cellValue, displayValue } from "@/helpers/cells";
 import { resolveIcon } from "@/icons";
 import type { TableColumn, TableItem } from "@/types";
-import SlotOutlet from "./SlotOutlet";
+import { SlotOutlet } from "../shared";
 
 const props = defineProps<{ item: TableItem; column: TableColumn }>();
 const { iconResolver } = useTableContext();

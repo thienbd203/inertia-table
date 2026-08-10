@@ -8,8 +8,8 @@ import {
     UiDropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTableContext } from "@/context/tableContext";
-import SlotOutlet from "./SlotOutlet";
-import TableActionMenuItem from "./TableActionMenuItem.vue";
+import { SlotOutlet } from "../shared";
+import ActionMenuItem from "./ActionMenuItem.vue";
 import { Wrench } from "@lucide/vue";
 
 const { actions } = useTableContext();
@@ -36,7 +36,7 @@ const { actions } = useTableContext();
                     execute: () => actions.performAction(action),
                 }"
             >
-                <TableActionMenuItem :action="action" />
+                <ActionMenuItem :action="action" />
             </SlotOutlet>
         </UiDropdownMenuContent>
     </UiDropdownMenu>

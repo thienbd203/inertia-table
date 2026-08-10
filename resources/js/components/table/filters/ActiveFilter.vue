@@ -11,7 +11,7 @@ import { UiSelect } from "@/components/ui/select";
 import { useTableContext } from "@/context/tableContext";
 import { clauseSymbol, filterDisplayValue } from "@/filters";
 import type { TableFilter } from "@/types";
-import SlotOutlet from "./SlotOutlet";
+import { SlotOutlet } from "../shared";
 import { Filter } from "@lucide/vue";
 
 const props = defineProps<{ filter: TableFilter }>();

@@ -1,11 +1,9 @@
 <script setup lang="ts" generic="T extends TableItem">
 import { computed, ref, toRef, useSlots, watch } from "vue";
-import TableConfirmation from "@/components/table/TableConfirmation.vue";
-import TableFilters from "@/components/table/TableFilters.vue";
-import TablePagination from "@/components/table/TablePagination.vue";
-import SlotOutlet from "@/components/table/SlotOutlet";
-import TableToolbar from "@/components/table/TableToolbar.vue";
-import TableViewport from "@/components/table/TableViewport.vue";
+import { Confirmation } from "@/components/table/actions";
+import { FilterList } from "@/components/table/filters";
+import { Pagination, Toolbar, Viewport } from "@/components/table/layout";
+import { SlotOutlet } from "@/components/table/shared";
 import { provideTableContext } from "@/context/tableContext";
 import type { IconResolver } from "@/icons";
 import "@/styles/data-table.css";
@@ -91,18 +89,18 @@ provideTableContext({
 
 <template>
     <div class="tb-wrapper" :aria-busy="table.isNavigating.value">
-        <SlotOutlet name="topbar"><TableToolbar /></SlotOutlet>
-        <SlotOutlet name="filters"><TableFilters /></SlotOutlet>
-        <TableViewport />
+        <SlotOutlet name="topbar"><Toolbar /></SlotOutlet>
+        <SlotOutlet name="filters"><FilterList /></SlotOutlet>
+        <Viewport />
         <SlotOutlet v-if="resource.results.total > 0" name="footer">
-            <TablePagination />
+            <Pagination />
         </SlotOutlet>
         <SlotOutlet
             v-if="actions.pendingAction.value"
             name="confirmation"
             :slot-props="{ pending: actions.pendingAction.value }"
         >
-            <TableConfirmation />
+            <Confirmation />
         </SlotOutlet>
     </div>
 </template>

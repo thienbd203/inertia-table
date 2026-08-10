@@ -2,10 +2,10 @@
 import { computed } from "vue";
 import { UiInput } from "@/components/ui/input";
 import { useTableContext } from "@/context/tableContext";
-import ColumnVisibilityMenu from "./ColumnVisibilityMenu.vue";
-import AddFilterMenu from "./AddFilterMenu.vue";
-import SlotOutlet from "./SlotOutlet";
-import TableActionsMenu from "./TableActionsMenu.vue";
+import { ActionsMenu } from "../actions";
+import { ColumnVisibilityMenu } from "../columns";
+import { AddFilterMenu } from "../filters";
+import { SlotOutlet } from "../shared";
 
 const {
     resource,
@@ -39,7 +39,7 @@ const availableFilters = computed(() =>
 
         <div class="tb-action-group flex gap-2">
             <SlotOutlet name="beforeActions" />
-            <TableActionsMenu />
+            <ActionsMenu />
             <AddFilterMenu :filters="availableFilters" @add="addFilter" />
             <ColumnVisibilityMenu />
             <SlotOutlet name="afterActions" />
