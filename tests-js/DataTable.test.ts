@@ -7,6 +7,7 @@ const { listeners } = vi.hoisted(() => ({
 }));
 
 vi.mock("@inertiajs/vue3", () => ({
+    Link: "a",
     router: {
         visit: vi.fn(),
         on: vi.fn((event: string, callback: () => void) => {
@@ -43,5 +44,9 @@ describe("DataTable shadcn renderer", () => {
         expect(wrapper.findAll('[data-slot="button"]').length).toBeGreaterThan(
             0,
         );
+        expect(wrapper.get('a[href="/topics/1"]').text()).toBe("Alpha");
+        expect(wrapper.text()).toContain("Edit");
+        expect(wrapper.text()).toContain("Delete");
+        expect(wrapper.text()).toContain("Columns");
     });
 });

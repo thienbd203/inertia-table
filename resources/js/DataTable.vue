@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends TableItem">
+import { Link } from "@inertiajs/vue3";
 import { computed, toRef } from "vue";
 import { UiButton } from "./components/ui/button";
 import { UiCheckbox } from "./components/ui/checkbox";
@@ -62,6 +63,10 @@ function sortIndicator(attribute: string): string {
 function cellValue(item: T, attribute: string): unknown {
     return (item as Record<string, unknown>)[attribute];
 }
+
+function cellUrl(item: T, attribute: string): string | null {
+    return item._table?.columns[attribute] ?? item._table?.url ?? null;
+}
 </script>
 
 <template>
@@ -82,6 +87,56 @@ function cellValue(item: T, attribute: string): unknown {
 
                 <div class="tb-action-group">
                     <slot name="beforeActions" v-bind="scope" />
+                    <span
+                        v-if="actions.selectedItems.value.length"
+                        class="tb-selected-count"
+                    >
+                        {{ actions.selectedItems.value.length }} selected
+                    </span>
+                    <UiButton
+                        v-for="action in actions.bulkActions.value"
+                        :key="action.key"
+                        :variant="
+                            action.variant === 'destructive'
+                                ? 'outline'
+                                : 'default'
+                        "
+                        :disabled="
+                            actions.selectedItems.value.length === 0 ||
+                            actions.isPerformingAction.value
+                        "
+                        @click="actions.performAction(action)"
+                    >
+                        {{ action.label }}
+                    </UiButton>
+                    <details
+                        v-if="
+                            resource.columns.some((column) => column.toggleable)
+                        "
+                        class="tb-column-toggle"
+                    >
+                        <summary>Columns</summary>
+                        <div class="tb-column-toggle-panel">
+                            <label
+                                v-for="column in resource.columns.filter(
+                                    (candidate) => candidate.toggleable,
+                                )"
+                                :key="column.attribute"
+                            >
+                                <UiCheckbox
+                                    :model-value="
+                                        resource.state.columns[
+                                            column.attribute
+                                        ] !== false
+                                    "
+                                    @update:model-value="
+                                        table.toggleColumn(column.attribute)
+                                    "
+                                />
+                                <span>{{ column.header }}</span>
+                            </label>
+                        </div>
+                    </details>
                     <slot name="afterActions" v-bind="scope" />
                 </div>
             </div>
@@ -260,8 +315,9 @@ function cellValue(item: T, attribute: string): unknown {
                                             class="tb-row-actions"
                                         >
                                             <UiButton
-                                                v-for="action in actions
-                                                    .rowActions.value"
+                                                v-for="action in actions.rowActionsFor(
+                                                    item,
+                                                )"
                                                 :key="action.key"
                                                 :variant="
                                                     action.variant ===
@@ -280,6 +336,39 @@ function cellValue(item: T, attribute: string): unknown {
                                                 {{ action.label }}
                                             </UiButton>
                                         </div>
+                                        <Link
+                                            v-else-if="
+                                                cellUrl(item, column.attribute)
+                                            "
+                                            :href="
+                                                cellUrl(
+                                                    item,
+                                                    column.attribute,
+                                                ) ?? '#'
+                                            "
+                                            class="tb-cell-link"
+                                        >
+                                            {{
+                                                cellValue(
+                                                    item,
+                                                    column.attribute,
+                                                )
+                                            }}
+                                        </Link>
+                                        <template
+                                            v-else-if="
+                                                column.type === 'boolean'
+                                            "
+                                        >
+                                            {{
+                                                cellValue(
+                                                    item,
+                                                    column.attribute,
+                                                )
+                                                    ? "Yes"
+                                                    : "No"
+                                            }}
+                                        </template>
                                         <template v-else>{{
                                             cellValue(item, column.attribute)
                                         }}</template>
@@ -480,5 +569,54 @@ function cellValue(item: T, attribute: string): unknown {
 .tb-confirmation-actions {
     justify-content: flex-end;
     margin-top: 1.5rem;
+}
+
+.tb-column-toggle {
+    position: relative;
+}
+
+.tb-column-toggle > summary {
+    height: 2.25rem;
+    padding: 0.45rem 0.75rem;
+    list-style: none;
+    cursor: pointer;
+    border: 1px solid var(--border, #e4e4e7);
+    border-radius: calc(var(--radius, 0.625rem) - 2px);
+}
+
+.tb-column-toggle-panel {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 0.375rem);
+    right: 0;
+    display: grid;
+    min-width: 12rem;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: var(--popover, white);
+    border: 1px solid var(--border, #e4e4e7);
+    border-radius: calc(var(--radius, 0.625rem) - 2px);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%);
+}
+
+.tb-column-toggle-panel label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tb-selected-count {
+    color: var(--muted-foreground, #71717a);
+    font-size: 0.875rem;
+}
+
+.tb-cell-link {
+    color: inherit;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.tb-cell-link:hover {
+    text-decoration: underline;
 }
 </style>

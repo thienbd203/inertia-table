@@ -104,21 +104,25 @@ abstract class Table implements Arrayable
                 )),
             ));
 
+        $bulkActions = collect($actions)
+            ->filter(fn (Action $action) => $action->isBulkAction())
+            ->map(fn (Action $action) => $action->resolve())
+            ->filter(fn (array $action) => $action['authorized'] && $action['endpoint'] !== null)
+            ->values()
+            ->all();
+
         return new TableResource(
             name: $this->name(),
             columns: array_map(fn (Column $column) => $column->toArray(), $columns),
             filters: array_map(fn (Filter $filter) => $filter->toArray(), $filters),
-            actions: array_map(fn (Action $action) => $action->toArray(), $actions),
+            actions: $bulkActions,
             capabilities: [
                 'searchable' => collect($columns)->contains(fn (Column $column) => $column->isSearchable()),
-                'selectable' => collect($actions)->contains(
-                    fn (Action $action) => in_array($action->toArray()['scope'], ['bulk', 'both'], true)
-                        && $action->toArray()['authorized'],
-                ),
+                'selectable' => $bulkActions !== [],
                 'paginated' => true,
             ],
             state: $state,
-            results: $this->paginate($query, $state),
+            results: $this->paginate($query, $state, $columns, $actions),
             options: [
                 'debounceTime' => (int) config('inertia-table.debounce', 300),
                 'perPage' => $perPageOptions,
@@ -265,8 +269,12 @@ abstract class Table implements Arrayable
     /**
      * @return array<string, mixed>
      */
-    protected function paginate(QueryBuilder $query, TableState $state): array
-    {
+    protected function paginate(
+        QueryBuilder $query,
+        TableState $state,
+        array $columns,
+        array $actions,
+    ): array {
         $paginator = $query->paginate(
             perPage: $state->perPage,
             pageName: "table[{$this->name()}][page]",
@@ -275,7 +283,7 @@ abstract class Table implements Arrayable
 
         return [
             'data' => collect($paginator->items())
-                ->map(fn (Model $model) => $this->transform($model))
+                ->map(fn (Model $model) => $this->serializeRow($model, $columns, $actions))
                 ->values()
                 ->all(),
             'currentPage' => $paginator->currentPage(),
@@ -294,6 +302,41 @@ abstract class Table implements Arrayable
     protected function transform(Model $model): array
     {
         return $model->toArray();
+    }
+
+    protected function rowUrl(Model $model): ?string
+    {
+        return null;
+    }
+
+    /**
+     * @param  array<int, Column>  $columns
+     * @param  array<int, Action>  $actions
+     * @return array<string, mixed>
+     */
+    protected function serializeRow(Model $model, array $columns, array $actions): array
+    {
+        $columnUrls = collect($columns)
+            ->mapWithKeys(fn (Column $column) => [
+                $column->attribute => $column->resolveUrl($model),
+            ])
+            ->filter()
+            ->all();
+        $rowActions = collect($actions)
+            ->filter(fn (Action $action) => $action->isRowAction())
+            ->map(fn (Action $action) => $action->resolve($model))
+            ->filter(fn (array $action) => $action['authorized'] && $action['endpoint'] !== null)
+            ->values()
+            ->all();
+
+        return [
+            ...$this->transform($model),
+            '_table' => [
+                'url' => $this->rowUrl($model),
+                'columns' => $columnUrls,
+                'actions' => $rowActions,
+            ],
+        ];
     }
 
     /**

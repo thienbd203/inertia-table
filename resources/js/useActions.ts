@@ -36,13 +36,6 @@ export function useActions<T extends TableItem>(
             )
         );
     });
-    const rowActions = computed(() =>
-        table.resource.value.actions.filter(
-            (action) =>
-                action.authorized &&
-                (action.scope === "row" || action.scope === "both"),
-        ),
-    );
     const bulkActions = computed(() =>
         table.resource.value.actions.filter(
             (action) =>
@@ -68,6 +61,12 @@ export function useActions<T extends TableItem>(
 
     function isItemSelected(item: T, index: number) {
         return selectedKeys.value.has(rowKey(item, index));
+    }
+
+    function rowActionsFor(item: T) {
+        return (item._table?.actions ?? []).filter(
+            (action) => action.authorized && action.endpoint !== null,
+        );
     }
 
     function toggleAll() {
@@ -132,7 +131,7 @@ export function useActions<T extends TableItem>(
         isPerformingAction,
         pendingAction,
         performAction,
-        rowActions,
+        rowActionsFor,
         selectedItems,
         selectedKeys,
         toggleAll,

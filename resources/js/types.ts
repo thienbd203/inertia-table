@@ -2,6 +2,11 @@ export type TableKey = string | number;
 
 export type TableItem = {
     id?: TableKey;
+    _table?: {
+        url: string | null;
+        columns: Record<string, string>;
+        actions: TableAction[];
+    };
 };
 
 export type TableColumn = {

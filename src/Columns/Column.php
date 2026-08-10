@@ -2,8 +2,10 @@
 
 namespace Toolbelt\InertiaTable\Columns;
 
+use Closure;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Spatie\QueryBuilder\AllowedSort;
 
 /** @implements Arrayable<string, mixed> */
@@ -21,6 +23,8 @@ class Column implements Arrayable
 
     /** @var array<string, mixed> */
     protected array $meta = [];
+
+    protected ?Closure $urlResolver = null;
 
     final public function __construct(
         public readonly string $attribute,
@@ -88,6 +92,24 @@ class Column implements Arrayable
         $this->meta = $meta;
 
         return $this;
+    }
+
+    public function url(Closure $resolver): static
+    {
+        $this->urlResolver = $resolver;
+
+        return $this;
+    }
+
+    public function resolveUrl(Model $model): ?string
+    {
+        if ($this->urlResolver === null) {
+            return null;
+        }
+
+        $url = ($this->urlResolver)($model);
+
+        return is_string($url) && $url !== '' ? $url : null;
     }
 
     public function isSearchable(): bool

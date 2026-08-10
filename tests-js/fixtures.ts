@@ -33,6 +33,16 @@ export function topicResource(
                 alignment: "center",
                 meta: {},
             },
+            {
+                attribute: "__actions",
+                header: "Actions",
+                type: "action",
+                sortable: false,
+                toggleable: false,
+                visibleByDefault: true,
+                alignment: "right",
+                meta: {},
+            },
         ],
         filters: [
             {
@@ -65,14 +75,42 @@ export function topicResource(
             search: "",
             sort: "name",
             filters: {},
-            columns: { name: true, is_featured: true },
+            columns: { name: true, is_featured: true, __actions: true },
             page: 1,
             perPage: 25,
         },
         results: {
             data: [
-                { id: 1, name: "Alpha", is_featured: false },
-                { id: 2, name: "Beta", is_featured: true },
+                {
+                    id: 1,
+                    name: "Alpha",
+                    is_featured: false,
+                    _table: {
+                        url: "/topics/1",
+                        columns: { name: "/topics/1" },
+                        actions: [
+                            {
+                                key: "edit",
+                                label: "Edit",
+                                scope: "row",
+                                authorized: true,
+                                variant: "default",
+                                confirmation: null,
+                                endpoint: {
+                                    method: "patch",
+                                    url: "/topics/1",
+                                },
+                                meta: {},
+                            },
+                        ],
+                    },
+                },
+                {
+                    id: 2,
+                    name: "Beta",
+                    is_featured: true,
+                    _table: { url: null, columns: {}, actions: [] },
+                },
             ],
             currentPage: 1,
             from: 1,

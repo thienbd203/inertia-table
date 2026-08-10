@@ -44,7 +44,10 @@ class TopicsTable extends Table
     {
         return [
             NumberColumn::make('id', 'ID')->sortable()->toggleable(false),
-            TextColumn::make('name', 'Name')->searchable()->sortable(),
+            TextColumn::make('name', 'Name')
+                ->searchable()
+                ->sortable()
+                ->url(fn (TopicRecord $topic) => "/topics/{$topic->id}"),
             NumberColumn::make('score', 'Score')->sortable(),
             BooleanColumn::make('is_featured', 'Featured'),
             ActionColumn::new(),
@@ -54,12 +57,20 @@ class TopicsTable extends Table
     public function actions(): array
     {
         return [
+            Action::make('edit')
+                ->row()
+                ->endpoint('patch', fn (TopicRecord $topic) => "/topics/{$topic->id}"),
             Action::make('delete')
                 ->bulk()
                 ->destructive()
                 ->endpoint('delete', '/topics/bulk')
                 ->confirm('Delete topics', 'This action cannot be undone.'),
         ];
+    }
+
+    protected function rowUrl(Model $model): ?string
+    {
+        return "/topics/{$model->getKey()}";
     }
 
     public function filters(): array
@@ -278,6 +289,19 @@ it('serializes server-declared actions', function () {
         'endpoint' => ['method' => 'delete', 'url' => '/topics/bulk'],
         'meta' => [],
     ]);
+});
+
+it('resolves row links, cell links, and row actions without frontend slots', function () {
+    $resource = (new TopicsTable)->resolve(tableRequest())->toArray();
+    $row = $resource['results']['data'][0];
+
+    expect($row['_table'])
+        ->url->toBe('/topics/1')
+        ->columns->toBe(['name' => '/topics/1'])
+        ->actions->toHaveCount(1)
+        ->and($row['_table']['actions'][0])
+        ->key->toBe('edit')
+        ->endpoint->toBe(['method' => 'patch', 'url' => '/topics/1']);
 });
 
 it('can be passed directly as an inertia prop', function () {

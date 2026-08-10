@@ -2,7 +2,9 @@
 
 namespace Toolbelt\InertiaTable\Actions;
 
+use Closure;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Database\Eloquent\Model;
 use LogicException;
 
 /** @implements Arrayable<string, mixed> */
@@ -10,7 +12,7 @@ final class Action implements Arrayable
 {
     private string $scope = 'row';
 
-    private bool $authorized = true;
+    private bool|Closure $authorized = true;
 
     private string $variant = 'default';
 
@@ -19,7 +21,7 @@ final class Action implements Arrayable
 
     private ?string $method = null;
 
-    private ?string $url = null;
+    private string|Closure|null $url = null;
 
     /** @var array<string, mixed> */
     private array $meta = [];
@@ -55,7 +57,7 @@ final class Action implements Arrayable
         return $this;
     }
 
-    public function authorized(bool $authorized = true): self
+    public function authorized(bool|Closure $authorized = true): self
     {
         $this->authorized = $authorized;
 
@@ -69,7 +71,7 @@ final class Action implements Arrayable
         return $this;
     }
 
-    public function endpoint(string $method, string $url): self
+    public function endpoint(string $method, string|Closure $url): self
     {
         $method = strtolower($method);
 
@@ -104,18 +106,41 @@ final class Action implements Arrayable
 
     public function toArray(): array
     {
+        return $this->resolve();
+    }
+
+    public function isRowAction(): bool
+    {
+        return in_array($this->scope, ['row', 'both'], true);
+    }
+
+    public function isBulkAction(): bool
+    {
+        return in_array($this->scope, ['bulk', 'both'], true);
+    }
+
+    /** @return array<string, mixed> */
+    public function resolve(?Model $model = null): array
+    {
         if ($this->method === null || $this->url === null) {
             throw new LogicException("Table action [{$this->key}] must define an endpoint.");
         }
+
+        $authorized = $this->authorized instanceof Closure
+            ? ($model !== null && (bool) ($this->authorized)($model))
+            : $this->authorized;
+        $url = $this->url instanceof Closure
+            ? ($model === null ? null : ($this->url)($model))
+            : $this->url;
 
         return [
             'key' => $this->key,
             'label' => $this->label,
             'scope' => $this->scope,
-            'authorized' => $this->authorized,
+            'authorized' => $authorized,
             'variant' => $this->variant,
             'confirmation' => $this->confirmation,
-            'endpoint' => ['method' => $this->method, 'url' => $this->url],
+            'endpoint' => $url === null ? null : ['method' => $this->method, 'url' => $url],
             'meta' => $this->meta,
         ];
     }

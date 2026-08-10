@@ -18,7 +18,7 @@ describe("tableUrl", () => {
                         value: "featured",
                     },
                 },
-                columns: { name: true, is_featured: false },
+                columns: { name: true, is_featured: false, __actions: true },
                 page: 2,
                 perPage: 50,
             },
@@ -50,7 +50,7 @@ describe("tableUrl", () => {
             search: "",
             sort: null,
             filters: {},
-            columns: { name: true, is_featured: true },
+            columns: { name: true, is_featured: true, __actions: true },
             page: 1,
             perPage: 25,
         });
