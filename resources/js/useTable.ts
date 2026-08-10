@@ -58,7 +58,7 @@ export function useTable<T extends TableItem>(
         }, toValue(resource).options.debounceTime);
     }
 
-    function setSort(attribute: string) {
+    function setSort(attribute: string, direction?: "asc" | "desc") {
         const current = toValue(resource);
         const column = current.columns.find(
             (candidate) => candidate.attribute === attribute,
@@ -68,7 +68,13 @@ export function useTable<T extends TableItem>(
 
         patchState({
             sort:
-                current.state.sort === attribute ? `-${attribute}` : attribute,
+                direction === "desc"
+                    ? `-${attribute}`
+                    : direction === "asc"
+                      ? attribute
+                      : current.state.sort === attribute
+                        ? `-${attribute}`
+                        : attribute,
             page: 1,
         });
     }

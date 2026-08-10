@@ -57,6 +57,21 @@ describe("useTable", () => {
         ]);
     });
 
+    it("supports explicit ascending and descending sort choices", () => {
+        const { table } = mountTable();
+
+        table.setSort("name", "asc");
+        expect(visit.mock.calls[0][0]).toContain(
+            "table%5Btopics%5D%5Bsort%5D=name",
+        );
+
+        visit.mockReset();
+        table.setSort("name", "desc");
+        expect(visit.mock.calls[0][0]).toContain(
+            "table%5Btopics%5D%5Bsort%5D=-name",
+        );
+    });
+
     it("debounces search and resets the page", () => {
         vi.useFakeTimers();
         const { table } = mountTable();

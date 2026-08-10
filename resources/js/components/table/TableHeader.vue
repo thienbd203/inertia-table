@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { UiButton } from "@/components/ui/button";
 import { UiCheckbox } from "@/components/ui/checkbox";
+import {
+    UiDropdownMenu,
+    UiDropdownMenuContent,
+    UiDropdownMenuItem,
+    UiDropdownMenuSeparator,
+    UiDropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { UiTableHead, UiTableHeader, UiTableRow } from "@/components/ui/table";
 import { useTableContext } from "@/context/tableContext";
+import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from "@lucide/vue";
 import SlotOutlet from "./SlotOutlet";
 
 defineProps<{ canSelect: boolean }>();
 const { resource, table, actions } = useTableContext();
-
-function sortIndicator(attribute: string): string {
-    if (resource.value.state.sort === attribute) return " ↑";
-    if (resource.value.state.sort === `-${attribute}`) return " ↓";
-    return "";
-}
 </script>
 
 <template>
@@ -36,15 +38,51 @@ function sortIndicator(attribute: string): string {
                     :name="`header(${column.attribute})`"
                     :slot-props="{ column }"
                 >
-                    <UiButton
-                        v-if="column.sortable"
-                        variant="ghost"
-                        size="sm"
-                        class="tb-sort-button"
-                        @click="table.setSort(column.attribute)"
-                    >
-                        {{ column.header }}{{ sortIndicator(column.attribute) }}
-                    </UiButton>
+                    <UiDropdownMenu v-if="column.sortable || column.toggleable">
+                        <UiDropdownMenuTrigger>
+                            <UiButton
+                                variant="ghost"
+                                size="sm"
+                                class="tb-sort-button"
+                            >
+                                {{ column.header }}
+                                <ChevronsUpDown
+                                    v-if="column.sortable"
+                                    class="size-3.5 text-muted-foreground"
+                                />
+                            </UiButton>
+                        </UiDropdownMenuTrigger>
+                        <UiDropdownMenuContent align="start">
+                            <template v-if="column.sortable">
+                                <UiDropdownMenuItem
+                                    @select="
+                                        table.setSort(column.attribute, 'asc')
+                                    "
+                                >
+                                    <ArrowUp class="size-4" />
+                                    Asc
+                                </UiDropdownMenuItem>
+                                <UiDropdownMenuItem
+                                    @select="
+                                        table.setSort(column.attribute, 'desc')
+                                    "
+                                >
+                                    <ArrowDown class="size-4" />
+                                    Desc
+                                </UiDropdownMenuItem>
+                            </template>
+                            <UiDropdownMenuSeparator
+                                v-if="column.sortable && column.toggleable"
+                            />
+                            <UiDropdownMenuItem
+                                v-if="column.toggleable"
+                                @select="table.toggleColumn(column.attribute)"
+                            >
+                                <EyeOff class="size-4" />
+                                Hide
+                            </UiDropdownMenuItem>
+                        </UiDropdownMenuContent>
+                    </UiDropdownMenu>
                     <span v-else>{{ column.header }}</span>
                 </SlotOutlet>
             </UiTableHead>
