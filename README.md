@@ -8,6 +8,8 @@ Server-driven data tables for Laravel and Inertia.js, powered by [Spatie Laravel
 
 > This package is under active development. The API is not stable until v1.0.
 
+The proposed v0.1 contract is documented in [docs/architecture.md](docs/architecture.md). The current implementation is an exploratory spike until that contract is implemented.
+
 ## Requirements
 
 - PHP 8.3+
