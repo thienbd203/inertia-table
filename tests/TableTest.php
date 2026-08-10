@@ -13,6 +13,7 @@ use Toolbelt\InertiaTable\Columns\ActionColumn;
 use Toolbelt\InertiaTable\Columns\BadgeColumn;
 use Toolbelt\InertiaTable\Columns\BooleanColumn;
 use Toolbelt\InertiaTable\Columns\DateColumn;
+use Toolbelt\InertiaTable\Columns\ImageColumn;
 use Toolbelt\InertiaTable\Columns\NumberColumn;
 use Toolbelt\InertiaTable\Columns\TextColumn;
 use Toolbelt\InertiaTable\Filters\BooleanFilter;
@@ -409,6 +410,35 @@ it('resolves badge presentation metadata per row', function () {
         ->and($column->resolveCellMeta($topic))->toBe([
             'variant' => 'success',
             'icon' => 'Star',
+        ]);
+});
+
+it('serializes configurable images for any column', function () {
+    $topic = TopicRecord::query()->firstOrFail();
+    $topic->setAttribute('avatar_url', [
+        'https://cdn.example.test/one.png',
+        'https://cdn.example.test/two.png',
+        'https://cdn.example.test/three.png',
+    ]);
+    $column = TextColumn::make('name')->image('avatar_url', fn ($image) => $image
+        ->rounded()
+        ->large()
+        ->limit(2)
+        ->alt('Topic avatar'));
+    $imageColumn = ImageColumn::make('avatar_url');
+
+    expect($column->resolveCellMeta($topic)['image'])->toMatchArray([
+        'urls' => ['https://cdn.example.test/one.png', 'https://cdn.example.test/two.png'],
+        'overflow' => 1,
+        'size' => 'large',
+        'rounded' => true,
+        'alt' => 'Topic avatar',
+    ])
+        ->and($imageColumn->resolveCellMeta($topic)['image']['urls'])
+        ->toBe([
+            'https://cdn.example.test/one.png',
+            'https://cdn.example.test/two.png',
+            'https://cdn.example.test/three.png',
         ]);
 });
 

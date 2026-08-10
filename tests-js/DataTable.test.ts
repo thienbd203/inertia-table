@@ -226,4 +226,45 @@ describe("DataTable shadcn renderer", () => {
             "Alpha",
         );
     });
+
+    it("renders server-declared images and their fallback slot", () => {
+        const resource = topicResource();
+        resource.results.data[0]._table!.cells = {
+            name: {
+                image: {
+                    urls: ["/avatars/one.png", "/avatars/two.png"],
+                    overflow: 2,
+                    size: "large",
+                    position: "start",
+                    rounded: true,
+                    alt: "Alpha avatar",
+                },
+            },
+        };
+        resource.results.data[1]._table!.cells = {
+            name: {
+                image: {
+                    urls: [],
+                    overflow: 0,
+                    size: "medium",
+                    position: "start",
+                    rounded: true,
+                },
+            },
+        };
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            slots: {
+                "image-fallback(name)": () =>
+                    h("span", { "data-image-fallback": "" }, "Fallback"),
+            },
+            attachTo: document.body,
+        });
+
+        expect(wrapper.findAll('img[src="/avatars/one.png"]')).toHaveLength(1);
+        expect(wrapper.get(".tb-image-overflow").text()).toBe("+2");
+        expect(wrapper.find(".tb-image-rounded").exists()).toBe(true);
+        expect(wrapper.get("[data-image-fallback]").text()).toBe("Fallback");
+    });
 });

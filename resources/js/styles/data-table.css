@@ -208,3 +208,60 @@
     object-fit: cover;
     border-radius: calc(var(--radius, 0.625rem) - 2px);
 }
+
+.tb-cell-with-image,
+.tb-image-stack {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tb-image-end {
+    flex-direction: row-reverse;
+}
+
+.tb-image-stack {
+    gap: 0;
+}
+
+.tb-image-stack .tb-cell-image + .tb-cell-image {
+    margin-left: -0.5rem;
+    border: 2px solid var(--background, white);
+}
+
+.tb-image-small {
+    width: 1rem;
+    height: 1rem;
+}
+.tb-image-medium {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+.tb-image-large {
+    width: 2rem;
+    height: 2rem;
+}
+.tb-image-extra_large {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+.tb-image-rounded {
+    border-radius: 999px;
+}
+.tb-image-icon {
+    padding: 0.25rem;
+    color: var(--muted-foreground, #71717a);
+    background: var(--muted, #f4f4f5);
+}
+.tb-image-overflow {
+    display: grid;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-left: -0.5rem;
+    font-size: 0.6875rem;
+    place-items: center;
+    color: var(--muted-foreground, #71717a);
+    background: var(--muted, #f4f4f5);
+    border: 2px solid var(--background, white);
+    border-radius: 999px;
+}

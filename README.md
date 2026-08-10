@@ -122,6 +122,23 @@ Available built-in types are `TextColumn`, `NumberColumn`, `BadgeColumn`,
 `BooleanColumn`, `DateColumn`, `DateTimeColumn`, `ImageColumn`, and
 `ActionColumn`.
 
+Images are configured in PHP and rendered by the default Vue table:
+
+```php
+TextColumn::make('name')->image('avatar_url', fn (Image $image) => $image
+    ->rounded()
+    ->large()
+    ->alt('User avatar'));
+
+ImageColumn::make('avatar_url')->image(fn (User $user, Image $image) => $image
+    ->url($user->friends->pluck('avatar_url')->all())
+    ->limit(3)
+    ->rounded());
+```
+
+The advanced Vue escape hatches are `#image(attribute)` and
+`#image-fallback(attribute)`.
+
 Pass it directly to an Inertia page:
 
 ```php

@@ -7,6 +7,7 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\QueryBuilder\AllowedSort;
+use Toolbelt\InertiaTable\Image;
 
 /** @implements Arrayable<string, mixed> */
 class Column implements Arrayable
@@ -38,6 +39,10 @@ class Column implements Arrayable
     protected array $meta = [];
 
     protected ?Closure $urlResolver = null;
+
+    protected string|Closure|null $imageResolver = null;
+
+    protected ?Closure $imageConfigurator = null;
 
     final public function __construct(
         public readonly string $attribute,
@@ -217,6 +222,14 @@ class Column implements Arrayable
         return $this;
     }
 
+    public function image(string|Closure $resolver, ?Closure $configure = null): static
+    {
+        $this->imageResolver = $resolver;
+        $this->imageConfigurator = $configure;
+
+        return $this;
+    }
+
     public function resolveUrl(Model $model): ?string
     {
         if ($this->urlResolver === null) {
@@ -246,7 +259,26 @@ class Column implements Arrayable
     /** @return array<string, mixed> */
     public function resolveCellMeta(Model $model): array
     {
-        return [];
+        $image = $this->resolveImage($model);
+
+        return $image === null ? [] : ['image' => $image->toArray()];
+    }
+
+    protected function resolveImage(Model $model): ?Image
+    {
+        if ($this->imageResolver === null) {
+            return null;
+        }
+
+        $image = new Image;
+        if (is_string($this->imageResolver)) {
+            $image->url(data_get($model, $this->imageResolver));
+            $configured = $this->imageConfigurator ? ($this->imageConfigurator)($image, $model) : $image;
+        } else {
+            $configured = ($this->imageResolver)($model, $image);
+        }
+
+        return $configured instanceof Image ? $configured : $image;
     }
 
     public function isSearchable(): bool
