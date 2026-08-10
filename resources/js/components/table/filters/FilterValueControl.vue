@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Filter } from "@lucide/vue";
+import { Filter, Search } from "@lucide/vue";
 import { UiInput } from "@/components/ui/input";
 import { UiSelect } from "@/components/ui/select";
 import type { TableFilter } from "@/types";
@@ -36,43 +36,46 @@ function updateRange(index: 0 | 1, value: string | number) {
 </script>
 
 <template>
-    <div
-        v-if="filter.type === 'select' || filter.type === 'set'"
-        class="flex items-center gap-2"
-    >
-        <Filter class="size-5" />
-        <UiSelect
-            :model-value="String(modelValue ?? '')"
-            :options="
-                filter.options.map((option) => ({
-                    ...option,
-                    value: String(option.value),
-                }))
-            "
-            class="w-full"
-            @update:model-value="emit('update:modelValue', $event)"
-        />
+    <div class="flex items-center gap-2">
+        <Search class="size-5" />
+        <div class="flex-1">
+            <div
+                v-if="filter.type === 'select' || filter.type === 'set'"
+                class="flex items-center gap-2"
+            >
+                <UiSelect
+                    :model-value="String(modelValue ?? '')"
+                    :options="
+                        filter.options.map((option) => ({
+                            ...option,
+                            value: String(option.value),
+                        }))
+                    "
+                    @update:model-value="emit('update:modelValue', $event)"
+                />
+            </div>
+            <span v-else-if="isValueless" class="tb-filter-clause-only"
+                >This filter does not require a value.</span
+            >
+            <div v-else-if="isRange" class="tb-filter-range">
+                <UiInput
+                    :type="filter.type === 'date' ? 'date' : 'number'"
+                    :model-value="range[0]"
+                    @update:model-value="(value) => updateRange(0, value)"
+                />
+                <span aria-hidden="true">–</span>
+                <UiInput
+                    :type="filter.type === 'date' ? 'date' : 'number'"
+                    :model-value="range[1]"
+                    @update:model-value="(value) => updateRange(1, value)"
+                />
+            </div>
+            <UiInput
+                v-else
+                :type="inputType"
+                :model-value="String(modelValue ?? '')"
+                @update:model-value="emit('update:modelValue', $event)"
+            />
+        </div>
     </div>
-    <span v-else-if="isValueless" class="tb-filter-clause-only"
-        >This filter does not require a value.</span
-    >
-    <div v-else-if="isRange" class="tb-filter-range">
-        <UiInput
-            :type="filter.type === 'date' ? 'date' : 'number'"
-            :model-value="range[0]"
-            @update:model-value="(value) => updateRange(0, value)"
-        />
-        <span aria-hidden="true">–</span>
-        <UiInput
-            :type="filter.type === 'date' ? 'date' : 'number'"
-            :model-value="range[1]"
-            @update:model-value="(value) => updateRange(1, value)"
-        />
-    </div>
-    <UiInput
-        v-else
-        :type="inputType"
-        :model-value="String(modelValue ?? '')"
-        @update:model-value="emit('update:modelValue', $event)"
-    />
 </template>

@@ -26,7 +26,10 @@ watch(state, () => {
 <template>
     <div class="tb-active-filter">
         <UiPopover>
-            <UiPopoverTrigger as-child>
+            <UiPopoverTrigger
+                as-child
+                class="flex items-center rounded-md border border-gray-400 bg-gray-200/75 text-xs font-medium text-gray-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            >
                 <FilterChip
                     :filter="filter"
                     :state="state"
