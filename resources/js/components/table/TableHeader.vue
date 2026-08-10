@@ -15,6 +15,13 @@ import SlotOutlet from "./SlotOutlet";
 
 defineProps<{ canSelect: boolean }>();
 const { resource, table, actions } = useTableContext();
+
+function sortDirection(attribute: string): "asc" | "desc" | null {
+    if (resource.value.state.sort === attribute) return "asc";
+    if (resource.value.state.sort === `-${attribute}`) return "desc";
+
+    return null;
+}
 </script>
 
 <template>
@@ -41,13 +48,36 @@ const { resource, table, actions } = useTableContext();
                     <UiDropdownMenu v-if="column.sortable || column.toggleable">
                         <UiDropdownMenuTrigger>
                             <UiButton
-                                variant="ghost"
+                                :variant="
+                                    sortDirection(column.attribute)
+                                        ? 'secondary'
+                                        : 'ghost'
+                                "
                                 size="sm"
                                 class="tb-sort-button"
+                                :data-active="
+                                    sortDirection(column.attribute)
+                                        ? ''
+                                        : undefined
+                                "
                             >
                                 {{ column.header }}
+                                <ArrowUp
+                                    v-if="
+                                        sortDirection(column.attribute) ===
+                                        'asc'
+                                    "
+                                    class="size-3.5"
+                                />
+                                <ArrowDown
+                                    v-else-if="
+                                        sortDirection(column.attribute) ===
+                                        'desc'
+                                    "
+                                    class="size-3.5"
+                                />
                                 <ChevronsUpDown
-                                    v-if="column.sortable"
+                                    v-else-if="column.sortable"
                                     class="size-3.5 text-muted-foreground"
                                 />
                             </UiButton>
@@ -55,6 +85,12 @@ const { resource, table, actions } = useTableContext();
                         <UiDropdownMenuContent align="start">
                             <template v-if="column.sortable">
                                 <UiDropdownMenuItem
+                                    :class="
+                                        sortDirection(column.attribute) ===
+                                        'asc'
+                                            ? 'bg-accent text-accent-foreground'
+                                            : undefined
+                                    "
                                     @select="
                                         table.setSort(column.attribute, 'asc')
                                     "
@@ -63,6 +99,12 @@ const { resource, table, actions } = useTableContext();
                                     Asc
                                 </UiDropdownMenuItem>
                                 <UiDropdownMenuItem
+                                    :class="
+                                        sortDirection(column.attribute) ===
+                                        'desc'
+                                            ? 'bg-accent text-accent-foreground'
+                                            : undefined
+                                    "
                                     @select="
                                         table.setSort(column.attribute, 'desc')
                                     "
