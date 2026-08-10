@@ -3,6 +3,11 @@ import dts from "vite-plugin-dts";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+    resolve: {
+        alias: {
+            "@": new URL("./resources/js", import.meta.url).pathname,
+        },
+    },
     plugins: [vue(), dts({ include: ["resources/js"] })],
     build: {
         lib: {

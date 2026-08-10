@@ -1,5 +1,5 @@
 import { defineComponent, renderSlot, type PropType } from "vue";
-import { useTableContext } from "../../context/tableContext";
+import { useTableContext } from "@/context/tableContext";
 
 export default defineComponent({
     name: "TableSlotOutlet",

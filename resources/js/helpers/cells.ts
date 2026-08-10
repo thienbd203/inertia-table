@@ -1,4 +1,4 @@
-import type { TableColumn, TableItem } from "../types";
+import type { TableColumn, TableItem } from "@/types";
 
 export function cellValue(item: TableItem, attribute: string): unknown {
     return (item as Record<string, unknown>)[attribute];

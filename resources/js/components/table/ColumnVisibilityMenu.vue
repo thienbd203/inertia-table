@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useTableContext } from "../../context/tableContext";
-import { UiButton } from "../ui/button";
+import { UiButton } from "@/components/ui/button";
 import {
     UiDropdownMenu,
     UiDropdownMenuCheckboxItem,
     UiDropdownMenuContent,
     UiDropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
+import { useTableContext } from "@/context/tableContext";
 
 const { resource, table } = useTableContext();
 const columns = computed(() =>

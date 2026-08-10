@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useTableContext } from "../../context/tableContext";
-import { UiButton } from "../ui/button";
-import { UiCheckbox } from "../ui/checkbox";
-import { UiTableHead, UiTableHeader, UiTableRow } from "../ui/table";
+import { UiButton } from "@/components/ui/button";
+import { UiCheckbox } from "@/components/ui/checkbox";
+import { UiTableHead, UiTableHeader, UiTableRow } from "@/components/ui/table";
+import { useTableContext } from "@/context/tableContext";
 import SlotOutlet from "./SlotOutlet";
 
 defineProps<{ canSelect: boolean }>();

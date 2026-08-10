@@ -1,8 +1,8 @@
 import { inject, provide, type InjectionKey, type Ref, type Slots } from "vue";
-import type { IconResolver } from "../icons";
-import type { TableItem, TableResource } from "../types";
-import type { UseActions } from "../useActions";
-import type { UseTable } from "../useTable";
+import type { IconResolver } from "@/icons";
+import type { TableItem, TableResource } from "@/types";
+import type { UseActions } from "@/useActions";
+import type { UseTable } from "@/useTable";
 
 export type TableContext<T extends TableItem = TableItem> = {
     resource: Ref<TableResource<T>>;

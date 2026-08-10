@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useTableContext } from "../../context/tableContext";
-import { UiButton } from "../ui/button";
+import { UiButton } from "@/components/ui/button";
+import { useTableContext } from "@/context/tableContext";
 
 const { actions } = useTableContext();
 </script>

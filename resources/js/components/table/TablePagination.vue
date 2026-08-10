@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useTableContext } from "../../context/tableContext";
-import { UiButton } from "../ui/button";
-import { UiSelect } from "../ui/select";
+import { UiButton } from "@/components/ui/button";
+import { UiSelect } from "@/components/ui/select";
+import { useTableContext } from "@/context/tableContext";
 
 const { resource, table } = useTableContext();
 </script>

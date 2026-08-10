@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { UiButton } from "../ui/button";
-import { useTableContext } from "../../context/tableContext";
-import { resolveIcon } from "../../icons";
-import type { TableAction, TableItem } from "../../types";
+import { UiButton } from "@/components/ui/button";
+import { useTableContext } from "@/context/tableContext";
+import { resolveIcon } from "@/icons";
+import type { TableAction, TableItem } from "@/types";
 
 const props = withDefaults(
     defineProps<{

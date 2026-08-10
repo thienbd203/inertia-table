@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useTableContext } from "../../context/tableContext";
-import { UiInput } from "../ui/input";
+import { UiInput } from "@/components/ui/input";
+import { useTableContext } from "@/context/tableContext";
 import ColumnVisibilityMenu from "./ColumnVisibilityMenu.vue";
 import SlotOutlet from "./SlotOutlet";
 import TableActionButton from "./TableActionButton.vue";

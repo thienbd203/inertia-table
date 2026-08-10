@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useTableContext } from "../../context/tableContext";
-import { UiTable } from "../ui/table";
+import { UiTable } from "@/components/ui/table";
+import { useTableContext } from "@/context/tableContext";
 import SlotOutlet from "./SlotOutlet";
 import TableBody from "./TableBody.vue";
 import TableHeader from "./TableHeader.vue";

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useTableContext } from "../../context/tableContext";
-import type { TableFilter } from "../../types";
-import { UiButton } from "../ui/button";
-import { UiInput } from "../ui/input";
-import { UiSelect } from "../ui/select";
+import { UiButton } from "@/components/ui/button";
+import { UiInput } from "@/components/ui/input";
+import { UiSelect } from "@/components/ui/select";
+import { useTableContext } from "@/context/tableContext";
+import type { TableFilter } from "@/types";
 import SlotOutlet from "./SlotOutlet";
 
 const { resource, table } = useTableContext();

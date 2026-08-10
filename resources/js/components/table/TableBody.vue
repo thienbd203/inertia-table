@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Link } from "@inertiajs/vue3";
-import { useTableContext } from "../../context/tableContext";
-import { cellUrl, cellValue, displayValue } from "../../helpers/cells";
-import { UiCheckbox } from "../ui/checkbox";
-import { UiTableBody, UiTableCell, UiTableRow } from "../ui/table";
+import { UiCheckbox } from "@/components/ui/checkbox";
+import { UiTableBody, UiTableCell, UiTableRow } from "@/components/ui/table";
+import { useTableContext } from "@/context/tableContext";
+import { cellUrl, cellValue, displayValue } from "@/helpers/cells";
 import SlotOutlet from "./SlotOutlet";
 import TableActionButton from "./TableActionButton.vue";
 

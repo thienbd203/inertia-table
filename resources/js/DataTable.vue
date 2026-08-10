@@ -1,17 +1,17 @@
 <script setup lang="ts" generic="T extends TableItem">
 import { computed, toRef, useSlots } from "vue";
-import TableConfirmation from "./components/table/TableConfirmation.vue";
-import TableFilters from "./components/table/TableFilters.vue";
-import TablePagination from "./components/table/TablePagination.vue";
-import SlotOutlet from "./components/table/SlotOutlet";
-import TableToolbar from "./components/table/TableToolbar.vue";
-import TableViewport from "./components/table/TableViewport.vue";
-import { provideTableContext } from "./context/tableContext";
-import type { IconResolver } from "./icons";
-import type { TableItem, TableResource } from "./types";
-import { useActions } from "./useActions";
-import { useTable } from "./useTable";
-import "./styles/data-table.css";
+import TableConfirmation from "@/components/table/TableConfirmation.vue";
+import TableFilters from "@/components/table/TableFilters.vue";
+import TablePagination from "@/components/table/TablePagination.vue";
+import SlotOutlet from "@/components/table/SlotOutlet";
+import TableToolbar from "@/components/table/TableToolbar.vue";
+import TableViewport from "@/components/table/TableViewport.vue";
+import { provideTableContext } from "@/context/tableContext";
+import type { IconResolver } from "@/icons";
+import "@/styles/data-table.css";
+import type { TableItem, TableResource } from "@/types";
+import { useActions } from "@/useActions";
+import { useTable } from "@/useTable";
 
 const props = withDefaults(
     defineProps<{
