@@ -112,6 +112,11 @@ class Column implements Arrayable
         return is_string($url) && $url !== '' ? $url : null;
     }
 
+    public function resolveValue(Model $model): mixed
+    {
+        return data_get($model, $this->attribute);
+    }
+
     public function isSearchable(): bool
     {
         return $this->searchable;

@@ -4,12 +4,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Toolbelt\InertiaTable\Actions\Action;
 use Toolbelt\InertiaTable\Columns\ActionColumn;
 use Toolbelt\InertiaTable\Columns\BooleanColumn;
+use Toolbelt\InertiaTable\Columns\DateColumn;
 use Toolbelt\InertiaTable\Columns\NumberColumn;
 use Toolbelt\InertiaTable\Columns\TextColumn;
 use Toolbelt\InertiaTable\Filters\BooleanFilter;
@@ -59,7 +61,7 @@ class TopicsTable extends Table
         return [
             Action::make('edit')
                 ->row()
-                ->endpoint('patch', fn (TopicRecord $topic) => "/topics/{$topic->id}"),
+                ->endpoint('get', fn (TopicRecord $topic) => "/topics/{$topic->id}"),
             Action::make('delete')
                 ->bulk()
                 ->destructive()
@@ -301,7 +303,15 @@ it('resolves row links, cell links, and row actions without frontend slots', fun
         ->actions->toHaveCount(1)
         ->and($row['_table']['actions'][0])
         ->key->toBe('edit')
-        ->endpoint->toBe(['method' => 'patch', 'url' => '/topics/1']);
+        ->endpoint->toBe(['method' => 'get', 'url' => '/topics/1']);
+});
+
+it('formats date columns on the server', function () {
+    $topic = new TopicRecord;
+    $topic->setAttribute('published_at', Carbon::parse('2026-08-10 15:30:00'));
+
+    expect(DateColumn::make('published_at')->format('d/m/Y')->resolveValue($topic))
+        ->toBe('10/08/2026');
 });
 
 it('can be passed directly as an inertia prop', function () {

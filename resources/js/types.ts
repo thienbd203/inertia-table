@@ -53,7 +53,7 @@ export type TableAction = {
         cancelLabel: string;
     };
     endpoint: {
-        method: "post" | "patch" | "delete";
+        method: "get" | "post" | "patch" | "delete";
         url: string;
     };
     meta: Record<string, unknown>;

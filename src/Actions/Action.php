@@ -75,8 +75,8 @@ final class Action implements Arrayable
     {
         $method = strtolower($method);
 
-        if (! in_array($method, ['post', 'patch', 'delete'], true)) {
-            throw new LogicException('Table actions support only POST, PATCH, and DELETE endpoints.');
+        if (! in_array($method, ['get', 'post', 'patch', 'delete'], true)) {
+            throw new LogicException('Table actions support only GET, POST, PATCH, and DELETE endpoints.');
         }
 
         $this->method = $method;

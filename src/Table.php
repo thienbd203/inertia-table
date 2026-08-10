@@ -316,6 +316,14 @@ abstract class Table implements Arrayable
      */
     protected function serializeRow(Model $model, array $columns, array $actions): array
     {
+        $data = $this->transform($model);
+
+        foreach ($columns as $column) {
+            if ($column->attribute !== '__actions') {
+                $data[$column->attribute] = $column->resolveValue($model);
+            }
+        }
+
         $columnUrls = collect($columns)
             ->mapWithKeys(fn (Column $column) => [
                 $column->attribute => $column->resolveUrl($model),
@@ -330,7 +338,7 @@ abstract class Table implements Arrayable
             ->all();
 
         return [
-            ...$this->transform($model),
+            ...$data,
             '_table' => [
                 'url' => $this->rowUrl($model),
                 'columns' => $columnUrls,
