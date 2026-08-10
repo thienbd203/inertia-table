@@ -98,6 +98,12 @@ export function useDataTable<T extends TableItem>(
         patchState({ filters: {}, page: 1 });
     }
 
+    function clearAll() {
+        search.value = "";
+        clearTimeout(debounceTimer);
+        patchState({ search: "", filters: {}, page: 1 });
+    }
+
     function setPage(page: number) {
         if (page < 1 || page > toValue(resource).results.lastPage) {
             return;
@@ -143,10 +149,19 @@ export function useDataTable<T extends TableItem>(
         selected.value = allSelected ? new Set() : new Set(keys);
     }
 
+    function clearSelection() {
+        selected.value = new Set();
+    }
+
     const selectedItems = computed(() =>
         toValue(resource).results.data.filter((item, index) =>
             selected.value.has(rowKey(item, index)),
         ),
+    );
+    const hasActiveFilters = computed(
+        () =>
+            toValue(resource).state.search !== "" ||
+            Object.keys(toValue(resource).state.filters).length > 0,
     );
     const allPageSelected = computed(() => {
         const current = toValue(resource);
@@ -167,7 +182,10 @@ export function useDataTable<T extends TableItem>(
 
     return {
         allPageSelected,
+        clearAll,
         clearFilters,
+        clearSelection,
+        hasActiveFilters,
         isNavigating,
         isRowSelected,
         search,

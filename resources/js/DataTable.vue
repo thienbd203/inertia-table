@@ -58,16 +58,25 @@ function cellValue(item: T, attribute: string): unknown {
         <div class="toolbelt-table__toolbar">
             <slot name="before-search" :table="table" />
 
-            <input
+            <slot
                 v-if="resource.columns.some((column) => column.searchable)"
-                class="toolbelt-table__search"
-                type="search"
+                name="search"
                 :value="table.search.value"
-                :placeholder="searchPlaceholder"
-                @input="
-                    table.setSearch(($event.target as HTMLInputElement).value)
-                "
-            />
+                :update="table.setSearch"
+                :table="table"
+            >
+                <input
+                    class="toolbelt-table__search"
+                    type="search"
+                    :value="table.search.value"
+                    :placeholder="searchPlaceholder"
+                    @input="
+                        table.setSearch(
+                            ($event.target as HTMLInputElement).value,
+                        )
+                    "
+                />
+            </slot>
 
             <div
                 v-if="resource.filters.length > 0"
@@ -78,53 +87,77 @@ function cellValue(item: T, attribute: string): unknown {
                     :key="filter.attribute"
                     class="toolbelt-table__filter"
                 >
-                    <span>{{ filter.label }}</span>
-
-                    <select
-                        v-if="filter.type === 'select'"
-                        :value="resource.state.filters[filter.attribute] ?? ''"
-                        @change="onFilterInput(filter, $event)"
-                    >
-                        <option value="">All</option>
-                        <option
-                            v-for="([value, label], index) in filterOptions(
-                                filter,
-                            )"
-                            :key="index"
-                            :value="value"
-                        >
-                            {{ label }}
-                        </option>
-                    </select>
-
-                    <select
-                        v-else-if="filter.type === 'boolean'"
-                        :value="
-                            resource.state.filters[filter.attribute] ===
-                            undefined
-                                ? ''
-                                : String(
-                                      resource.state.filters[filter.attribute],
-                                  )
+                    <slot
+                        :name="`filter(${filter.attribute})`"
+                        :filter="filter"
+                        :value="resource.state.filters[filter.attribute]"
+                        :update="
+                            (value: unknown) =>
+                                table.setFilter(filter.attribute, value)
                         "
-                        @change="onFilterInput(filter, $event)"
+                        :table="table"
                     >
-                        <option value="">All</option>
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                    </select>
+                        <span>{{ filter.label }}</span>
 
-                    <input
-                        v-else
-                        type="text"
-                        :value="resource.state.filters[filter.attribute] ?? ''"
-                        @change="onFilterInput(filter, $event)"
-                    />
+                        <select
+                            v-if="filter.type === 'select'"
+                            :value="
+                                resource.state.filters[filter.attribute] ?? ''
+                            "
+                            @change="onFilterInput(filter, $event)"
+                        >
+                            <option value="">All</option>
+                            <option
+                                v-for="([value, label], index) in filterOptions(
+                                    filter,
+                                )"
+                                :key="index"
+                                :value="value"
+                            >
+                                {{ label }}
+                            </option>
+                        </select>
+
+                        <select
+                            v-else-if="filter.type === 'boolean'"
+                            :value="
+                                resource.state.filters[filter.attribute] ===
+                                undefined
+                                    ? ''
+                                    : String(
+                                          resource.state.filters[
+                                              filter.attribute
+                                          ],
+                                      )
+                            "
+                            @change="onFilterInput(filter, $event)"
+                        >
+                            <option value="">All</option>
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+
+                        <input
+                            v-else
+                            type="text"
+                            :value="
+                                resource.state.filters[filter.attribute] ?? ''
+                            "
+                            @change="onFilterInput(filter, $event)"
+                        />
+                    </slot>
                 </label>
 
-                <button type="button" @click="table.clearFilters">
-                    Clear filters
-                </button>
+                <slot
+                    v-if="table.hasActiveFilters.value"
+                    name="clear-filters"
+                    :clear="table.clearAll"
+                    :table="table"
+                >
+                    <button type="button" @click="table.clearAll">
+                        Clear filters
+                    </button>
+                </slot>
             </div>
 
             <slot name="after-filters" :table="table" />
@@ -173,7 +206,9 @@ function cellValue(item: T, attribute: string): unknown {
                             "
                             class="toolbelt-table__empty"
                         >
-                            <slot name="empty">No results found.</slot>
+                            <slot name="empty" :table="table">
+                                No results found.
+                            </slot>
                         </td>
                     </tr>
                     <tr
