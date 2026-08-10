@@ -45,7 +45,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Toolbelt\InertiaTable\Columns\BooleanColumn;
 use Toolbelt\InertiaTable\Columns\NumberColumn;
 use Toolbelt\InertiaTable\Columns\TextColumn;
-use Toolbelt\InertiaTable\Filters\SelectFilter;
+use Toolbelt\InertiaTable\Filters\SetFilter;
 use Toolbelt\InertiaTable\Table;
 
 final class TopicsTable extends Table
@@ -69,7 +69,7 @@ final class TopicsTable extends Table
     public function filters(): array
     {
         return [
-            SelectFilter::make('status')
+            SetFilter::make('status')
                 ->options([
                     'empty' => 'Without quotes',
                     'featured' => 'Featured',
@@ -84,6 +84,19 @@ final class TopicsTable extends Table
     }
 }
 ```
+
+Global search is inferred from columns marked `searchable()`. It may also be
+declared explicitly on the table; an empty array disables it even when a column
+is searchable:
+
+```php
+protected array|string|null $search = ['name', 'email'];
+// protected array|string|null $search = [];
+```
+
+Filters ship with type-specific clauses through `TextFilter`, `SetFilter`,
+`NumericFilter`, `BooleanFilter`, and `DateFilter`. `SelectFilter` remains as a
+deprecated alias of `SetFilter` for backwards compatibility.
 
 Pass it directly to an Inertia page:
 
@@ -193,12 +206,15 @@ The table serializes to a versioned Inertia resource:
 {
     "schemaVersion": 1,
     "name": "topics",
+    "search": ["name"],
     "columns": [],
     "filters": [],
     "state": {
         "search": "",
         "sort": "name",
-        "filters": {},
+        "filters": {
+            "status": {"enabled": false, "clause": "in", "value": null}
+        },
         "page": 1,
         "perPage": 25
     },

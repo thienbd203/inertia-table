@@ -28,9 +28,11 @@ export type TableFilterOption = {
 export type TableFilter = {
     attribute: string;
     label: string;
-    type: "text" | "select" | "boolean" | string;
+    type: "text" | "set" | "select" | "numeric" | "date" | "boolean" | string;
     clauses: string[];
     options: TableFilterOption[];
+    multiple?: boolean;
+    hasDefaultValue?: boolean;
     meta: Record<string, unknown>;
 };
 
@@ -94,10 +96,16 @@ export type TableResource<T extends TableItem = TableItem> = {
     columns: TableColumn[];
     filters: TableFilter[];
     actions: TableAction[];
+    search: string[];
     capabilities: {
         searchable: boolean;
         selectable: boolean;
         paginated: boolean;
+        hasSearch?: boolean;
+        hasFilters?: boolean;
+        hasActions?: boolean;
+        hasBulkActions?: boolean;
+        hasToggleableColumns?: boolean;
     };
     state: TableState;
     results: TableResults<T>;

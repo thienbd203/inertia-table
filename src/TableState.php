@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 final readonly class TableState implements Arrayable
 {
     /**
-     * @param  array<string, array{enabled: true, clause: string, value: mixed}>  $filters
+     * @param  array<string, array{enabled: bool, clause: string, value: mixed}>  $filters
      * @param  array<string, bool>  $columns
      */
     public function __construct(
@@ -64,8 +64,13 @@ final readonly class TableState implements Arrayable
         return new self($this->search, $sort, $this->filters, $this->columns, $this->page, $this->perPage);
     }
 
+    public function withSearch(string $search): self
+    {
+        return new self($search, $this->sort, $this->filters, $this->columns, $this->page, $this->perPage);
+    }
+
     /**
-     * @param  array<string, array{enabled: true, clause: string, value: mixed}>  $filters
+     * @param  array<string, array{enabled: bool, clause: string, value: mixed}>  $filters
      */
     public function withFilters(array $filters): self
     {

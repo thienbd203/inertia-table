@@ -21,6 +21,9 @@ abstract class Table implements Arrayable
 
     protected ?string $defaultSort = null;
 
+    /** @var array<int, string>|string|null */
+    protected array|string|null $search = null;
+
     /** @var array<int, string> */
     protected array $reloadProps = [];
 
@@ -77,6 +80,7 @@ abstract class Table implements Arrayable
         $columns = $this->validatedColumns();
         $filters = $this->validatedFilters();
         $actions = $this->validatedActions();
+        $searchable = $this->searchableColumns($columns);
         $perPageOptions = config('inertia-table.per_page_options', [10, 25, 50, 100]);
         $state = TableState::fromRequest(
             $request,
@@ -89,6 +93,9 @@ abstract class Table implements Arrayable
             ])->all(),
         );
         $state = $this->normalizeSort($columns, $state);
+        if ($searchable === []) {
+            $state = $state->withSearch('');
+        }
         $state = $this->normalizeFilters($filters, $state);
         $state = $this->normalizeColumns($columns, $state);
         $query = QueryBuilder::for(
@@ -116,10 +123,16 @@ abstract class Table implements Arrayable
             columns: array_map(fn (Column $column) => $column->toArray(), $columns),
             filters: array_map(fn (Filter $filter) => $filter->toArray(), $filters),
             actions: $bulkActions,
+            search: array_map(fn (Column $column) => $column->attribute, $searchable),
             capabilities: [
-                'searchable' => collect($columns)->contains(fn (Column $column) => $column->isSearchable()),
+                'searchable' => $searchable !== [],
                 'selectable' => $bulkActions !== [],
                 'paginated' => true,
+                'hasSearch' => $searchable !== [],
+                'hasFilters' => $filters !== [],
+                'hasActions' => $actions !== [],
+                'hasBulkActions' => $bulkActions !== [],
+                'hasToggleableColumns' => collect($columns)->contains(fn (Column $column) => $column->isToggleable()),
             ],
             state: $state,
             results: $this->paginate($query, $state, $columns, $actions),
@@ -169,23 +182,15 @@ abstract class Table implements Arrayable
      */
     protected function normalizeFilters(array $filters, TableState $state): TableState
     {
-        $active = [];
+        $normalized = [];
 
         foreach ($filters as $filter) {
-            if (! array_key_exists($filter->attribute, $state->filters)) {
-                continue;
-            }
-
-            $value = $filter->normalizeState($state->filters[$filter->attribute]);
-
-            if ($value === null) {
-                continue;
-            }
-
-            $active[$filter->attribute] = $value;
+            $normalized[$filter->attribute] = array_key_exists($filter->attribute, $state->filters)
+                ? $filter->normalizeState($state->filters[$filter->attribute])
+                : $filter->defaultState();
         }
 
-        return $state->withFilters($active);
+        return $state->withFilters($normalized);
     }
 
     /** @param array<int, Column> $columns */
@@ -213,10 +218,7 @@ abstract class Table implements Arrayable
             fn (Filter $filter) => $filter->allowedFilter(),
             $filters,
         );
-        $searchable = array_values(array_filter(
-            $columns,
-            fn (Column $column) => $column->isSearchable(),
-        ));
+        $searchable = $this->searchableColumns($columns);
 
         if ($searchable !== []) {
             $searchFilter = AllowedFilter::callback(
@@ -249,8 +251,12 @@ abstract class Table implements Arrayable
     {
         $queryBuilderRequest = Request::createFrom($request);
         $filter = collect($state->filters)
+            ->filter(fn (array $filter) => $filter['enabled'])
             ->mapWithKeys(fn (array $filter, string $attribute) => [
-                $attribute => $filter['value'],
+                $attribute => json_encode([
+                    'clause' => $filter['clause'],
+                    'value' => $filter['value'],
+                ], JSON_THROW_ON_ERROR),
             ])
             ->all();
 
@@ -264,6 +270,22 @@ abstract class Table implements Arrayable
         ], fn (mixed $value) => $value !== null && $value !== []));
 
         return $queryBuilderRequest;
+    }
+
+    /**
+     * @param  array<int, Column>  $columns
+     * @return array<int, Column>
+     */
+    protected function searchableColumns(array $columns): array
+    {
+        $attributes = $this->search === null
+            ? collect($columns)->filter(fn (Column $column) => $column->isSearchable())->pluck('attribute')->all()
+            : (array) $this->search;
+
+        return array_values(array_filter(
+            $columns,
+            fn (Column $column) => in_array($column->attribute, $attributes, true),
+        ));
     }
 
     /**

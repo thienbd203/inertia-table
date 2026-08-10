@@ -84,7 +84,11 @@ export function useTable<T extends TableItem>(
         const filters = { ...current.state.filters };
 
         if (value === null || value === undefined || value === "") {
-            delete filters[attribute];
+            filters[attribute] = {
+                enabled: false,
+                clause: clause ?? definition.clauses[0] ?? "equals",
+                value: null,
+            };
         } else {
             const selectedClause = clause ?? definition.clauses[0];
             if (!selectedClause || !definition.clauses.includes(selectedClause))
@@ -102,18 +106,46 @@ export function useTable<T extends TableItem>(
 
     function removeFilter(attribute: string) {
         const filters = { ...toValue(resource).state.filters };
-        delete filters[attribute];
+        const definition = toValue(resource).filters.find(
+            (filter) => filter.attribute === attribute,
+        );
+        if (!definition) return;
+        filters[attribute] = {
+            enabled: false,
+            clause: definition.clauses[0] ?? "equals",
+            value: null,
+        };
         patchState({ filters, page: 1 });
     }
 
     function clearFilters() {
-        patchState({ filters: {}, page: 1 });
+        const filters = Object.fromEntries(
+            toValue(resource).filters.map((filter) => [
+                filter.attribute,
+                {
+                    enabled: false,
+                    clause: filter.clauses[0] ?? "equals",
+                    value: null,
+                },
+            ]),
+        );
+        patchState({ filters, page: 1 });
     }
 
     function clearAll() {
         search.value = "";
         clearTimeout(debounceTimer);
-        patchState({ search: "", filters: {}, page: 1 });
+        const filters = Object.fromEntries(
+            toValue(resource).filters.map((filter) => [
+                filter.attribute,
+                {
+                    enabled: false,
+                    clause: filter.clauses[0] ?? "equals",
+                    value: null,
+                },
+            ]),
+        );
+        patchState({ search: "", filters, page: 1 });
     }
 
     function toggleColumn(attribute: string) {
@@ -149,8 +181,10 @@ export function useTable<T extends TableItem>(
                 toValue(resource).state.columns[column.attribute] !== false,
         ),
     );
-    const hasFilters = computed(
-        () => Object.keys(toValue(resource).state.filters).length > 0,
+    const hasFilters = computed(() =>
+        Object.values(toValue(resource).state.filters).some(
+            (filter) => filter.enabled,
+        ),
     );
     const hasActiveState = computed(
         () => toValue(resource).state.search !== "" || hasFilters.value,

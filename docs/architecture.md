@@ -79,10 +79,16 @@ type TableResource<T> = {
     columns: ColumnResource[];
     filters: FilterResource[];
     actions: ActionResource[];
+    search: string[];
     capabilities: {
         searchable: boolean;
         selectable: boolean;
         paginated: boolean;
+        hasSearch: boolean;
+        hasFilters: boolean;
+        hasActions: boolean;
+        hasBulkActions: boolean;
+        hasToggleableColumns: boolean;
     };
     state: TableState;
     results: PaginatedResults<T>;
@@ -109,7 +115,10 @@ type ColumnResource = {
 };
 ```
 
-Searchability belongs to table query configuration, not presentation state. A column helper may opt an attribute into search, but the serialized table exposes the resolved searchable capability separately.
+Searchability belongs to table query configuration, not presentation state. A
+column helper may opt an attribute into search, while the Table `$search`
+property can explicitly override the resolved allowlist. The serialized
+resource exposes both that allowlist and convenient capabilities.
 
 ### Filter resource
 
@@ -117,7 +126,7 @@ Searchability belongs to table query configuration, not presentation state. A co
 type FilterResource = {
     attribute: string;
     label: string;
-    type: "text" | "boolean" | "select";
+    type: "text" | "set" | "numeric" | "date" | "boolean";
     clauses: FilterClause[];
     options: Array<{ value: string | number | boolean; label: string }>;
     meta: Record<string, unknown>;
@@ -130,7 +139,10 @@ type FilterState = {
 };
 ```
 
-Even when v0.1 exposes one default clause per filter, the state shape includes the clause so advanced comparisons can be added without breaking the URL contract.
+Every declared filter has a state entry. Inactive filters serialize with
+`enabled: false`; enabled filters are the only entries compiled into Spatie
+Query Builder callbacks. Each filter type owns validation and clause-specific
+query behavior.
 
 ### Action resource
 

@@ -25,10 +25,16 @@ const props = withDefaults(
 const resource = toRef(props, "resource");
 const table = useTable(resource);
 const actions = useActions(table);
-const activeFilterAttributes = ref(Object.keys(props.resource.state.filters));
+function enabledFilterAttributes(resource: TableResource<T>) {
+    return Object.entries(resource.state.filters)
+        .filter(([, state]) => state.enabled)
+        .map(([attribute]) => attribute);
+}
+
+const activeFilterAttributes = ref(enabledFilterAttributes(props.resource));
 
 watch(
-    () => Object.keys(props.resource.state.filters),
+    () => enabledFilterAttributes(props.resource),
     (attributes) => {
         activeFilterAttributes.value = [
             ...new Set([...activeFilterAttributes.value, ...attributes]),
@@ -42,6 +48,17 @@ function addFilter(attribute: string) {
             ...activeFilterAttributes.value,
             attribute,
         ];
+    }
+
+    const definition = props.resource.filters.find(
+        (filter) => filter.attribute === attribute,
+    );
+    const clause = definition?.clauses[0];
+    if (
+        clause &&
+        ["is_true", "is_false", "is_set", "is_not_set"].includes(clause)
+    ) {
+        table.setFilter(attribute, true, clause);
     }
 }
 

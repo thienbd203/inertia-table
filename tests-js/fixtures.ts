@@ -69,15 +69,27 @@ export function topicResource(
                 meta: {},
             },
         ],
+        search: ["name"],
         capabilities: {
             searchable: true,
             selectable: true,
             paginated: true,
+            hasSearch: true,
+            hasFilters: true,
+            hasActions: true,
+            hasBulkActions: true,
+            hasToggleableColumns: true,
         },
         state: {
             search: "",
             sort: "name",
-            filters: {},
+            filters: {
+                status: {
+                    enabled: false,
+                    clause: "equals",
+                    value: null,
+                },
+            },
             columns: { name: true, is_featured: true, __actions: true },
             page: 1,
             perPage: 25,

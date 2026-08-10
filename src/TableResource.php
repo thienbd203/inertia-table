@@ -11,6 +11,7 @@ final readonly class TableResource implements Arrayable
      * @param  array<int, array<string, mixed>>  $columns
      * @param  array<int, array<string, mixed>>  $filters
      * @param  array<int, array<string, mixed>>  $actions
+     * @param  array<int, string>  $search
      * @param  array<string, bool>  $capabilities
      * @param  array<string, mixed>  $results
      * @param  array<string, mixed>  $options
@@ -20,6 +21,7 @@ final readonly class TableResource implements Arrayable
         public array $columns,
         public array $filters,
         public array $actions,
+        public array $search,
         public array $capabilities,
         public TableState $state,
         public array $results,
@@ -34,6 +36,7 @@ final readonly class TableResource implements Arrayable
             'columns' => $this->columns,
             'filters' => $this->filters,
             'actions' => $this->actions,
+            'search' => $this->search,
             'capabilities' => $this->capabilities,
             'state' => $this->state->toArray(),
             'results' => $this->results,

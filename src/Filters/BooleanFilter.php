@@ -2,23 +2,23 @@
 
 namespace Toolbelt\InertiaTable\Filters;
 
-use Spatie\QueryBuilder\AllowedFilter;
+use Illuminate\Database\Eloquent\Builder;
 
 class BooleanFilter extends Filter
 {
-    public function defaultClause(): string
+    protected function defaultClauses(): array
     {
-        return 'equals';
+        return [Clause::IsTrue, Clause::IsFalse];
     }
 
-    public function allowedFilter(): AllowedFilter
+    public function normalize(mixed $value, ?string $clause = null): mixed
     {
-        return AllowedFilter::exact($this->attribute);
+        return null;
     }
 
-    public function normalize(mixed $value): ?bool
+    protected function apply(Builder $query, string $clause, mixed $value): void
     {
-        return filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+        $query->where($this->attribute, $clause === Clause::IsTrue->value);
     }
 
     public function toArray(): array

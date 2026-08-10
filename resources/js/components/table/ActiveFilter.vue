@@ -55,7 +55,9 @@ function apply(nextValue: unknown = value.value) {
 
 function updateClause(nextClause: string) {
     clause.value = nextClause;
-    if (value.value !== "") apply();
+    if (["is_true", "is_false", "is_set", "is_not_set"].includes(nextClause)) {
+        table.setFilter(props.filter.attribute, true, nextClause);
+    } else if (value.value !== "") apply();
 }
 </script>
 
@@ -86,12 +88,25 @@ function updateClause(nextClause: string) {
                         <UiSelect
                             v-if="
                                 filter.type === 'select' ||
-                                filter.type === 'boolean'
+                                filter.type === 'set'
                             "
                             :model-value="String(value)"
                             :options="valueOptions"
                             @update:model-value="apply"
                         />
+                        <span
+                            v-else-if="
+                                [
+                                    'is_true',
+                                    'is_false',
+                                    'is_set',
+                                    'is_not_set',
+                                ].includes(clause)
+                            "
+                            class="tb-filter-clause-only"
+                        >
+                            This filter does not require a value.
+                        </span>
                         <UiInput
                             v-else
                             :model-value="String(value)"

@@ -15,6 +15,7 @@ use Toolbelt\InertiaTable\Columns\DateColumn;
 use Toolbelt\InertiaTable\Columns\NumberColumn;
 use Toolbelt\InertiaTable\Columns\TextColumn;
 use Toolbelt\InertiaTable\Filters\BooleanFilter;
+use Toolbelt\InertiaTable\Filters\NumericFilter;
 use Toolbelt\InertiaTable\Filters\SelectFilter;
 use Toolbelt\InertiaTable\Filters\TextFilter;
 use Toolbelt\InertiaTable\Table;
@@ -93,6 +94,27 @@ class TopicsTable extends Table
     }
 }
 
+class ExplicitSearchTopicsTable extends TopicsTable
+{
+    protected ?string $name = 'topics';
+
+    protected array|string|null $search = [];
+}
+
+class AdvancedFilterTopicsTable extends TopicsTable
+{
+    protected ?string $name = 'topics';
+
+    public function filters(): array
+    {
+        return [
+            TextFilter::make('name'),
+            NumericFilter::make('score'),
+            BooleanFilter::make('is_featured'),
+        ];
+    }
+}
+
 beforeEach(function () {
     Schema::create('topics', function (Blueprint $table) {
         $table->id();
@@ -128,7 +150,13 @@ it('serializes a versioned table resource', function () {
             'searchable' => true,
             'selectable' => true,
             'paginated' => true,
+            'hasSearch' => true,
+            'hasFilters' => true,
+            'hasActions' => true,
+            'hasBulkActions' => true,
+            'hasToggleableColumns' => true,
         ])
+        ->search->toBe(['name'])
         ->options->toBe([
             'debounceTime' => 300,
             'perPage' => [10, 25, 50, 100],
@@ -164,6 +192,14 @@ it('searches only searchable columns', function () {
         ->and($resource['results']['data'][0]['name'])->toBe('Gamma');
 });
 
+it('can explicitly disable global search on the table', function () {
+    $resource = (new ExplicitSearchTopicsTable)->resolve(tableRequest(['search' => 'Gamma']))->toArray();
+
+    expect($resource['search'])->toBe([])
+        ->and($resource['capabilities']['hasSearch'])->toBeFalse()
+        ->and($resource['results']['total'])->toBe(3);
+});
+
 it('keeps commas intact in the global search filter', function () {
     TopicRecord::query()->create([
         'name' => 'Alpha, Incorporated',
@@ -191,11 +227,12 @@ it('delegates partial text filtering to spatie query builder', function () {
     expect($resource['results']['data'])
         ->toHaveCount(1)
         ->and($resource['results']['data'][0]['name'])->toBe('Gamma')
-        ->and($resource['state']['filters'])->toBe(['name' => [
+        ->and($resource['state']['filters']['name'])->toBe([
             'enabled' => true,
             'clause' => 'contains',
             'value' => 'amm',
-        ]]);
+        ])
+        ->and($resource['state']['filters']['status']['enabled'])->toBeFalse();
 });
 
 it('sorts only declared sortable columns', function () {
@@ -228,13 +265,29 @@ it('normalizes and applies declared filters', function () {
 
     expect(array_column($featured['results']['data'], 'name'))
         ->toBe(['Beta', 'Gamma'])
-        ->and($featured['state']['filters'])->toBe(['status' => [
+        ->and($featured['state']['filters']['status'])->toBe([
             'enabled' => true,
             'clause' => 'equals',
             'value' => 'featured',
-        ]])
+        ])
         ->and($invalid['results']['total'])->toBe(3)
-        ->and($invalid['state']['filters'])->toBe([]);
+        ->and($invalid['state']['filters']['status']['enabled'])->toBeFalse();
+});
+
+it('applies text numeric and valueless boolean clauses', function () {
+    $text = (new AdvancedFilterTopicsTable)->resolve(tableRequest([
+        'filters' => ['name' => ['enabled' => true, 'clause' => 'not_contains', 'value' => 'ph']],
+    ]))->toArray();
+    $numeric = (new AdvancedFilterTopicsTable)->resolve(tableRequest([
+        'filters' => ['score' => ['enabled' => true, 'clause' => 'greater_than', 'value' => 20]],
+    ]))->toArray();
+    $boolean = (new AdvancedFilterTopicsTable)->resolve(tableRequest([
+        'filters' => ['is_featured' => ['enabled' => true, 'clause' => 'is_false', 'value' => null]],
+    ]))->toArray();
+
+    expect(array_column($text['results']['data'], 'name'))->toBe(['Beta', 'Gamma'])
+        ->and(array_column($numeric['results']['data'], 'name'))->toBe(['Beta'])
+        ->and(array_column($boolean['results']['data'], 'name'))->toBe(['Alpha']);
 });
 
 it('accepts only configured per-page values', function () {
