@@ -10,6 +10,7 @@ import {
 import { useTableContext } from "@/context/tableContext";
 import SlotOutlet from "./SlotOutlet";
 import TableActionMenuItem from "./TableActionMenuItem.vue";
+import { Wrench } from "@lucide/vue";
 
 const { actions } = useTableContext();
 </script>
@@ -17,7 +18,9 @@ const { actions } = useTableContext();
 <template>
     <UiDropdownMenu v-if="actions.bulkActions.value.length">
         <UiDropdownMenuTrigger>
-            <UiButton variant="outline">Actions</UiButton>
+            <UiButton variant="outline">
+                <Wrench class="h-4 w-4" />Actions</UiButton
+            >
         </UiDropdownMenuTrigger>
         <UiDropdownMenuContent>
             <UiDropdownMenuLabel>Bulk Actions</UiDropdownMenuLabel>

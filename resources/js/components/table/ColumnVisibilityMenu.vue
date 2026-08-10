@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { UiButton } from "@/components/ui/button";
+import { Eye } from "@lucide/vue";
 import {
     UiDropdownMenu,
     UiDropdownMenuCheckboxItem,
@@ -18,7 +19,10 @@ const columns = computed(() =>
 <template>
     <UiDropdownMenu v-if="columns.length">
         <UiDropdownMenuTrigger>
-            <UiButton variant="outline">Columns</UiButton>
+            <UiButton variant="outline">
+                <Eye class="h-4 w-4" />
+                Columns
+            </UiButton>
         </UiDropdownMenuTrigger>
         <UiDropdownMenuContent>
             <UiDropdownMenuCheckboxItem

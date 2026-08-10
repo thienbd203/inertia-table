@@ -9,6 +9,7 @@ import {
     UiDropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { TableFilter } from "@/types";
+import { Funnel } from "@lucide/vue";
 
 defineProps<{ filters: TableFilter[] }>();
 defineEmits<{ add: [attribute: string] }>();
@@ -17,7 +18,10 @@ defineEmits<{ add: [attribute: string] }>();
 <template>
     <UiDropdownMenu v-if="filters.length">
         <UiDropdownMenuTrigger>
-            <UiButton variant="outline">Filters</UiButton>
+            <UiButton variant="outline">
+                <Funnel class="h-4 w-4" />
+                Filters
+            </UiButton>
         </UiDropdownMenuTrigger>
         <UiDropdownMenuContent>
             <UiDropdownMenuLabel>Add Filter</UiDropdownMenuLabel>
