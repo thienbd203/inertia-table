@@ -1,84 +1,149 @@
-# Server-driven data tables for Laravel and Inertia.js.
+# Toolbelt Inertia Table
 
+[![Tests](https://github.com/thienbd203/inertia-table/actions/workflows/run-tests.yml/badge.svg)](https://github.com/thienbd203/inertia-table/actions/workflows/run-tests.yml)
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/toolbelt/inertia-table.svg?style=flat-square)](https://packagist.org/packages/toolbelt/inertia-table)
-[![GitHub Tests Action Status](https://github.com/spatie/package-inertia-table-laravel/actions/workflows/run-tests.yml/badge.svg)](https://github.com/toolbelt/inertia-table/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://github.com/spatie/package-inertia-table-laravel/actions/workflows/fix-php-code-style-issues.yml/badge.svg)](https://github.com/toolbelt/inertia-table/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/toolbelt/inertia-table.svg?style=flat-square)](https://packagist.org/packages/toolbelt/inertia-table)
 
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+Server-driven data tables for Laravel and Inertia.js, powered by [Spatie Laravel Query Builder](https://spatie.be/docs/laravel-query-builder/v7/introduction). Define columns and filters in PHP, pass the table directly as an Inertia prop, and let a frontend renderer keep URL state and server results in sync.
 
-## Support us
+> This package is under active development. The API is not stable until v1.0.
 
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/inertia-table.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/inertia-table)
+## Requirements
 
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+- PHP 8.3+
+- Laravel 12 or 13
+- Inertia Laravel 2 or 3
+- Spatie Laravel Query Builder 7
 
 ## Installation
-
-You can install the package via composer:
 
 ```bash
 composer require toolbelt/inertia-table
 ```
 
-You can publish and run the migrations with:
-
-```bash
-php artisan vendor:publish --tag="inertia-table-migrations"
-php artisan migrate
-```
-
-You can publish the config file with:
+Publish the optional configuration file:
 
 ```bash
 php artisan vendor:publish --tag="inertia-table-config"
 ```
 
-This is the contents of the published config file:
+## Defining a table
+
+Create a table class in your application:
 
 ```php
-return [
-];
+<?php
+
+namespace App\Tables;
+
+use App\Models\Topic;
+use Illuminate\Database\Eloquent\Builder;
+use Toolbelt\InertiaTable\Columns\BooleanColumn;
+use Toolbelt\InertiaTable\Columns\NumberColumn;
+use Toolbelt\InertiaTable\Columns\TextColumn;
+use Toolbelt\InertiaTable\Filters\SelectFilter;
+use Toolbelt\InertiaTable\Table;
+
+final class TopicsTable extends Table
+{
+    protected ?string $defaultSort = 'name';
+
+    public function query(): Builder
+    {
+        return Topic::query()->withCount('quotes');
+    }
+
+    public function columns(): array
+    {
+        return [
+            TextColumn::make('name', 'Name')->searchable()->sortable(),
+            NumberColumn::make('quotes_count', 'Quotes')->sortable(),
+            BooleanColumn::make('is_featured', 'Featured'),
+        ];
+    }
+
+    public function filters(): array
+    {
+        return [
+            SelectFilter::make('status')
+                ->options([
+                    'empty' => 'Without quotes',
+                    'featured' => 'Featured',
+                ])
+                ->applyUsing(function (Builder $query, string $value) {
+                    match ($value) {
+                        'empty' => $query->doesntHave('quotes'),
+                        'featured' => $query->where('is_featured', true),
+                    };
+                }),
+        ];
+    }
+}
 ```
 
-Optionally, you can publish the views using
-
-```bash
-php artisan vendor:publish --tag="inertia-table-views"
-```
-
-## Usage
+Pass it directly to an Inertia page:
 
 ```php
-$inertiaTable = new Toolbelt\InertiaTable();
-echo $inertiaTable->echoPhrase('Hello, Toolbelt!');
+return inertia('Admin/Topics/Index', [
+    'topics' => TopicsTable::make()
+        ->reloadProps(['featuredCount', 'trashedCount']),
+]);
 ```
 
-## Testing
+## Query-string state
+
+Each table owns a namespaced section of the query string. This allows multiple tables to coexist on one page without state collisions.
+
+```text
+?table[topics][search]=life
+&table[topics][sort]=-created_at
+&table[topics][filters][status]=featured
+&table[topics][page]=2
+&table[topics][perPage]=25
+```
+
+Toolbelt translates this namespaced state into Spatie Query Builder's `sort` and `filter` request contract internally. Column definitions compile to `AllowedSort` instances, while filter definitions compile to `AllowedFilter` instances. Unknown sorts, filters, per-page values, and malformed input are discarded or replaced with safe defaults before the query executes.
+
+## Resource contract
+
+The table serializes to a versioned Inertia resource:
+
+```json
+{
+    "schemaVersion": 1,
+    "name": "topics",
+    "columns": [],
+    "filters": [],
+    "state": {
+        "search": "",
+        "sort": "name",
+        "filters": {},
+        "page": 1,
+        "perPage": 25
+    },
+    "results": {
+        "data": [],
+        "currentPage": 1,
+        "from": null,
+        "lastPage": 1,
+        "links": [],
+        "perPage": 25,
+        "to": null,
+        "total": 0
+    },
+    "reloadProps": []
+}
+```
+
+## Development
 
 ```bash
+composer install
 composer test
+composer analyse
+composer format
 ```
-
-## Changelog
-
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
-
-## Contributing
-
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Security Vulnerabilities
-
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
-
-## Credits
-
-- [thienbd203](https://github.com/thienbd203)
-- [All Contributors](../../contributors)
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The MIT License. See [LICENSE.md](LICENSE.md).

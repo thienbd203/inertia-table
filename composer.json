@@ -6,7 +6,7 @@
         "laravel",
         "inertia-table"
     ],
-    "homepage": "https://github.com/toolbelt/inertia-table",
+    "homepage": "https://github.com/thienbd203/inertia-table",
     "license": "MIT",
     "authors": [
         {
@@ -16,15 +16,17 @@
         }
     ],
     "require": {
-        "php": "^8.4",
+        "php": "^8.3",
+        "illuminate/contracts": "^12.0||^13.0",
+        "inertiajs/inertia-laravel": "^2.0||^3.0",
         "spatie/laravel-package-tools": "^1.16",
-        "illuminate/contracts": "^11.0||^12.0||^13.0"
+        "spatie/laravel-query-builder": "^7.0"
     },
     "require-dev": {
         "laravel/pint": "^1.14",
         "nunomaduro/collision": "^8.8",
         "larastan/larastan": "^3.0",
-        "orchestra/testbench": "^11.0.0||^10.0.0||^9.0.0",
+        "orchestra/testbench": "^11.0.0||^10.0.0",
         "pestphp/pest": "^4.0",
         "pestphp/pest-plugin-arch": "^4.0",
         "pestphp/pest-plugin-laravel": "^4.0",
@@ -34,8 +36,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Toolbelt\\InertiaTable\\": "src/",
-            "Toolbelt\\InertiaTable\\Database\\Factories\\": "database/factories/"
+            "Toolbelt\\InertiaTable\\": "src/"
         }
     },
     "autoload-dev": {
@@ -63,10 +64,7 @@
         "laravel": {
             "providers": [
                 "Toolbelt\\InertiaTable\\InertiaTableServiceProvider"
-            ],
-            "aliases": {
-                "InertiaTable": "Toolbelt\\InertiaTable\\Facades\\InertiaTable"
-            }
+            ]
         }
     },
     "minimum-stability": "dev",
