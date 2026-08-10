@@ -1,17 +1,17 @@
 <script setup lang="ts" generic="T extends TableItem">
 import { toRef } from "vue";
+import { UiButton } from "./components/ui/button";
+import { UiCheckbox } from "./components/ui/checkbox";
+import { UiInput } from "./components/ui/input";
+import { UiSelect } from "./components/ui/select";
 import {
-    UiButton,
-    UiCheckbox,
-    UiInput,
-    UiSelect,
     UiTable,
     UiTableBody,
     UiTableCell,
     UiTableHead,
     UiTableHeader,
     UiTableRow,
-} from "./shadcn";
+} from "./components/ui/table";
 import type { TableFilter, TableItem, TableResource } from "./types";
 import { useDataTable } from "./useDataTable";
 

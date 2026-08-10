@@ -12,8 +12,8 @@ export {
     UiTableHead,
     UiTableHeader,
     UiTableRow,
-} from "./shadcn";
-export type { UiSelectOption } from "./shadcn";
+} from "./components/ui";
+export type { UiSelectOption } from "./components/ui";
 export type {
     DataTableOptions,
     PaginationLink,
