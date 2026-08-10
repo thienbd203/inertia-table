@@ -93,6 +93,8 @@ it('serializes a versioned table resource', function () {
         ->name->toBe('topics')
         ->columns->toHaveCount(4)
         ->filters->toHaveCount(3)
+        ->debounceTime->toBe(300)
+        ->perPageOptions->toBe([10, 25, 50, 100])
         ->state->sort->toBe('name')
         ->results->total->toBe(3)
         ->and($resource['columns'][0])

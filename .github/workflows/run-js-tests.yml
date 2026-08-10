@@ -1,0 +1,59 @@
+name: run-js-tests
+
+on:
+  push:
+    paths:
+      - 'resources/js/**'
+      - 'tests-js/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'vite.config.ts'
+      - '.github/workflows/run-js-tests.yml'
+  pull_request:
+    paths:
+      - 'resources/js/**'
+      - 'tests-js/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'vite.config.ts'
+      - '.github/workflows/run-js-tests.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['20.19.0', '22.12.0']
+
+    name: Node ${{ matrix.node }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Check types
+        run: npm run types:check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build package
+        run: npm run build

@@ -19,6 +19,7 @@ Server-driven data tables for Laravel and Inertia.js, powered by [Spatie Laravel
 
 ```bash
 composer require toolbelt/inertia-table
+npm install @toolbelt/inertia-table-vue
 ```
 
 Publish the optional configuration file:
@@ -90,6 +91,47 @@ return inertia('Admin/Topics/Index', [
 ]);
 ```
 
+Render the resource in Vue:
+
+```vue
+<script setup lang="ts">
+import {
+    DataTable,
+    type TableResource,
+} from '@toolbelt/inertia-table-vue';
+import '@toolbelt/inertia-table-vue/style.css';
+
+type Topic = {
+    id: number;
+    name: string;
+    quotes_count: number;
+    is_featured: boolean;
+};
+
+defineProps<{
+    topics: TableResource<Topic>;
+}>();
+</script>
+
+<template>
+    <DataTable :resource="topics" selectable>
+        <template #cell(name)="{ item }">
+            <strong>{{ item.name }}</strong>
+        </template>
+    </DataTable>
+</template>
+```
+
+For a custom renderer, import the headless composable:
+
+```ts
+import { useDataTable } from '@toolbelt/inertia-table-vue';
+
+const table = useDataTable(() => props.topics);
+```
+
+It exposes URL navigation, debounced search, sorting, filtering, pagination, per-page selection, loading state, and current-page row selection.
+
 ## Query-string state
 
 Each table owns a namespaced section of the query string. This allows multiple tables to coexist on one page without state collisions.
@@ -131,7 +173,9 @@ The table serializes to a versioned Inertia resource:
         "to": null,
         "total": 0
     },
-    "reloadProps": []
+    "reloadProps": [],
+    "debounceTime": 300,
+    "perPageOptions": [10, 25, 50, 100]
 }
 ```
 

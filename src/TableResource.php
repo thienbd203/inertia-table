@@ -12,6 +12,7 @@ final readonly class TableResource implements Arrayable
      * @param  array<int, array<string, mixed>>  $filters
      * @param  array<string, mixed>  $results
      * @param  array<int, string>  $reloadProps
+     * @param  array<int, int>  $perPageOptions
      */
     public function __construct(
         public string $name,
@@ -20,6 +21,8 @@ final readonly class TableResource implements Arrayable
         public TableState $state,
         public array $results,
         public array $reloadProps = [],
+        public int $debounceTime = 300,
+        public array $perPageOptions = [10, 25, 50, 100],
     ) {}
 
     public function toArray(): array
@@ -32,6 +35,8 @@ final readonly class TableResource implements Arrayable
             'state' => $this->state->toArray(),
             'results' => $this->results,
             'reloadProps' => $this->reloadProps,
+            'debounceTime' => $this->debounceTime,
+            'perPageOptions' => $this->perPageOptions,
         ];
     }
 }

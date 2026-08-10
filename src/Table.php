@@ -69,12 +69,13 @@ abstract class Table implements Arrayable
         $request ??= request();
         $columns = $this->validatedColumns();
         $filters = $this->validatedFilters();
+        $perPageOptions = config('inertia-table.per_page_options', [10, 25, 50, 100]);
         $state = TableState::fromRequest(
             $request,
             $this->name(),
             $this->defaultSort,
             (int) config('inertia-table.per_page', 25),
-            config('inertia-table.per_page_options', [10, 25, 50, 100]),
+            $perPageOptions,
         );
         $state = $this->normalizeSort($columns, $state);
         $state = $this->normalizeFilters($filters, $state);
@@ -98,6 +99,8 @@ abstract class Table implements Arrayable
             state: $state,
             results: $this->paginate($query, $state),
             reloadProps: $this->reloadProps,
+            debounceTime: (int) config('inertia-table.debounce', 300),
+            perPageOptions: $perPageOptions,
         );
     }
 
