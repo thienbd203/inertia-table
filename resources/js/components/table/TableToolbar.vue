@@ -23,7 +23,7 @@ const availableFilters = computed(() =>
 </script>
 
 <template>
-    <div class="tb-topbar">
+    <div class="tb-topbar flex items-center justify-between">
         <div class="tb-search-group">
             <SlotOutlet name="beforeSearch" />
             <UiInput
@@ -32,11 +32,12 @@ const availableFilters = computed(() =>
                 :model-value="table.search.value"
                 :placeholder="searchPlaceholder"
                 @update:model-value="(value) => table.setSearch(String(value))"
+                class="w-[200px]"
             />
             <SlotOutlet name="afterSearch" />
         </div>
 
-        <div class="tb-action-group">
+        <div class="tb-action-group flex gap-2">
             <SlotOutlet name="beforeActions" />
             <TableActionsMenu />
             <AddFilterMenu :filters="availableFilters" @add="addFilter" />

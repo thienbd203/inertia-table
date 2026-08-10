@@ -46,7 +46,7 @@ function sortDirection(attribute: string): "asc" | "desc" | null {
                     :slot-props="{ column }"
                 >
                     <UiDropdownMenu v-if="column.sortable || column.toggleable">
-                        <UiDropdownMenuTrigger>
+                        <UiDropdownMenuTrigger class="-ms-3">
                             <UiButton
                                 :variant="
                                     sortDirection(column.attribute)
@@ -54,7 +54,7 @@ function sortDirection(attribute: string): "asc" | "desc" | null {
                                         : 'ghost'
                                 "
                                 size="sm"
-                                class="tb-sort-button -ml-3"
+                                class="tb-sort-button"
                                 :data-active="
                                     sortDirection(column.attribute)
                                         ? ''

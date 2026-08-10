@@ -6,6 +6,8 @@ import {
     UiDropdownMenu,
     UiDropdownMenuCheckboxItem,
     UiDropdownMenuContent,
+    UiDropdownMenuLabel,
+    UiDropdownMenuSeparator,
     UiDropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTableContext } from "@/context/tableContext";
@@ -25,6 +27,8 @@ const columns = computed(() =>
             </UiButton>
         </UiDropdownMenuTrigger>
         <UiDropdownMenuContent>
+            <UiDropdownMenuLabel>Columns</UiDropdownMenuLabel>
+            <UiDropdownMenuSeparator />
             <UiDropdownMenuCheckboxItem
                 v-for="column in columns"
                 :key="column.attribute"
