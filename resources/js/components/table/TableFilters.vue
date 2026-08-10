@@ -18,7 +18,10 @@ const activeFilters = computed(() =>
 </script>
 
 <template>
-    <div v-if="activeFilters.length" class="tb-filters">
+    <div
+        v-if="activeFilters.length"
+        class="tb-filters flex items-center gap-2 mt-4"
+    >
         <ActiveFilter
             v-for="filter in activeFilters"
             :key="filter.attribute"

@@ -64,10 +64,20 @@ function updateClause(nextClause: string) {
 <template>
     <div class="tb-active-filter">
         <UiPopover>
-            <UiPopoverTrigger>
-                <UiButton variant="outline" size="sm">
+            <UiPopoverTrigger
+                class="flex items-center rounded-md border border-gray-400 bg-gray-200/75 text-xs font-medium text-gray-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            >
+                <button class="space-x-1 py-1 ps-2 text-sm font-medium">
                     {{ filter.label }}
-                </UiButton>
+                </button>
+                <button
+                    type="button"
+                    class="tb-remove-filter ms-2 h-full py-1 pe-2 text-gray-500 transition-colors hover:text-red-500"
+                    :aria-label="`Remove ${filter.label} filter`"
+                    @click="emit('remove')"
+                >
+                    <X :size="14" />
+                </button>
             </UiPopoverTrigger>
             <UiPopoverContent>
                 <SlotOutlet
@@ -118,13 +128,5 @@ function updateClause(nextClause: string) {
                 </SlotOutlet>
             </UiPopoverContent>
         </UiPopover>
-        <button
-            type="button"
-            class="tb-remove-filter"
-            :aria-label="`Remove ${filter.label} filter`"
-            @click="emit('remove')"
-        >
-            <X :size="14" />
-        </button>
     </div>
 </template>
