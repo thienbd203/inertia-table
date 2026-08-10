@@ -11,7 +11,9 @@ const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
 <template>
     <div class="flex items-center gap-2">
-        <Filter class="size-5" />
+        <div>
+            <Filter class="size-5" />
+        </div>
         <UiSelect
             :model-value="modelValue"
             :options="options"

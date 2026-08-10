@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from "vue";
 import { UiInput } from "@/components/ui/input";
 import { useTableContext } from "@/context/tableContext";
 import { ActionsMenu } from "../actions";
@@ -13,13 +12,8 @@ const {
     searchPlaceholder,
     activeFilterAttributes,
     addFilter,
+    clearFilters,
 } = useTableContext();
-
-const availableFilters = computed(() =>
-    resource.value.filters.filter(
-        (filter) => !activeFilterAttributes.value.includes(filter.attribute),
-    ),
-);
 </script>
 
 <template>
@@ -40,7 +34,12 @@ const availableFilters = computed(() =>
         <div class="tb-action-group flex gap-2">
             <SlotOutlet name="beforeActions" />
             <ActionsMenu />
-            <AddFilterMenu :filters="availableFilters" @add="addFilter" />
+            <AddFilterMenu
+                :filters="resource.filters"
+                :active-attributes="activeFilterAttributes"
+                @add="addFilter"
+                @clear="clearFilters"
+            />
             <ColumnVisibilityMenu />
             <SlotOutlet name="afterActions" />
         </div>

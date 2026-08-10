@@ -23,7 +23,7 @@ const { clause, clauseOptions, state, table, update, updateClause, value } =
             table,
         }"
     >
-        <div class="tb-filter-editor gap-2">
+        <div class="tb-filter-editor space-y-2">
             <FilterClauseSelect
                 v-if="filter.showClause !== false && clauseOptions.length > 1"
                 :model-value="clause"

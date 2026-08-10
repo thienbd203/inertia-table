@@ -9,10 +9,16 @@ import {
     UiDropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { TableFilter } from "@/types";
-import { Funnel } from "@lucide/vue";
+import { Funnel, Plus, X } from "@lucide/vue";
 
-defineProps<{ filters: TableFilter[] }>();
-defineEmits<{ add: [attribute: string] }>();
+defineProps<{
+    filters: TableFilter[];
+    activeAttributes: string[];
+}>();
+defineEmits<{
+    add: [attribute: string];
+    clear: [];
+}>();
 </script>
 
 <template>
@@ -29,10 +35,23 @@ defineEmits<{ add: [attribute: string] }>();
             <UiDropdownMenuItem
                 v-for="filter in filters"
                 :key="filter.attribute"
+                :disabled="activeAttributes.includes(filter.attribute)"
                 @select="$emit('add', filter.attribute)"
             >
+                <Plus
+                    class="size-4"
+                    v-if="!activeAttributes.includes(filter.attribute)"
+                />
+                <div v-else class="size-4"></div>
                 {{ filter.label }}
             </UiDropdownMenuItem>
+            <template v-if="activeAttributes.length">
+                <UiDropdownMenuSeparator />
+                <UiDropdownMenuItem @select="$emit('clear')">
+                    <X class="size-4" />
+                    Clear all filters
+                </UiDropdownMenuItem>
+            </template>
         </UiDropdownMenuContent>
     </UiDropdownMenu>
 </template>

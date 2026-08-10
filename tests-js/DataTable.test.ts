@@ -167,6 +167,44 @@ describe("DataTable shadcn renderer", () => {
         expect(wrapper.find("details").exists()).toBe(false);
     });
 
+    it("renders filters as an add filter menu", async () => {
+        const wrapper = mount(DataTable, {
+            props: { resource: topicResource() },
+            attachTo: document.body,
+        });
+
+        await openDropdown(wrapper, "Filters");
+
+        const filter = document.body.querySelector<HTMLElement>(
+            '[data-slot="dropdown-menu-item"]',
+        );
+
+        expect(filter?.textContent).toContain("Status");
+        expect(filter?.querySelector("svg")).not.toBeNull();
+    });
+
+    it("offers clearing all filters when a filter is active", async () => {
+        const resource = topicResource();
+        resource.state.filters.status = {
+            enabled: true,
+            clause: "equals",
+            value: "featured",
+        };
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        await openDropdown(wrapper, "Filters");
+
+        expect(document.body.textContent).toContain("Clear all filters");
+        expect(
+            document.body.querySelector<HTMLElement>(
+                '[data-slot="dropdown-menu-item"][data-disabled]',
+            )?.textContent,
+        ).toContain("Status");
+    });
+
     it("resolves action icons inside the actions menu", async () => {
         const resource = topicResource();
         resource.actions[0] = {

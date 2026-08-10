@@ -37,7 +37,9 @@ function updateRange(index: 0 | 1, value: string | number) {
 
 <template>
     <div class="flex items-center gap-2">
-        <Search class="size-5" />
+        <div>
+            <Search class="size-5" />
+        </div>
         <div class="flex-1">
             <div
                 v-if="filter.type === 'select' || filter.type === 'set'"
