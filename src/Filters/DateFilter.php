@@ -11,15 +11,6 @@ class DateFilter extends Filter
         return [Clause::Before, Clause::After, Clause::EqualOrBefore, Clause::EqualOrAfter, Clause::Equals, Clause::NotEquals, Clause::Between, Clause::NotBetween];
     }
 
-    public function nullable(bool $nullable = true): static
-    {
-        if ($nullable) {
-            $this->clauses([...$this->clauses, Clause::IsSet, Clause::IsNotSet]);
-        }
-
-        return $this;
-    }
-
     public function normalize(mixed $value, ?string $clause = null): string|array|null
     {
         if (in_array($clause, [Clause::IsSet->value, Clause::IsNotSet->value], true)) {
@@ -44,8 +35,6 @@ class DateFilter extends Filter
             'not_equals' => $query->whereDate($this->attribute, '!=', $value),
             'between' => $query->whereBetween($this->attribute, $value),
             'not_between' => $query->whereNotBetween($this->attribute, $value),
-            'is_set' => $query->whereNotNull($this->attribute),
-            'is_not_set' => $query->whereNull($this->attribute),
             default => null,
         };
     }

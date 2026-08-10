@@ -21,6 +21,8 @@ abstract class Filter implements Arrayable
 
     protected bool $hasDefaultValue = false;
 
+    protected bool $showClause = true;
+
     final public function __construct(
         public readonly string $attribute,
         public readonly string $label,
@@ -72,6 +74,27 @@ abstract class Filter implements Arrayable
         return $this;
     }
 
+    public function withoutClause(): static
+    {
+        $this->showClause = false;
+
+        if (in_array(Clause::Equals->value, $this->clauses, true)) {
+            $this->clauses = [Clause::Equals->value];
+            $this->defaultClauseValue = Clause::Equals->value;
+        }
+
+        return $this;
+    }
+
+    public function nullable(bool $nullable = true): static
+    {
+        if ($nullable) {
+            $this->clauses([...$this->clauses, Clause::IsSet, Clause::IsNotSet]);
+        }
+
+        return $this;
+    }
+
     /** @param array<string, mixed> $meta */
     public function meta(array $meta): static
     {
@@ -94,6 +117,18 @@ abstract class Filter implements Arrayable
 
             $clause = $state['clause'] ?? null;
             if (! is_string($clause) || ! in_array($clause, $this->clauses, true)) {
+                return;
+            }
+
+            if ($clause === Clause::IsSet->value) {
+                $query->whereNotNull($this->attribute);
+
+                return;
+            }
+
+            if ($clause === Clause::IsNotSet->value) {
+                $query->whereNull($this->attribute);
+
                 return;
             }
 
@@ -146,6 +181,7 @@ abstract class Filter implements Arrayable
             'clauses' => $this->clauses,
             'meta' => $this->meta,
             'hasDefaultValue' => $this->hasDefaultValue,
+            'showClause' => $this->showClause,
         ];
     }
 }

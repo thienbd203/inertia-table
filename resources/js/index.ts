@@ -4,6 +4,7 @@ export { useTable } from "./useTable";
 export { tableUrl } from "./url";
 export { setIconResolver } from "./icons";
 export type { IconResolver } from "./icons";
+export { setClauseSymbols } from "./filters";
 export {
     UiButton,
     UiCheckbox,

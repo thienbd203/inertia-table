@@ -42,6 +42,7 @@ export type TableFilter = {
     clauses: string[];
     options: TableFilterOption[];
     multiple?: boolean;
+    showClause?: boolean;
     hasDefaultValue?: boolean;
     meta: Record<string, unknown>;
 };

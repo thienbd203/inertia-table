@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/popover";
 import { UiSelect } from "@/components/ui/select";
 import { useTableContext } from "@/context/tableContext";
+import { clauseSymbol, filterDisplayValue } from "@/filters";
 import type { TableFilter } from "@/types";
 import SlotOutlet from "./SlotOutlet";
 
@@ -22,11 +23,17 @@ const state = computed(
 );
 const clause = ref(state.value?.clause ?? props.filter.clauses[0] ?? "equals");
 const value = ref<unknown>(state.value?.value ?? "");
+const displayValue = ref<string | null>(null);
 
 watch(state, (next) => {
     clause.value = next?.clause ?? props.filter.clauses[0] ?? "equals";
     value.value = next?.value ?? "";
+    displayValue.value = null;
 });
+
+const display = computed(
+    () => displayValue.value ?? filterDisplayValue(props.filter, state.value),
+);
 
 const clauseOptions = computed(() =>
     props.filter.clauses.map((candidate) => ({
@@ -59,25 +66,39 @@ function updateClause(nextClause: string) {
         table.setFilter(props.filter.attribute, true, nextClause);
     } else if (value.value !== "") apply();
 }
+
+function setDisplayValue(nextValue: string | null) {
+    displayValue.value = nextValue;
+}
 </script>
 
 <template>
     <div class="tb-active-filter">
         <UiPopover>
-            <UiPopoverTrigger
-                class="flex items-center rounded-md border border-gray-400 bg-gray-200/75 text-xs font-medium text-gray-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-            >
-                <button class="space-x-1 py-1 ps-2 text-sm font-medium">
-                    {{ filter.label }}
-                </button>
-                <button
-                    type="button"
-                    class="tb-remove-filter ms-2 h-full py-1 pe-2 text-gray-500 transition-colors hover:text-red-500"
-                    :aria-label="`Remove ${filter.label} filter`"
-                    @click="emit('remove')"
+            <UiPopoverTrigger as-child>
+                <div
+                    class="tb-filter-chip"
+                    role="button"
+                    tabindex="0"
+                    :aria-label="`Edit ${filter.label} filter`"
                 >
-                    <X :size="14" />
-                </button>
+                    <span>{{ filter.label }}</span>
+                    <span
+                        v-if="filter.showClause !== false"
+                        class="tb-filter-symbol"
+                    >
+                        {{ clauseSymbol(clause) }}
+                    </span>
+                    <em v-if="display">{{ display }}</em>
+                    <button
+                        type="button"
+                        class="tb-remove-filter"
+                        :aria-label="`Remove ${filter.label} filter`"
+                        @click.stop="emit('remove')"
+                    >
+                        <X class="size-4" />
+                    </button>
+                </div>
             </UiPopoverTrigger>
             <UiPopoverContent>
                 <SlotOutlet
@@ -86,11 +107,16 @@ function updateClause(nextClause: string) {
                         filter,
                         state,
                         update: apply,
+                        setDisplayValue,
+                        table,
                     }"
                 >
                     <div class="tb-filter-editor">
                         <UiSelect
-                            v-if="clauseOptions.length > 1"
+                            v-if="
+                                filter.showClause !== false &&
+                                clauseOptions.length > 1
+                            "
                             :model-value="clause"
                             :options="clauseOptions"
                             @update:model-value="updateClause"
