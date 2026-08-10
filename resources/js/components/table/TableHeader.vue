@@ -50,11 +50,11 @@ function sortDirection(attribute: string): "asc" | "desc" | null {
                             <UiButton
                                 :variant="
                                     sortDirection(column.attribute)
-                                        ? 'secondary'
+                                        ? 'outline'
                                         : 'ghost'
                                 "
                                 size="sm"
-                                class="tb-sort-button"
+                                class="tb-sort-button -ml-3"
                                 :data-active="
                                     sortDirection(column.attribute)
                                         ? ''
