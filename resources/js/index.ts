@@ -1,5 +1,3 @@
-import "./components/ui/ui.css";
-
 export { default as DataTable } from "./DataTable.vue";
 export { useActions } from "./useActions";
 export { useTable } from "./useTable";

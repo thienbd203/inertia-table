@@ -1,19 +1,32 @@
 <script setup lang="ts">
+import type { CheckboxRootEmits, CheckboxRootProps } from "reka-ui";
+import type { HTMLAttributes } from "vue";
 import { Check } from "@lucide/vue";
-import { CheckboxIndicator, CheckboxRoot } from "reka-ui";
-
-defineProps<{ modelValue?: boolean }>();
-const emit = defineEmits<{ "update:modelValue": [value: boolean] }>();
+import { reactiveOmit } from "@vueuse/core";
+import { CheckboxIndicator, CheckboxRoot, useForwardPropsEmits } from "reka-ui";
+import { cn } from "@/lib/utils";
+const props = defineProps<
+    CheckboxRootProps & { class?: HTMLAttributes["class"] }
+>();
+const emits = defineEmits<CheckboxRootEmits>();
+const forwarded = useForwardPropsEmits(reactiveOmit(props, "class"), emits);
 </script>
-
 <template>
     <CheckboxRoot
+        v-slot="slotProps"
         data-slot="checkbox"
-        :model-value="modelValue"
-        @update:model-value="emit('update:modelValue', $event === true)"
+        v-bind="forwarded"
+        :class="
+            cn(
+                'peer border-input data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none disabled:cursor-not-allowed disabled:opacity-50',
+                props.class,
+            )
+        "
     >
-        <CheckboxIndicator data-slot="checkbox-indicator">
-            <Check :size="14" />
-        </CheckboxIndicator>
+        <CheckboxIndicator
+            data-slot="checkbox-indicator"
+            class="grid place-content-center text-current transition-none"
+            ><slot v-bind="slotProps"><Check class="size-3.5" /></slot
+        ></CheckboxIndicator>
     </CheckboxRoot>
 </template>

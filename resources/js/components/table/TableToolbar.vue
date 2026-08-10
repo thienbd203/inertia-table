@@ -31,7 +31,7 @@ const availableFilters = computed(() =>
                 type="search"
                 :model-value="table.search.value"
                 :placeholder="searchPlaceholder"
-                @update:model-value="table.setSearch"
+                @update:model-value="(value) => table.setSearch(String(value))"
             />
             <SlotOutlet name="afterSearch" />
         </div>

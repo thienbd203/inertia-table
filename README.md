@@ -148,9 +148,12 @@ return inertia('Admin/Topics/Index', [
 ]);
 ```
 
-Render the resource in Vue:
+Render the resource in Vue. The renderer vendors the shadcn-vue component source it needs, so it follows the host application's shadcn theme without importing an application-specific `@/components/ui` alias. With Tailwind CSS v4, add the package source to your application stylesheet:
 
-The default renderer ships with its own minimal shadcn-vue component set built on Reka UI. It uses shadcn CSS variables such as `--background`, `--foreground`, `--primary`, `--border`, and `--radius`, so it follows the host application's theme without importing components through an application-specific alias.
+```css
+/* resources/css/app.css */
+@source '../node_modules/@toolbelt/inertia-table-vue/resources/js/**/*.vue';
+```
 
 ```vue
 <script setup lang="ts">
@@ -158,7 +161,6 @@ import {
     DataTable,
     type TableResource,
 } from '@toolbelt/inertia-table-vue';
-import '@toolbelt/inertia-table-vue/style.css';
 
 type Topic = {
     id: number;
