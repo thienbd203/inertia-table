@@ -1,11 +1,25 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { UiInput } from "@/components/ui/input";
 import { useTableContext } from "@/context/tableContext";
 import ColumnVisibilityMenu from "./ColumnVisibilityMenu.vue";
+import AddFilterMenu from "./AddFilterMenu.vue";
 import SlotOutlet from "./SlotOutlet";
-import TableActionButton from "./TableActionButton.vue";
+import TableActionsMenu from "./TableActionsMenu.vue";
 
-const { resource, table, actions, searchPlaceholder } = useTableContext();
+const {
+    resource,
+    table,
+    searchPlaceholder,
+    activeFilterAttributes,
+    addFilter,
+} = useTableContext();
+
+const availableFilters = computed(() =>
+    resource.value.filters.filter(
+        (filter) => !activeFilterAttributes.value.includes(filter.attribute),
+    ),
+);
 </script>
 
 <template>
@@ -24,25 +38,8 @@ const { resource, table, actions, searchPlaceholder } = useTableContext();
 
         <div class="tb-action-group">
             <SlotOutlet name="beforeActions" />
-            <span
-                v-if="actions.selectedItems.value.length"
-                class="tb-selected-count"
-            >
-                {{ actions.selectedItems.value.length }} selected
-            </span>
-            <SlotOutlet
-                v-for="action in actions.bulkActions.value"
-                :key="action.key"
-                :name="`action(${action.key})`"
-                :slot-props="{
-                    action,
-                    item: null,
-                    selectedItems: actions.selectedItems.value,
-                    execute: () => actions.performAction(action),
-                }"
-            >
-                <TableActionButton :action="action" bulk />
-            </SlotOutlet>
+            <TableActionsMenu />
+            <AddFilterMenu :filters="availableFilters" @add="addFilter" />
             <ColumnVisibilityMenu />
             <SlotOutlet name="afterActions" />
         </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends TableItem">
-import { computed, toRef, useSlots } from "vue";
+import { computed, ref, toRef, useSlots, watch } from "vue";
 import TableConfirmation from "@/components/table/TableConfirmation.vue";
 import TableFilters from "@/components/table/TableFilters.vue";
 import TablePagination from "@/components/table/TablePagination.vue";
@@ -25,6 +25,37 @@ const props = withDefaults(
 const resource = toRef(props, "resource");
 const table = useTable(resource);
 const actions = useActions(table);
+const activeFilterAttributes = ref(Object.keys(props.resource.state.filters));
+
+watch(
+    () => Object.keys(props.resource.state.filters),
+    (attributes) => {
+        activeFilterAttributes.value = [
+            ...new Set([...activeFilterAttributes.value, ...attributes]),
+        ];
+    },
+);
+
+function addFilter(attribute: string) {
+    if (!activeFilterAttributes.value.includes(attribute)) {
+        activeFilterAttributes.value = [
+            ...activeFilterAttributes.value,
+            attribute,
+        ];
+    }
+}
+
+function removeFilter(attribute: string) {
+    activeFilterAttributes.value = activeFilterAttributes.value.filter(
+        (candidate) => candidate !== attribute,
+    );
+    table.removeFilter(attribute);
+}
+
+function clearFilters() {
+    activeFilterAttributes.value = [];
+    table.clearFilters();
+}
 
 provideTableContext({
     resource,
@@ -33,6 +64,10 @@ provideTableContext({
     iconResolver: props.iconResolver,
     searchPlaceholder: computed(() => props.searchPlaceholder),
     slots: useSlots(),
+    activeFilterAttributes,
+    addFilter,
+    removeFilter,
+    clearFilters,
     scope: { table, actions },
 });
 </script>

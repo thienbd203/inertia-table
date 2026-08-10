@@ -1,88 +1,32 @@
 <script setup lang="ts">
 import { UiButton } from "@/components/ui/button";
-import { UiInput } from "@/components/ui/input";
-import { UiSelect } from "@/components/ui/select";
 import { useTableContext } from "@/context/tableContext";
-import type { TableFilter } from "@/types";
-import SlotOutlet from "./SlotOutlet";
+import { computed } from "vue";
+import ActiveFilter from "./ActiveFilter.vue";
 
-const { resource, table } = useTableContext();
-
-function selectOptions(filter: TableFilter) {
-    return [
-        { label: "All", value: "__all__" },
-        ...filter.options.map((option) => ({
-            label: option.label,
-            value: String(option.value),
-        })),
-    ];
-}
-
-function filterValue(filter: TableFilter): string {
-    const value = resource.value.state.filters[filter.attribute]?.value;
-    return value === undefined || value === null ? "__all__" : String(value);
-}
-
-function updateSelectFilter(filter: TableFilter, value: string) {
-    table.setFilter(filter.attribute, value === "__all__" ? null : value);
-}
+const { resource, activeFilterAttributes, removeFilter, clearFilters } =
+    useTableContext();
+const activeFilters = computed(() =>
+    activeFilterAttributes.value
+        .map((attribute) =>
+            resource.value.filters.find(
+                (filter) => filter.attribute === attribute,
+            ),
+        )
+        .filter((filter) => filter !== undefined),
+);
 </script>
 
 <template>
-    <div v-if="resource.filters.length" class="tb-filters">
-        <label
-            v-for="filter in resource.filters"
+    <div v-if="activeFilters.length" class="tb-filters">
+        <ActiveFilter
+            v-for="filter in activeFilters"
             :key="filter.attribute"
-            class="tb-filter"
-        >
-            <span>{{ filter.label }}</span>
-            <SlotOutlet
-                :name="`filter(${filter.attribute})`"
-                :slot-props="{
-                    filter,
-                    state: resource.state.filters[filter.attribute],
-                    update: (value: unknown, clause?: string) =>
-                        table.setFilter(filter.attribute, value, clause),
-                }"
-            >
-                <UiSelect
-                    v-if="filter.type === 'select' || filter.type === 'boolean'"
-                    :model-value="filterValue(filter)"
-                    :options="
-                        filter.type === 'boolean'
-                            ? [
-                                  { label: 'All', value: '__all__' },
-                                  { label: 'Yes', value: '1' },
-                                  { label: 'No', value: '0' },
-                              ]
-                            : selectOptions(filter)
-                    "
-                    @update:model-value="updateSelectFilter(filter, $event)"
-                />
-                <UiInput
-                    v-else
-                    :model-value="
-                        String(
-                            resource.state.filters[filter.attribute]?.value ??
-                                '',
-                        )
-                    "
-                    @change="
-                        table.setFilter(
-                            filter.attribute,
-                            ($event.target as HTMLInputElement).value,
-                        )
-                    "
-                />
-            </SlotOutlet>
-        </label>
-
-        <UiButton
-            v-if="table.hasActiveState.value"
-            variant="ghost"
-            @click="table.clearAll"
-        >
-            Clear
+            :filter="filter"
+            @remove="removeFilter(filter.attribute)"
+        />
+        <UiButton variant="ghost" size="sm" @click="clearFilters">
+            Clear filters
         </UiButton>
     </div>
 </template>

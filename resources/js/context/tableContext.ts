@@ -11,6 +11,10 @@ export type TableContext<T extends TableItem = TableItem> = {
     iconResolver?: IconResolver;
     searchPlaceholder: Ref<string>;
     slots: Slots;
+    activeFilterAttributes: Ref<string[]>;
+    addFilter: (attribute: string) => void;
+    removeFilter: (attribute: string) => void;
+    clearFilters: () => void;
     scope: {
         table: UseTable<T>;
         actions: UseActions<T>;

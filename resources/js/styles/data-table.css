@@ -28,6 +28,34 @@
     gap: 0.375rem;
 }
 
+.tb-active-filter {
+    display: inline-flex;
+    align-items: stretch;
+}
+
+.tb-active-filter > [data-slot="button"] {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.tb-remove-filter {
+    display: grid;
+    width: 2rem;
+    cursor: pointer;
+    place-items: center;
+    color: var(--muted-foreground, #71717a);
+    background: var(--background, white);
+    border: 1px solid var(--border, #e4e4e7);
+    border-left: 0;
+    border-radius: 0 calc(var(--radius, 0.625rem) - 2px)
+        calc(var(--radius, 0.625rem) - 2px) 0;
+}
+
+.tb-filter-editor {
+    display: grid;
+    gap: 0.75rem;
+}
+
 .tb-table-container {
     position: relative;
     overflow-x: auto;
