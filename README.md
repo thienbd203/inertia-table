@@ -127,6 +127,40 @@ defineProps<{
 </template>
 ```
 
+## Action icons
+
+Declare an icon name, label visibility, and tooltip with the action in PHP:
+
+```php
+Action::make('edit', 'Edit')
+    ->row()
+    ->icon('Pencil')
+    ->hideLabel()
+    ->tooltip('Edit topic')
+    ->endpoint('get', fn (Topic $topic) => route('topics.edit', $topic));
+```
+
+The package does not couple PHP to an icon library. Register a resolver once in
+your application entry point:
+
+```ts
+import { Pencil, Trash2 } from '@lucide/vue';
+import { setIconResolver } from '@toolbelt/inertia-table-vue';
+
+const icons = { Pencil, Trash2 };
+
+setIconResolver((name) => icons[name]);
+```
+
+You may override the global resolver for one table with the `iconResolver` prop:
+
+```vue
+<DataTable :resource="topics" :icon-resolver="resolveTopicIcon" />
+```
+
+The resolver receives the serialized action as its second argument. Icon-only
+actions retain their label as an accessible `aria-label`.
+
 For a custom renderer, import the headless composable:
 
 ```ts

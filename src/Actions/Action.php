@@ -16,6 +16,12 @@ final class Action implements Arrayable
 
     private string $variant = 'default';
 
+    private ?string $icon = null;
+
+    private bool $labelHidden = false;
+
+    private ?string $tooltip = null;
+
     /** @var array<string, string>|null */
     private ?array $confirmation = null;
 
@@ -67,6 +73,27 @@ final class Action implements Arrayable
     public function destructive(bool $destructive = true): self
     {
         $this->variant = $destructive ? 'destructive' : 'default';
+
+        return $this;
+    }
+
+    public function icon(?string $icon): self
+    {
+        $this->icon = $icon;
+
+        return $this;
+    }
+
+    public function hideLabel(bool $hidden = true): self
+    {
+        $this->labelHidden = $hidden;
+
+        return $this;
+    }
+
+    public function tooltip(?string $tooltip): self
+    {
+        $this->tooltip = $tooltip;
 
         return $this;
     }
@@ -139,6 +166,9 @@ final class Action implements Arrayable
             'scope' => $this->scope,
             'authorized' => $authorized,
             'variant' => $this->variant,
+            'icon' => $this->icon,
+            'labelHidden' => $this->labelHidden,
+            'tooltip' => $this->tooltip,
             'confirmation' => $this->confirmation,
             'endpoint' => $url === null ? null : ['method' => $this->method, 'url' => $url],
             'meta' => $this->meta,

@@ -65,6 +65,9 @@ class TopicsTable extends Table
             Action::make('delete')
                 ->bulk()
                 ->destructive()
+                ->icon('Trash')
+                ->hideLabel()
+                ->tooltip('Delete selected topics')
                 ->endpoint('delete', '/topics/bulk')
                 ->confirm('Delete topics', 'This action cannot be undone.'),
         ];
@@ -282,6 +285,9 @@ it('serializes server-declared actions', function () {
         'scope' => 'bulk',
         'authorized' => true,
         'variant' => 'destructive',
+        'icon' => 'Trash',
+        'labelHidden' => true,
+        'tooltip' => 'Delete selected topics',
         'confirmation' => [
             'title' => 'Delete topics',
             'message' => 'This action cannot be undone.',

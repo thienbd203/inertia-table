@@ -46,6 +46,9 @@ export type TableAction = {
     scope: "row" | "bulk" | "both";
     authorized: boolean;
     variant: "default" | "destructive";
+    icon: string | null;
+    labelHidden: boolean;
+    tooltip: string | null;
     confirmation: null | {
         title: string;
         message: string;

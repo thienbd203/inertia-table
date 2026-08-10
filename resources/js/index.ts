@@ -4,6 +4,8 @@ export { default as DataTable } from "./DataTable.vue";
 export { useActions } from "./useActions";
 export { useTable } from "./useTable";
 export { tableUrl } from "./url";
+export { setIconResolver } from "./icons";
+export type { IconResolver } from "./icons";
 export {
     UiButton,
     UiCheckbox,

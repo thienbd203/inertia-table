@@ -21,6 +21,7 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import DataTable from "../resources/js/DataTable.vue";
+import { setIconResolver } from "../resources/js/icons";
 import {
     UiDropdownMenu,
     UiDropdownMenuContent,
@@ -28,7 +29,10 @@ import {
 } from "../resources/js/components/ui/dropdown-menu";
 
 describe("DataTable shadcn renderer", () => {
-    beforeEach(() => listeners.clear());
+    beforeEach(() => {
+        listeners.clear();
+        setIconResolver(null);
+    });
 
     it("renders the bundled shadcn-vue primitives", () => {
         const wrapper = mount(DataTable, {
@@ -93,5 +97,29 @@ describe("DataTable shadcn renderer", () => {
             true,
         );
         expect(wrapper.find("details").exists()).toBe(false);
+    });
+
+    it("resolves action icons and supports icon-only buttons", () => {
+        const resource = topicResource();
+        resource.actions[0] = {
+            ...resource.actions[0],
+            icon: "Trash",
+            labelHidden: true,
+            tooltip: "Delete selected topics",
+        };
+        const TestIcon = () => h("svg", { "data-test-icon": "trash" });
+        const iconResolver = vi.fn(() => TestIcon);
+
+        const wrapper = mount(DataTable, {
+            props: { resource, iconResolver },
+            global: { stubs: { Teleport: true } },
+        });
+
+        const action = wrapper.get('[data-slot="button"][aria-label="Delete"]');
+
+        expect(action.attributes("title")).toBe("Delete selected topics");
+        expect(action.find('[data-test-icon="trash"]').exists()).toBe(true);
+        expect(action.text()).toBe("");
+        expect(iconResolver).toHaveBeenCalledWith("Trash", resource.actions[0]);
     });
 });

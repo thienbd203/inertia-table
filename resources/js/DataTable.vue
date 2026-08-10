@@ -22,11 +22,13 @@ import {
 import type { TableFilter, TableItem, TableResource } from "./types";
 import { useActions } from "./useActions";
 import { useTable } from "./useTable";
+import { resolveIcon, type IconResolver } from "./icons";
 
 const props = withDefaults(
     defineProps<{
         resource: TableResource<T>;
         searchPlaceholder?: string;
+        iconResolver?: IconResolver;
     }>(),
     { searchPlaceholder: "Search…" },
 );
@@ -82,6 +84,12 @@ function displayValue(
 
     return column.type === "boolean" ? (value ? "Yes" : "No") : value;
 }
+
+function actionIcon(action: TableResource<T>["actions"][number]) {
+    return action.icon
+        ? resolveIcon(action.icon, action, props.iconResolver)
+        : null;
+}
 </script>
 
 <template>
@@ -128,9 +136,21 @@ function displayValue(
                                 actions.selectedItems.value.length === 0 ||
                                 actions.isPerformingAction.value
                             "
+                            :title="action.tooltip ?? undefined"
+                            :aria-label="
+                                action.labelHidden ? action.label : undefined
+                            "
                             @click="actions.performAction(action)"
                         >
-                            {{ action.label }}
+                            <component
+                                :is="actionIcon(action)"
+                                v-if="action.icon"
+                                class="tb-action-icon"
+                                aria-hidden="true"
+                            />
+                            <span v-if="!action.labelHidden">{{
+                                action.label
+                            }}</span>
                         </UiButton>
                     </slot>
                     <UiDropdownMenu
@@ -364,6 +384,15 @@ function displayValue(
                                                             : 'ghost'
                                                     "
                                                     size="sm"
+                                                    :title="
+                                                        action.tooltip ??
+                                                        undefined
+                                                    "
+                                                    :aria-label="
+                                                        action.labelHidden
+                                                            ? action.label
+                                                            : undefined
+                                                    "
                                                     @click="
                                                         actions.performAction(
                                                             action,
@@ -371,7 +400,20 @@ function displayValue(
                                                         )
                                                     "
                                                 >
-                                                    {{ action.label }}
+                                                    <component
+                                                        :is="actionIcon(action)"
+                                                        v-if="action.icon"
+                                                        class="tb-action-icon"
+                                                        aria-hidden="true"
+                                                    />
+                                                    <span
+                                                        v-if="
+                                                            !action.labelHidden
+                                                        "
+                                                        >{{
+                                                            action.label
+                                                        }}</span
+                                                    >
                                                 </UiButton>
                                             </slot>
                                         </div>
