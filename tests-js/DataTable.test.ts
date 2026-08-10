@@ -195,4 +195,35 @@ describe("DataTable shadcn renderer", () => {
         expect(action?.textContent).toBe("Delete");
         expect(iconResolver).toHaveBeenCalledWith("Trash", resource.actions[0]);
     });
+
+    it("renders server-declared column presentation", () => {
+        const resource = topicResource();
+        resource.columns[0] = {
+            ...resource.columns[0],
+            type: "badge",
+            tooltip: "Public topic name",
+            headerClass: "font-semibold",
+            cellClass: "max-w-sm",
+            wrap: true,
+            truncate: 2,
+        };
+        resource.results.data[0]._table!.cells = {
+            name: { variant: "success" },
+        };
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+        const header = wrapper.get("th.font-semibold");
+        const cell = wrapper.get("td.max-w-sm");
+
+        expect(header.attributes("title")).toBe("Public topic name");
+        expect(cell.classes()).toContain("tb-cell-wrap");
+        expect(cell.classes()).toContain("tb-cell-truncate");
+        expect(cell.attributes("style")).toContain("--tb-line-clamp: 2");
+        expect(cell.get('.tb-badge[data-style="success"]').text()).toBe(
+            "Alpha",
+        );
+    });
 });

@@ -5,6 +5,7 @@ export type TableItem = {
     _table?: {
         url: string | null;
         columns: Record<string, string>;
+        cells?: Record<string, Record<string, unknown>>;
         actions: TableAction[];
     };
 };
@@ -17,6 +18,15 @@ export type TableColumn = {
     toggleable: boolean;
     visibleByDefault: boolean;
     alignment: "left" | "center" | "right";
+    wrap?: boolean;
+    truncate?: number | null;
+    tooltip?: string | null;
+    headerClass?: string | null;
+    cellClass?: string | null;
+    trueLabel?: string;
+    falseLabel?: string;
+    trueIcon?: string | null;
+    falseIcon?: string | null;
     meta: Record<string, unknown>;
 };
 

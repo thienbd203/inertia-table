@@ -98,6 +98,30 @@ Filters ship with type-specific clauses through `TextFilter`, `SetFilter`,
 `NumericFilter`, `BooleanFilter`, and `DateFilter`. `SelectFilter` remains as a
 deprecated alias of `SetFilter` for backwards compatibility.
 
+Columns support named arguments and fluent methods for server-declared
+presentation:
+
+```php
+TextColumn::make(
+    'description',
+    sortable: true,
+    wrap: true,
+    truncate: 2,
+    tooltip: 'Public description',
+    headerClass: 'font-semibold',
+    cellClass: 'max-w-md',
+)->mapAs(fn (string $value) => trim($value));
+
+BadgeColumn::make('status')
+    ->mapAs(['active' => 'Active', 'blocked' => 'Blocked'])
+    ->variant(['active' => 'success', 'blocked' => 'danger'])
+    ->icon(['active' => 'CheckCircle', 'blocked' => 'XCircle']);
+```
+
+Available built-in types are `TextColumn`, `NumberColumn`, `BadgeColumn`,
+`BooleanColumn`, `DateColumn`, `DateTimeColumn`, `ImageColumn`, and
+`ActionColumn`.
+
 Pass it directly to an Inertia page:
 
 ```php

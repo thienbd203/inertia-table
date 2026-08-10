@@ -352,6 +352,12 @@ abstract class Table implements Arrayable
             ])
             ->filter()
             ->all();
+        $cellMeta = collect($columns)
+            ->mapWithKeys(fn (Column $column) => [
+                $column->attribute => $column->resolveCellMeta($model),
+            ])
+            ->filter(fn (array $meta) => $meta !== [])
+            ->all();
         $rowActions = collect($actions)
             ->filter(fn (Action $action) => $action->isRowAction())
             ->map(fn (Action $action) => $action->resolve($model))
@@ -364,6 +370,7 @@ abstract class Table implements Arrayable
             '_table' => [
                 'url' => $this->rowUrl($model),
                 'columns' => $columnUrls,
+                'cells' => $cellMeta,
                 'actions' => $rowActions,
             ],
         ];

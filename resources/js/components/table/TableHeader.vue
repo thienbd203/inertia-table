@@ -29,6 +29,8 @@ function sortIndicator(attribute: string): string {
                 v-for="column in table.visibleColumns.value"
                 :key="column.attribute"
                 :data-alignment="column.alignment"
+                :class="column.headerClass"
+                :title="column.tooltip ?? undefined"
             >
                 <SlotOutlet
                     :name="`header(${column.attribute})`"

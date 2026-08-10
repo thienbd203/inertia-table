@@ -106,11 +106,16 @@ type TableResource<T> = {
 type ColumnResource = {
     attribute: string;
     header: string;
-    type: "text" | "numeric" | "boolean" | "date" | "action";
+    type: "text" | "numeric" | "badge" | "boolean" | "date" | "datetime" | "image" | "action";
     sortable: boolean;
     toggleable: boolean;
     visibleByDefault: boolean;
     alignment: "left" | "center" | "right";
+    wrap: boolean;
+    truncate: number | null;
+    tooltip: string | null;
+    headerClass: string | null;
+    cellClass: string | null;
     meta: Record<string, unknown>;
 };
 ```

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Toolbelt\InertiaTable\Actions\Action;
 use Toolbelt\InertiaTable\Columns\ActionColumn;
+use Toolbelt\InertiaTable\Columns\BadgeColumn;
 use Toolbelt\InertiaTable\Columns\BooleanColumn;
 use Toolbelt\InertiaTable\Columns\DateColumn;
 use Toolbelt\InertiaTable\Columns\NumberColumn;
@@ -371,6 +372,44 @@ it('formats date columns on the server', function () {
 
     expect(DateColumn::make('published_at')->format('d/m/Y')->resolveValue($topic))
         ->toBe('10/08/2026');
+});
+
+it('serializes presentation options and maps column values', function () {
+    $topic = TopicRecord::query()->firstOrFail();
+    $column = TextColumn::make(
+        'name',
+        sortable: true,
+        wrap: true,
+        truncate: 2,
+        mapAs: fn (string $value) => strtoupper($value),
+        tooltip: 'Public topic name',
+        headerClass: ['font-semibold', 'text-primary'],
+        cellClass: 'max-w-sm',
+    );
+
+    expect($column->resolveValue($topic))->toBe('ALPHA')
+        ->and($column->toArray())->toMatchArray([
+            'sortable' => true,
+            'wrap' => true,
+            'truncate' => 2,
+            'tooltip' => 'Public topic name',
+            'headerClass' => 'font-semibold text-primary',
+            'cellClass' => 'max-w-sm',
+        ]);
+});
+
+it('resolves badge presentation metadata per row', function () {
+    $topic = TopicRecord::query()->where('is_featured', true)->firstOrFail();
+    $column = BadgeColumn::make('is_featured')
+        ->mapAs([1 => 'Featured', 0 => 'Regular'])
+        ->variant([1 => 'success', 0 => 'default'])
+        ->icon([1 => 'Star', 0 => null]);
+
+    expect($column->resolveValue($topic))->toBe('Featured')
+        ->and($column->resolveCellMeta($topic))->toBe([
+            'variant' => 'success',
+            'icon' => 'Star',
+        ]);
 });
 
 it('can be passed directly as an inertia prop', function () {

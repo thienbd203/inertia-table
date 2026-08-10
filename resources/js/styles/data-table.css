@@ -155,3 +155,56 @@
 .tb-cell-link:hover {
     text-decoration: underline;
 }
+
+.tb-cell-content,
+.tb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.tb-cell-wrap {
+    white-space: normal;
+}
+
+.tb-cell-truncate > * {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--tb-line-clamp);
+}
+
+.tb-badge {
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: var(--secondary, #f4f4f5);
+    border-radius: 999px;
+}
+
+.tb-badge[data-style="success"] {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.tb-badge[data-style="warning"] {
+    color: #854d0e;
+    background: #fef9c3;
+}
+
+.tb-badge[data-style="danger"] {
+    color: #991b1b;
+    background: #fee2e2;
+}
+
+.tb-cell-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.tb-cell-image {
+    width: 2.5rem;
+    height: 2.5rem;
+    object-fit: cover;
+    border-radius: calc(var(--radius, 0.625rem) - 2px);
+}

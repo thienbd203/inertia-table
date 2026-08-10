@@ -3,9 +3,10 @@ import { Link } from "@inertiajs/vue3";
 import { UiCheckbox } from "@/components/ui/checkbox";
 import { UiTableBody, UiTableCell, UiTableRow } from "@/components/ui/table";
 import { useTableContext } from "@/context/tableContext";
-import { cellUrl, cellValue, displayValue } from "@/helpers/cells";
+import { cellUrl, cellValue } from "@/helpers/cells";
 import SlotOutlet from "./SlotOutlet";
 import TableActionButton from "./TableActionButton.vue";
+import TableCellContent from "./TableCellContent.vue";
 
 defineProps<{ canSelect: boolean }>();
 const { resource, table, actions } = useTableContext();
@@ -40,6 +41,18 @@ const { resource, table, actions } = useTableContext();
                 v-for="column in table.visibleColumns.value"
                 :key="column.attribute"
                 :data-alignment="column.alignment"
+                :class="[
+                    column.cellClass,
+                    {
+                        'tb-cell-wrap': column.wrap,
+                        'tb-cell-truncate': column.truncate,
+                    },
+                ]"
+                :style="
+                    column.truncate
+                        ? { '--tb-line-clamp': column.truncate }
+                        : undefined
+                "
             >
                 <SlotOutlet
                     :name="`cell(${column.attribute})`"
@@ -70,9 +83,9 @@ const { resource, table, actions } = useTableContext();
                         :href="cellUrl(item, column.attribute) ?? '#'"
                         class="tb-cell-link"
                     >
-                        {{ displayValue(item, column) }}
+                        <TableCellContent :item="item" :column="column" />
                     </Link>
-                    <template v-else>{{ displayValue(item, column) }}</template>
+                    <TableCellContent v-else :item="item" :column="column" />
                 </SlotOutlet>
             </UiTableCell>
         </UiTableRow>

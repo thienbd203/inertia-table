@@ -11,5 +11,16 @@ export function cellUrl(item: TableItem, attribute: string): string | null {
 export function displayValue(item: TableItem, column: TableColumn): unknown {
     const value = cellValue(item, column.attribute);
 
-    return column.type === "boolean" ? (value ? "Yes" : "No") : value;
+    return column.type === "boolean"
+        ? value
+            ? (column.trueLabel ?? "Yes")
+            : (column.falseLabel ?? "No")
+        : value;
+}
+
+export function cellMeta(
+    item: TableItem,
+    attribute: string,
+): Record<string, unknown> {
+    return item._table?.cells?.[attribute] ?? {};
 }

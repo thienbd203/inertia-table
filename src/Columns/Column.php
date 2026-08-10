@@ -21,6 +21,19 @@ class Column implements Arrayable
 
     protected ColumnAlignment $alignment = ColumnAlignment::Left;
 
+    protected bool $wrap = false;
+
+    protected ?int $truncate = null;
+
+    protected ?string $tooltip = null;
+
+    protected ?string $headerClass = null;
+
+    protected ?string $cellClass = null;
+
+    /** @var Closure|array<string|int, mixed>|null */
+    protected Closure|array|null $valueMapper = null;
+
     /** @var array<string, mixed> */
     protected array $meta = [];
 
@@ -28,12 +41,47 @@ class Column implements Arrayable
 
     final public function __construct(
         public readonly string $attribute,
-        public readonly string $label,
+        public string $label,
     ) {}
 
-    public static function make(string $attribute, ?string $label = null): static
-    {
-        return new static($attribute, $label ?? str($attribute)->headline()->toString());
+    public static function make(
+        string $attribute,
+        ?string $label = null,
+        bool $sortable = false,
+        bool $toggleable = true,
+        bool $searchable = false,
+        bool $visible = true,
+        ColumnAlignment $alignment = ColumnAlignment::Left,
+        bool $wrap = false,
+        ?int $truncate = null,
+        Closure|array|null $mapAs = null,
+        ?string $tooltip = null,
+        string|array|null $headerClass = null,
+        string|array|null $cellClass = null,
+        ?Closure $url = null,
+    ): static {
+        $column = new static($attribute, $label ?? str($attribute)->headline()->toString());
+        $column->sortable($sortable)
+            ->toggleable($toggleable)
+            ->searchable($searchable)
+            ->visible($visible)
+            ->align($alignment)
+            ->wrap($wrap)
+            ->tooltip($tooltip)
+            ->headerClass($headerClass)
+            ->cellClass($cellClass);
+
+        if ($truncate !== null) {
+            $column->truncate($truncate);
+        }
+        if ($mapAs !== null) {
+            $column->mapAs($mapAs);
+        }
+        if ($url !== null) {
+            $column->url($url);
+        }
+
+        return $column;
     }
 
     public function searchable(bool $searchable = true): static
@@ -43,6 +91,11 @@ class Column implements Arrayable
         return $this;
     }
 
+    public function notSearchable(): static
+    {
+        return $this->searchable(false);
+    }
+
     public function sortable(bool $sortable = true): static
     {
         $this->sortable = $sortable;
@@ -50,9 +103,26 @@ class Column implements Arrayable
         return $this;
     }
 
+    public function notSortable(): static
+    {
+        return $this->sortable(false);
+    }
+
     public function toggleable(bool $toggleable = true): static
     {
         $this->toggleable = $toggleable;
+
+        return $this;
+    }
+
+    public function notToggleable(): static
+    {
+        return $this->toggleable(false);
+    }
+
+    public function header(string $header): static
+    {
+        $this->label = $header;
 
         return $this;
     }
@@ -86,6 +156,52 @@ class Column implements Arrayable
         return $this->align(ColumnAlignment::Right);
     }
 
+    public function wrap(bool $wrap = true): static
+    {
+        $this->wrap = $wrap;
+
+        return $this;
+    }
+
+    public function truncate(?int $lines = 1): static
+    {
+        $this->truncate = $lines !== null && $lines > 0 ? $lines : null;
+        if ($this->truncate !== null) {
+            $this->wrap = true;
+        }
+
+        return $this;
+    }
+
+    public function tooltip(?string $tooltip): static
+    {
+        $this->tooltip = $tooltip;
+
+        return $this;
+    }
+
+    public function headerClass(string|array|null $class): static
+    {
+        $this->headerClass = $this->normalizeClasses($class);
+
+        return $this;
+    }
+
+    public function cellClass(string|array|null $class): static
+    {
+        $this->cellClass = $this->normalizeClasses($class);
+
+        return $this;
+    }
+
+    /** @param Closure|array<string|int, mixed> $mapper */
+    public function mapAs(Closure|array $mapper): static
+    {
+        $this->valueMapper = $mapper;
+
+        return $this;
+    }
+
     /** @param array<string, mixed> $meta */
     public function meta(array $meta): static
     {
@@ -114,7 +230,23 @@ class Column implements Arrayable
 
     public function resolveValue(Model $model): mixed
     {
-        return data_get($model, $this->attribute);
+        $value = data_get($model, $this->attribute);
+
+        if ($this->valueMapper instanceof Closure) {
+            return ($this->valueMapper)($value, $model);
+        }
+
+        if (is_array($this->valueMapper) && array_key_exists((string) $value, $this->valueMapper)) {
+            return $this->valueMapper[(string) $value];
+        }
+
+        return $value;
+    }
+
+    /** @return array<string, mixed> */
+    public function resolveCellMeta(Model $model): array
+    {
+        return [];
     }
 
     public function isSearchable(): bool
@@ -165,7 +297,21 @@ class Column implements Arrayable
             'toggleable' => $this->toggleable,
             'visibleByDefault' => $this->visibleByDefault,
             'alignment' => $this->alignment->value,
+            'wrap' => $this->wrap,
+            'truncate' => $this->truncate,
+            'tooltip' => $this->tooltip,
+            'headerClass' => $this->headerClass,
+            'cellClass' => $this->cellClass,
             'meta' => $this->meta,
         ];
+    }
+
+    protected function normalizeClasses(string|array|null $class): ?string
+    {
+        if (is_array($class)) {
+            $class = implode(' ', array_filter($class, fn (mixed $value) => is_string($value) && $value !== ''));
+        }
+
+        return is_string($class) && trim($class) !== '' ? trim($class) : null;
     }
 }
