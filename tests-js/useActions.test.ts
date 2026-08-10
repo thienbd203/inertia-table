@@ -69,4 +69,15 @@ describe("useActions", () => {
         actions.confirmAction();
         expect(visit).toHaveBeenCalledOnce();
     });
+
+    it("performs resolved row link actions without duplicating the id in the query", () => {
+        const { actions, resource } = mountActions();
+        const item = resource.value.results.data[0];
+        actions.performAction(item._table!.actions[0], item);
+
+        expect(visit).toHaveBeenCalledWith(
+            "/topics/1",
+            expect.objectContaining({ method: "get", data: {} }),
+        );
+    });
 });

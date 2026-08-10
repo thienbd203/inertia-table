@@ -67,6 +67,15 @@ function cellValue(item: T, attribute: string): unknown {
 function cellUrl(item: T, attribute: string): string | null {
     return item._table?.columns[attribute] ?? item._table?.url ?? null;
 }
+
+function displayValue(
+    item: T,
+    column: TableResource<T>["columns"][number],
+): unknown {
+    const value = cellValue(item, column.attribute);
+
+    return column.type === "boolean" ? (value ? "Yes" : "No") : value;
+}
 </script>
 
 <template>
@@ -348,29 +357,10 @@ function cellUrl(item: T, attribute: string): string | null {
                                             "
                                             class="tb-cell-link"
                                         >
-                                            {{
-                                                cellValue(
-                                                    item,
-                                                    column.attribute,
-                                                )
-                                            }}
+                                            {{ displayValue(item, column) }}
                                         </Link>
-                                        <template
-                                            v-else-if="
-                                                column.type === 'boolean'
-                                            "
-                                        >
-                                            {{
-                                                cellValue(
-                                                    item,
-                                                    column.attribute,
-                                                )
-                                                    ? "Yes"
-                                                    : "No"
-                                            }}
-                                        </template>
                                         <template v-else>{{
-                                            cellValue(item, column.attribute)
+                                            displayValue(item, column)
                                         }}</template>
                                     </slot>
                                 </UiTableCell>

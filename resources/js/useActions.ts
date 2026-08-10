@@ -112,7 +112,7 @@ export function useActions<T extends TableItem>(
         isPerformingAction.value = true;
         router.visit(action.endpoint.url, {
             method: action.endpoint.method,
-            data,
+            data: action.endpoint.method === "get" ? {} : data,
             preserveScroll: true,
             onSuccess: clearSelection,
             onFinish: () => {

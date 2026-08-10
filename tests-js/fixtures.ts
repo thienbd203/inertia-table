@@ -97,7 +97,7 @@ export function topicResource(
                                 variant: "default",
                                 confirmation: null,
                                 endpoint: {
-                                    method: "patch",
+                                    method: "get",
                                     url: "/topics/1",
                                 },
                                 meta: {},
