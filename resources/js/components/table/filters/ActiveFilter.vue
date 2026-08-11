@@ -57,7 +57,10 @@ watch(
                     @remove="emit('remove')"
                 />
             </UiPopoverTrigger>
-            <UiPopoverContent align="start" class="DropdownMenuContentAnimate">
+            <UiPopoverContent
+                align="start"
+                class="DropdownMenuContentAnimate w-fit"
+            >
                 <FilterEditor
                     :filter="filter"
                     @update:display-value="displayValue = $event"

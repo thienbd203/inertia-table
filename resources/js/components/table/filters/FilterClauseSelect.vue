@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { Filter } from "@lucide/vue";
-import { UiSelect } from "@/components/ui/select";
+import {
+    NativeSelect,
+    NativeSelectOption,
+} from "@/components/ui/native-select";
 
 defineProps<{
     modelValue: string;
     options: Array<{ label: string; value: string }>;
 }>();
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
+
+function updateClause(value: unknown) {
+    emit("update:modelValue", String(value ?? ""));
+}
 </script>
 
 <template>
@@ -14,11 +21,17 @@ const emit = defineEmits<{ "update:modelValue": [value: string] }>();
         <div>
             <Filter class="size-5" />
         </div>
-        <UiSelect
+        <NativeSelect
             :model-value="modelValue"
-            :options="options"
-            class="w-full"
-            @update:model-value="emit('update:modelValue', $event)"
-        />
+            @update:model-value="updateClause"
+        >
+            <NativeSelectOption
+                v-for="option in options"
+                :key="option.value"
+                :value="option.value"
+            >
+                {{ option.label }}
+            </NativeSelectOption>
+        </NativeSelect>
     </div>
 </template>

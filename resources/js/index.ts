@@ -9,7 +9,9 @@ export {
     UiButton,
     UiCheckbox,
     UiInput,
-    UiSelect,
+    NativeSelect as UiNativeSelect,
+    NativeSelectOptGroup as UiNativeSelectOptGroup,
+    NativeSelectOption as UiNativeSelectOption,
     UiTable,
     UiTableBody,
     UiTableCell,
@@ -17,7 +19,6 @@ export {
     UiTableHeader,
     UiTableRow,
 } from "./components/ui";
-export type { UiSelectOption } from "./components/ui";
 export type {
     DataTableOptions,
     PaginationLink,

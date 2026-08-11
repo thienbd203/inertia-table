@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { UiButton } from "@/components/ui/button";
-import { UiSelect } from "@/components/ui/select";
+import {
+    NativeSelect,
+    NativeSelectOption,
+} from "@/components/ui/native-select";
 import { useTableContext } from "@/context/tableContext";
 
 const { resource, table } = useTableContext();
@@ -34,15 +37,17 @@ const { resource, table } = useTableContext();
                 Next
             </UiButton>
         </div>
-        <UiSelect
+        <NativeSelect
             :model-value="String(resource.state.perPage)"
-            :options="
-                resource.options.perPage.map((value) => ({
-                    value: String(value),
-                    label: `${value} / page`,
-                }))
-            "
             @update:model-value="table.setPerPage(Number($event))"
-        />
+        >
+            <NativeSelectOption
+                v-for="perPage in resource.options.perPage"
+                :key="perPage"
+                :value="String(perPage)"
+            >
+                {{ perPage }} / page
+            </NativeSelectOption>
+        </NativeSelect>
     </div>
 </template>

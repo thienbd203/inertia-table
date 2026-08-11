@@ -41,9 +41,11 @@ export function filterDisplayValue(
 ): string {
     if (!state) return "";
 
-    if (state.clause === "is_true") return "true";
-    if (state.clause === "is_false") return "false";
-    if (["is_set", "is_not_set"].includes(state.clause)) return "";
+    if (
+        ["is_true", "is_false", "is_set", "is_not_set"].includes(state.clause)
+    ) {
+        return "";
+    }
 
     const values = Array.isArray(state.value) ? state.value : [state.value];
 

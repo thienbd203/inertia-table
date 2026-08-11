@@ -68,9 +68,7 @@ describe("DataTable shadcn renderer", () => {
         expect(wrapper.find('[data-slot="table-header"]').exists()).toBe(true);
         expect(wrapper.find('[data-slot="input"]').exists()).toBe(true);
         expect(wrapper.find('[data-slot="checkbox"]').exists()).toBe(true);
-        expect(wrapper.find('[data-slot="select-trigger"]').exists()).toBe(
-            true,
-        );
+        expect(wrapper.find('[data-slot="native-select"]').exists()).toBe(true);
         expect(wrapper.findAll('[data-slot="button"]').length).toBeGreaterThan(
             0,
         );

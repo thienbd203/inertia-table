@@ -26,4 +26,14 @@ describe("filter display", () => {
             }),
         ).toBe("Active");
     });
+
+    it("does not repeat the value for valueless clauses", () => {
+        expect(
+            filterDisplayValue(statusFilter, {
+                enabled: true,
+                clause: "is_true",
+                value: true,
+            }),
+        ).toBe("");
+    });
 });
