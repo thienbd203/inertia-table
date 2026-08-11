@@ -38,7 +38,14 @@ const control = computed<"none" | "select" | "range" | "input">(() => {
     return isRange.value ? "range" : "input";
 });
 const showsSearchIcon = computed(
-    () => control.value === "input" && props.filter.type === "text",
+    () =>
+        (control.value === "input" && props.filter.type === "text") ||
+        (control.value === "select" && props.filter.type === "set"),
+);
+const setValue = computed(() =>
+    Array.isArray(props.modelValue)
+        ? props.modelValue.map((value) => String(value))
+        : String(props.modelValue ?? ""),
 );
 const inputType = computed<"date" | "number" | "text">(() =>
     props.filter.type === "date"
@@ -77,6 +84,15 @@ function updateInput(value: string | number) {
     );
 }
 
+function updateSetValue(value: unknown) {
+    emit(
+        "update:modelValue",
+        Array.isArray(value)
+            ? value.map((candidate) => String(candidate))
+            : value,
+    );
+}
+
 function updateRange(index: 0 | 1, value: string | number) {
     const next = [...draftRange.value] as [string, string];
     next[index] = String(value);
@@ -98,9 +114,10 @@ defineExpose({
             v-if="control === 'select'"
             ref="valueControl"
             class="flex-1"
-            :model-value="String(modelValue ?? '')"
+            :model-value="setValue"
+            :multiple="filter.multiple"
             :data-filter-value="filter.attribute"
-            @update:model-value="emit('update:modelValue', $event)"
+            @update:model-value="updateSetValue"
         >
             <NativeSelectOption
                 v-for="option in filter.options"

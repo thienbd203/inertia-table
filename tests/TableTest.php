@@ -19,6 +19,7 @@ use Toolbelt\InertiaTable\Columns\TextColumn;
 use Toolbelt\InertiaTable\Filters\BooleanFilter;
 use Toolbelt\InertiaTable\Filters\NumericFilter;
 use Toolbelt\InertiaTable\Filters\SelectFilter;
+use Toolbelt\InertiaTable\Filters\SetFilter;
 use Toolbelt\InertiaTable\Filters\TextFilter;
 use Toolbelt\InertiaTable\Table;
 
@@ -355,6 +356,26 @@ it('serializes server-declared actions', function () {
         'endpoint' => ['method' => 'delete', 'url' => '/topics/bulk'],
         'meta' => [],
     ]);
+});
+
+it('supports set filter clauses, multiple values, and withoutClause', function () {
+    $filter = SetFilter::make('status')
+        ->options(['active' => 'Active', 'inactive' => 'Inactive'])
+        ->multiple();
+    $withoutClause = SetFilter::make('status')
+        ->options(['active' => 'Active'])
+        ->withoutClause();
+
+    expect($filter->toArray())
+        ->clauses->toBe(['in', 'not_in', 'equals', 'not_equals'])
+        ->multiple->toBeTrue()
+        ->and($filter->normalize(['active', 'inactive'], 'in'))
+        ->toBe(['active', 'inactive'])
+        ->and($filter->normalize('active', 'not_in'))
+        ->toBe(['active'])
+        ->and($withoutClause->toArray())
+        ->clauses->toBe(['equals'])
+        ->showClause->toBeFalse();
 });
 
 it('resolves row action visibility, availability, and custom actions', function () {
