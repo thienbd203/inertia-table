@@ -585,3 +585,39 @@ it('falls back to the default sort when an undeclared or malicious sort value is
     expect($resource['state']['sort'])->toBe('name')
         ->and($resource['results']['total'])->toBe(3);
 });
+
+it('treats sql metacharacters in the global search term as a literal value, not sql', function () {
+    $resource = (new TopicsTable)->resolve(tableRequest([
+        'search' => "' OR '1'='1",
+    ]))->toArray();
+
+    expect($resource['results']['data'])->toBe([])
+        ->and($resource['results']['total'])->toBe(0);
+});
+
+it('treats sql metacharacters in a text filter value as a literal value, not sql', function () {
+    $resource = (new AdvancedFilterTopicsTable)->resolve(tableRequest([
+        'filters' => [
+            'name' => ['enabled' => true, 'clause' => 'contains', 'value' => "'; DROP TABLE topics; --"],
+        ],
+    ]))->toArray();
+
+    expect($resource['results']['data'])->toBe([])
+        ->and($resource['results']['total'])->toBe(0);
+
+    // The injection attempt must not have actually dropped the table.
+    expect((new TopicsTable)->resolve(tableRequest())->toArray()['results']['total'])->toBe(3);
+});
+
+it('binds a numeric filter value as a query parameter instead of interpolating it', function () {
+    $resource = (new AdvancedFilterTopicsTable)->resolve(tableRequest([
+        'filters' => [
+            'score' => ['enabled' => true, 'clause' => 'equals', 'value' => '10 OR 1=1'],
+        ],
+    ]))->toArray();
+
+    // A non-numeric value normalizes to null and the filter is dropped entirely,
+    // rather than reaching the query as a raw, un-bound fragment.
+    expect($resource['state']['filters']['score']['enabled'])->toBeFalse()
+        ->and($resource['results']['total'])->toBe(3);
+});
