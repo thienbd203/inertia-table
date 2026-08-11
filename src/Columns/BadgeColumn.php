@@ -4,16 +4,17 @@ namespace Toolbelt\InertiaTable\Columns;
 
 use Closure;
 use Illuminate\Database\Eloquent\Model;
+use Toolbelt\InertiaTable\Variant;
 
 class BadgeColumn extends Column
 {
-    /** @var Closure|array<string|int, string>|string */
-    protected Closure|array|string $variant = 'default';
+    /** @var Closure|array<string|int, string|Variant>|string|Variant */
+    protected Closure|array|string|Variant $variant = 'default';
 
     /** @var Closure|array<string|int, string|null>|string|null */
     protected Closure|array|string|null $icon = null;
 
-    public function variant(Closure|array|string $variant): static
+    public function variant(Closure|array|string|Variant $variant): static
     {
         $this->variant = $variant;
 
@@ -31,8 +32,10 @@ class BadgeColumn extends Column
     {
         $raw = data_get($model, $this->attribute);
 
+        $variant = $this->resolveMappedProperty($this->variant, $raw, $model);
+
         return [
-            'variant' => $this->resolveMappedProperty($this->variant, $raw, $model),
+            'variant' => $variant instanceof Variant ? $variant->value : $variant,
             'icon' => $this->resolveMappedProperty($this->icon, $raw, $model),
         ];
     }

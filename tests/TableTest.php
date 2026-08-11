@@ -22,6 +22,7 @@ use Toolbelt\InertiaTable\Filters\SelectFilter;
 use Toolbelt\InertiaTable\Filters\SetFilter;
 use Toolbelt\InertiaTable\Filters\TextFilter;
 use Toolbelt\InertiaTable\Table;
+use Toolbelt\InertiaTable\Variant;
 
 class TopicRecord extends Model
 {
@@ -455,7 +456,7 @@ it('resolves badge presentation metadata per row', function () {
     $topic = TopicRecord::query()->where('is_featured', true)->firstOrFail();
     $column = BadgeColumn::make('is_featured')
         ->mapAs([1 => 'Featured', 0 => 'Regular'])
-        ->variant([1 => 'success', 0 => 'default'])
+        ->variant([1 => Variant::Success, 0 => Variant::Default])
         ->icon([1 => 'Star', 0 => null]);
 
     expect($column->resolveValue($topic))->toBe('Featured')
