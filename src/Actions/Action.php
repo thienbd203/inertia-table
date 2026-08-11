@@ -28,6 +28,8 @@ final class Action implements Arrayable
 
     private ?string $tooltip = null;
 
+    private string|Closure|null $buttonClass = null;
+
     /** @var array<string, string>|null */
     private ?array $confirmation = null;
 
@@ -130,6 +132,14 @@ final class Action implements Arrayable
         return $this;
     }
 
+    /** @param string|Closure(Model|null): string|null $class */
+    public function buttonClass(string|Closure|null $class): self
+    {
+        $this->buttonClass = $class;
+
+        return $this;
+    }
+
     public function endpoint(string $method, string|Closure $url): self
     {
         $method = strtolower($method);
@@ -192,6 +202,9 @@ final class Action implements Arrayable
         $url = $this->url instanceof Closure
             ? ($model === null ? null : ($this->url)($model))
             : $this->url;
+        $buttonClass = $this->buttonClass instanceof Closure
+            ? ($this->buttonClass)($model)
+            : $this->buttonClass;
 
         return [
             'key' => $this->key,
@@ -204,6 +217,7 @@ final class Action implements Arrayable
             'icon' => $this->icon,
             'labelHidden' => $this->labelHidden,
             'tooltip' => $this->tooltip,
+            'buttonClass' => is_string($buttonClass) && $buttonClass !== '' ? $buttonClass : null,
             'disabledTooltip' => $this->disabledTooltip,
             'confirmation' => $this->confirmation,
             'endpoint' => $url === null ? null : ['method' => $this->method, 'url' => $url],

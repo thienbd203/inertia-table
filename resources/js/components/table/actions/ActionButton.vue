@@ -32,12 +32,20 @@ const disabled = computed(
     <UiButton
         :variant="
             action.variant === 'destructive'
-                ? 'outline'
+                ? action.labelHidden
+                    ? 'ghost'
+                    : 'destructive'
                 : bulk
                   ? 'default'
                   : 'ghost'
         "
         :size="bulk ? 'default' : 'sm'"
+        :class="[
+            action.buttonClass,
+            action.variant === 'destructive' && action.labelHidden
+                ? 'text-destructive hover:bg-destructive/10 hover:text-destructive'
+                : undefined,
+        ]"
         :disabled="disabled"
         :title="
             (action.disabled ? action.disabledTooltip : action.tooltip) ??

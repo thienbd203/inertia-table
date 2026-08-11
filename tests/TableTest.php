@@ -349,6 +349,7 @@ it('serializes server-declared actions', function () {
         'icon' => 'Trash',
         'labelHidden' => true,
         'tooltip' => 'Delete selected topics',
+        'buttonClass' => null,
         'disabledTooltip' => null,
         'confirmation' => [
             'title' => 'Delete topics',
@@ -387,6 +388,7 @@ it('resolves row action visibility, availability, and custom actions', function 
     $disabled = Action::make('archive', fn (TopicRecord $model) => "Archive {$model->name}")
         ->disabled(fn (TopicRecord $model) => $model->id === $topic->id)
         ->disabledTooltip('Already archived')
+        ->buttonClass('text-blue-600')
         ->confirm()
         ->resolve($topic);
     $hidden = Action::make('restore')
@@ -399,6 +401,7 @@ it('resolves row action visibility, availability, and custom actions', function 
         ->label->toBe("Archive {$topic->name}")
         ->disabled->toBeTrue()
         ->disabledTooltip->toBe('Already archived')
+        ->buttonClass->toBe('text-blue-600')
         ->confirmation->toBe([
             'title' => 'Confirm action',
             'message' => 'Are you sure you want to perform this action?',

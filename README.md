@@ -130,6 +130,16 @@ The Vue component emits `row-click` with the row and clicked column:
 <DataTable :resource="topics" @row-click="(row, column) => inspect(row, column)" />
 ```
 
+Row and bulk actions accept `buttonClass()` for Tailwind utility classes. Icon-only
+destructive row actions automatically render in destructive red while bulk
+destructive actions use the standard solid destructive button.
+
+```php
+Action::make('archive', 'Archive')
+    ->row()
+    ->buttonClass('text-amber-600 hover:text-amber-700');
+```
+
 Filters ship with type-specific clauses through `TextFilter`, `SetFilter`,
 `NumericFilter`, `BooleanFilter`, and `DateFilter`. `SelectFilter` remains as a
 deprecated alias of `SetFilter` for backwards compatibility.

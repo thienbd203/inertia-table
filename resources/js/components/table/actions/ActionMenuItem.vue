@@ -25,6 +25,12 @@ const icon = computed(() =>
             (action.disabled ? action.disabledTooltip : action.tooltip) ??
             undefined
         "
+        :class="[
+            action.buttonClass,
+            action.variant === 'destructive'
+                ? 'text-destructive focus:text-destructive'
+                : undefined,
+        ]"
         @select="actions.performAction(action)"
     >
         <component

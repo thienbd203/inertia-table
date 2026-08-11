@@ -73,6 +73,7 @@ export type TableAction = {
     icon: string | null;
     labelHidden: boolean;
     tooltip: string | null;
+    buttonClass: string | null;
     disabledTooltip: string | null;
     confirmation: null | {
         title: string;

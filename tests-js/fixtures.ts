@@ -66,6 +66,7 @@ export function topicResource(
                 icon: null,
                 labelHidden: false,
                 tooltip: null,
+                buttonClass: null,
                 disabledTooltip: null,
                 confirmation: null,
                 endpoint: { method: "delete", url: "/topics/bulk" },
@@ -118,6 +119,7 @@ export function topicResource(
                                 icon: null,
                                 labelHidden: false,
                                 tooltip: null,
+                                buttonClass: null,
                                 disabledTooltip: null,
                                 confirmation: null,
                                 endpoint: {
