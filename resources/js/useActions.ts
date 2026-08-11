@@ -8,9 +8,20 @@ type PendingAction<T extends TableItem> = {
     item?: T;
 };
 
+type ActionCallbacks = {
+    onCustomAction?: (
+        action: TableAction,
+        keys: TableKey[],
+        onFinish: () => void,
+    ) => void;
+    onSuccess?: (action: TableAction, keys: TableKey[]) => void;
+    onError?: (action: TableAction, keys: TableKey[], error: unknown) => void;
+};
+
 export function useActions<T extends TableItem>(
     table: UseTable<T>,
     options: TableOptions<T> = {},
+    callbacks: ActionCallbacks = {},
 ) {
     const selectedKeys = ref<Set<TableKey>>(new Set()) as Ref<Set<TableKey>>;
     const pendingAction = ref<PendingAction<T> | null>(
@@ -65,7 +76,7 @@ export function useActions<T extends TableItem>(
 
     function rowActionsFor(item: T) {
         return (item._table?.actions ?? []).filter(
-            (action) => action.authorized && action.endpoint !== null,
+            (action) => action.authorized && !action.hidden,
         );
     }
 
@@ -80,7 +91,9 @@ export function useActions<T extends TableItem>(
     }
 
     function performAction(action: TableAction, item?: T) {
-        if (!action.authorized) return;
+        if (!action.authorized || action.disabled || isPerformingAction.value) {
+            return;
+        }
 
         if (action.confirmation) {
             pendingAction.value = { action, item };
@@ -105,16 +118,29 @@ export function useActions<T extends TableItem>(
         const rowIndex = item
             ? table.resource.value.results.data.indexOf(item)
             : -1;
-        const data = item
-            ? { id: rowKey(item, rowIndex) }
-            : { ids: [...selectedKeys.value] };
+        const keys: TableKey[] = item
+            ? [rowKey(item, rowIndex)]
+            : [...selectedKeys.value];
+        const data = item ? { id: keys[0] } : { ids: keys };
 
         isPerformingAction.value = true;
+        if (!action.endpoint) {
+            callbacks.onCustomAction?.(action, keys, () => {
+                isPerformingAction.value = false;
+            });
+
+            return;
+        }
+
         router.visit(action.endpoint.url, {
             method: action.endpoint.method,
             data: action.endpoint.method === "get" ? {} : data,
             preserveScroll: true,
-            onSuccess: clearSelection,
+            onSuccess: () => {
+                clearSelection();
+                callbacks.onSuccess?.(action, keys);
+            },
+            onError: (errors) => callbacks.onError?.(action, keys, errors),
             onFinish: () => {
                 isPerformingAction.value = false;
             },

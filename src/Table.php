@@ -114,7 +114,7 @@ abstract class Table implements Arrayable
         $bulkActions = collect($actions)
             ->filter(fn (Action $action) => $action->isBulkAction())
             ->map(fn (Action $action) => $action->resolve())
-            ->filter(fn (array $action) => $action['authorized'] && $action['endpoint'] !== null)
+            ->filter(fn (array $action) => $action['authorized'] && ! $action['hidden'])
             ->values()
             ->all();
 
@@ -361,7 +361,7 @@ abstract class Table implements Arrayable
         $rowActions = collect($actions)
             ->filter(fn (Action $action) => $action->isRowAction())
             ->map(fn (Action $action) => $action->resolve($model))
-            ->filter(fn (array $action) => $action['authorized'] && $action['endpoint'] !== null)
+            ->filter(fn (array $action) => $action['authorized'] && ! $action['hidden'])
             ->values()
             ->all();
 

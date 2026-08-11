@@ -23,6 +23,7 @@ const icon = computed(() =>
 const disabled = computed(
     () =>
         actions.isPerformingAction.value ||
+        props.action.disabled ||
         (props.bulk && actions.selectedItems.value.length === 0),
 );
 </script>
@@ -38,7 +39,10 @@ const disabled = computed(
         "
         :size="bulk ? 'default' : 'sm'"
         :disabled="disabled"
-        :title="action.tooltip ?? undefined"
+        :title="
+            (action.disabled ? action.disabledTooltip : action.tooltip) ??
+            undefined
+        "
         :aria-label="action.labelHidden ? action.label : undefined"
         @click="actions.performAction(action, item)"
     >

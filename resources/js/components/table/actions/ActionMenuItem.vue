@@ -18,9 +18,13 @@ const icon = computed(() =>
     <UiDropdownMenuItem
         :disabled="
             actions.selectedItems.value.length === 0 ||
+            action.disabled ||
             actions.isPerformingAction.value
         "
-        :title="action.tooltip ?? undefined"
+        :title="
+            (action.disabled ? action.disabledTooltip : action.tooltip) ??
+            undefined
+        "
         @select="actions.performAction(action)"
     >
         <component

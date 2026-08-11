@@ -7,7 +7,7 @@ import { SlotOutlet } from "@/components/table/shared";
 import { provideTableContext } from "@/context/tableContext";
 import type { IconResolver } from "@/icons";
 import "@/styles/data-table.css";
-import type { TableItem, TableResource } from "@/types";
+import type { TableAction, TableItem, TableKey, TableResource } from "@/types";
 import { useActions } from "@/useActions";
 import { useTable } from "@/useTable";
 
@@ -19,10 +19,25 @@ const props = withDefaults(
     }>(),
     { searchPlaceholder: "Search…" },
 );
+const emit = defineEmits<{
+    customAction: [action: TableAction, keys: TableKey[], onFinish: () => void];
+    actionSuccess: [action: TableAction, keys: TableKey[]];
+    actionError: [action: TableAction, keys: TableKey[], error: unknown];
+}>();
 
 const resource = toRef(props, "resource");
 const table = useTable(resource);
-const actions = useActions(table);
+const actions = useActions(
+    table,
+    {},
+    {
+        onCustomAction: (action, keys, onFinish) =>
+            emit("customAction", action, keys, onFinish),
+        onSuccess: (action, keys) => emit("actionSuccess", action, keys),
+        onError: (action, keys, error) =>
+            emit("actionError", action, keys, error),
+    },
+);
 function enabledFilterAttributes(resource: TableResource<T>) {
     return Object.entries(resource.state.filters)
         .filter(([, state]) => state.enabled)

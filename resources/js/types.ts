@@ -58,10 +58,13 @@ export type TableAction = {
     label: string;
     scope: "row" | "bulk" | "both";
     authorized: boolean;
+    disabled: boolean;
+    hidden: boolean;
     variant: "default" | "destructive";
     icon: string | null;
     labelHidden: boolean;
     tooltip: string | null;
+    disabledTooltip: string | null;
     confirmation: null | {
         title: string;
         message: string;
@@ -69,9 +72,9 @@ export type TableAction = {
         cancelLabel: string;
     };
     endpoint: {
-        method: "get" | "post" | "patch" | "delete";
+        method: "get" | "post" | "put" | "patch" | "delete";
         url: string;
-    };
+    } | null;
     meta: Record<string, unknown>;
 };
 

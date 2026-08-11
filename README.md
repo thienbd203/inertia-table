@@ -218,6 +218,41 @@ You may override the global resolver for one table with the `iconResolver` prop:
 The resolver receives the serialized action as its second argument. Icon-only
 actions retain their label as an accessible `aria-label`.
 
+## Row action state and frontend handlers
+
+Row actions can vary for each model. `hidden()` removes an action from that
+row; `disabled()` keeps it visible but prevents execution. A disabled tooltip
+takes precedence over the usual tooltip.
+
+```php
+Action::make('archive', fn (Topic $topic) => "Archive {$topic->name}")
+    ->icon('Archive')
+    ->disabled(fn (Topic $topic) => $topic->archived_at !== null)
+    ->disabledTooltip('This topic is already archived')
+    ->confirm();
+```
+
+`confirm()` may be called without arguments. Its defaults are “Confirm action”,
+“Are you sure you want to perform this action?”, “Yes”, and “Cancel”.
+
+Omit `endpoint()` for a frontend-owned action. The table emits `custom-action`
+with the action, selected keys, and an `onFinish` callback. Call it when the
+custom work completes to clear its pending state:
+
+```vue
+<DataTable :resource="topics" @custom-action="handleCustomAction" />
+```
+
+```ts
+function handleCustomAction(action, keys, onFinish) {
+    // Open a modal, call another API, or perform any client-side work.
+    onFinish();
+}
+```
+
+Endpoint-backed actions also emit `action-success` and `action-error`. The
+endpoint supports `get`, `post`, `put`, `patch`, and `delete` methods.
+
 For a custom renderer, import the headless composable:
 
 ```ts

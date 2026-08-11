@@ -339,19 +339,50 @@ it('serializes server-declared actions', function () {
         'label' => 'Delete',
         'scope' => 'bulk',
         'authorized' => true,
+        'disabled' => false,
+        'hidden' => false,
         'variant' => 'destructive',
         'icon' => 'Trash',
         'labelHidden' => true,
         'tooltip' => 'Delete selected topics',
+        'disabledTooltip' => null,
         'confirmation' => [
             'title' => 'Delete topics',
             'message' => 'This action cannot be undone.',
-            'confirmLabel' => 'Confirm',
+            'confirmLabel' => 'Yes',
             'cancelLabel' => 'Cancel',
         ],
         'endpoint' => ['method' => 'delete', 'url' => '/topics/bulk'],
         'meta' => [],
     ]);
+});
+
+it('resolves row action visibility, availability, and custom actions', function () {
+    $topic = TopicRecord::query()->firstOrFail();
+
+    $disabled = Action::make('archive', fn (TopicRecord $model) => "Archive {$model->name}")
+        ->disabled(fn (TopicRecord $model) => $model->id === $topic->id)
+        ->disabledTooltip('Already archived')
+        ->confirm()
+        ->resolve($topic);
+    $hidden = Action::make('restore')
+        ->hidden(fn (TopicRecord $model) => $model->id === $topic->id)
+        ->endpoint('post', '/topics/restore')
+        ->resolve($topic);
+    $custom = Action::make('inspect')->resolve($topic);
+
+    expect($disabled)
+        ->label->toBe("Archive {$topic->name}")
+        ->disabled->toBeTrue()
+        ->disabledTooltip->toBe('Already archived')
+        ->confirmation->toBe([
+            'title' => 'Confirm action',
+            'message' => 'Are you sure you want to perform this action?',
+            'confirmLabel' => 'Yes',
+            'cancelLabel' => 'Cancel',
+        ])
+        ->and($hidden['hidden'])->toBeTrue()
+        ->and($custom['endpoint'])->toBeNull();
 });
 
 it('resolves row links, cell links, and row actions without frontend slots', function () {

@@ -14,6 +14,12 @@ final class Action implements Arrayable
 
     private bool|Closure $authorized = true;
 
+    private bool|Closure $disabled = false;
+
+    private bool|Closure $hidden = false;
+
+    private ?string $disabledTooltip = null;
+
     private string $variant = 'default';
 
     private ?string $icon = null;
@@ -34,10 +40,10 @@ final class Action implements Arrayable
 
     private function __construct(
         public readonly string $key,
-        public readonly string $label,
+        private string|Closure $label,
     ) {}
 
-    public static function make(string $key, ?string $label = null): self
+    public static function make(string $key, string|Closure|null $label = null): self
     {
         return new self($key, $label ?? str($key)->headline()->toString());
     }
@@ -66,6 +72,32 @@ final class Action implements Arrayable
     public function authorized(bool|Closure $authorized = true): self
     {
         $this->authorized = $authorized;
+
+        return $this;
+    }
+
+    public function disabled(bool|Closure $disabled = true): self
+    {
+        $this->disabled = $disabled;
+
+        return $this;
+    }
+
+    public function hidden(bool|Closure $hidden = true): self
+    {
+        $this->hidden = $hidden;
+
+        return $this;
+    }
+
+    public function disabledAndHidden(bool|Closure $condition = true): self
+    {
+        return $this->disabled($condition)->hidden($condition);
+    }
+
+    public function disabledTooltip(?string $tooltip): self
+    {
+        $this->disabledTooltip = $tooltip;
 
         return $this;
     }
@@ -102,8 +134,8 @@ final class Action implements Arrayable
     {
         $method = strtolower($method);
 
-        if (! in_array($method, ['get', 'post', 'patch', 'delete'], true)) {
-            throw new LogicException('Table actions support only GET, POST, PATCH, and DELETE endpoints.');
+        if (! in_array($method, ['get', 'post', 'put', 'patch', 'delete'], true)) {
+            throw new LogicException('Table actions support only GET, POST, PUT, PATCH, and DELETE endpoints.');
         }
 
         $this->method = $method;
@@ -113,9 +145,9 @@ final class Action implements Arrayable
     }
 
     public function confirm(
-        string $title,
-        string $message,
-        string $confirmLabel = 'Confirm',
+        string $title = 'Confirm action',
+        string $message = 'Are you sure you want to perform this action?',
+        string $confirmLabel = 'Yes',
         string $cancelLabel = 'Cancel',
     ): self {
         $this->confirmation = compact('title', 'message', 'confirmLabel', 'cancelLabel');
@@ -149,29 +181,40 @@ final class Action implements Arrayable
     /** @return array<string, mixed> */
     public function resolve(?Model $model = null): array
     {
-        if ($this->method === null || $this->url === null) {
-            throw new LogicException("Table action [{$this->key}] must define an endpoint.");
-        }
-
         $authorized = $this->authorized instanceof Closure
             ? ($model !== null && (bool) ($this->authorized)($model))
             : $this->authorized;
+        $disabled = $this->resolveCondition($this->disabled, $model);
+        $hidden = $this->resolveCondition($this->hidden, $model);
+        $label = $this->label instanceof Closure
+            ? ($this->label)($model)
+            : $this->label;
         $url = $this->url instanceof Closure
             ? ($model === null ? null : ($this->url)($model))
             : $this->url;
 
         return [
             'key' => $this->key,
-            'label' => $this->label,
+            'label' => $label,
             'scope' => $this->scope,
             'authorized' => $authorized,
+            'disabled' => $disabled,
+            'hidden' => $hidden,
             'variant' => $this->variant,
             'icon' => $this->icon,
             'labelHidden' => $this->labelHidden,
             'tooltip' => $this->tooltip,
+            'disabledTooltip' => $this->disabledTooltip,
             'confirmation' => $this->confirmation,
             'endpoint' => $url === null ? null : ['method' => $this->method, 'url' => $url],
             'meta' => $this->meta,
         ];
+    }
+
+    private function resolveCondition(bool|Closure $condition, ?Model $model): bool
+    {
+        return $condition instanceof Closure
+            ? ($model !== null && (bool) $condition($model))
+            : $condition;
     }
 }
