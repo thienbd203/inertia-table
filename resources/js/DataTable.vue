@@ -7,7 +7,13 @@ import { SlotOutlet } from "@/components/table/shared";
 import { provideTableContext } from "@/context/tableContext";
 import type { IconResolver } from "@/icons";
 import "@/styles/data-table.css";
-import type { TableAction, TableItem, TableKey, TableResource } from "@/types";
+import type {
+    TableAction,
+    TableColumn,
+    TableItem,
+    TableKey,
+    TableResource,
+} from "@/types";
 import { useActions } from "@/useActions";
 import { useTable } from "@/useTable";
 
@@ -23,6 +29,7 @@ const emit = defineEmits<{
     customAction: [action: TableAction, keys: TableKey[], onFinish: () => void];
     actionSuccess: [action: TableAction, keys: TableKey[]];
     actionError: [action: TableAction, keys: TableKey[], error: unknown];
+    rowClick: [item: T, column: TableColumn | null];
 }>();
 
 const resource = toRef(props, "resource");
@@ -130,7 +137,11 @@ provideTableContext({
         >
             <SlotOutlet name="topbar"><Toolbar /></SlotOutlet>
             <SlotOutlet name="filters"><FilterList /></SlotOutlet>
-            <Viewport />
+            <Viewport
+                @row-click="
+                    (item, column) => emit('rowClick', item as T, column)
+                "
+            />
             <SlotOutlet v-if="resource.results.total > 0" name="footer">
                 <Pagination />
             </SlotOutlet>

@@ -3,11 +3,20 @@ export type TableKey = string | number;
 export type TableItem = {
     id?: TableKey;
     _table?: {
-        url: string | null;
-        columns: Record<string, string>;
+        url: TableUrl | string | null;
+        columns: Record<string, TableUrl | string>;
         cells?: Record<string, Record<string, unknown>>;
         actions: TableAction[];
     };
+};
+
+export type TableUrl = {
+    url: string;
+    preserveScroll: boolean;
+    preserveState: boolean;
+    newTab: boolean;
+    download: boolean;
+    disabled: boolean;
 };
 
 export type TableColumn = {

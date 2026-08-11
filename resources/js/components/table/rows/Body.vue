@@ -4,12 +4,15 @@ import { UiCheckbox } from "@/components/ui/checkbox";
 import { UiTableBody, UiTableCell, UiTableRow } from "@/components/ui/table";
 import { useTableContext } from "@/context/tableContext";
 import { cellUrl, cellValue, rowUrl } from "@/helpers/cells";
-import type { TableItem } from "@/types";
+import type { TableColumn, TableItem } from "@/types";
 import { ActionButton } from "../actions";
 import { CellContent } from "../cells";
 import { SlotOutlet } from "../shared";
 
 defineProps<{ canSelect: boolean }>();
+const emit = defineEmits<{
+    rowClick: [item: TableItem, column: TableColumn | null];
+}>();
 const { resource, table, actions } = useTableContext();
 
 function alignmentClass(alignment: "left" | "center" | "right"): string {
@@ -21,10 +24,23 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
 }
 
 function handleRowClick(event: MouseEvent, item: TableItem) {
-    const url = rowUrl(item);
-    if (!url || event.defaultPrevented) return;
-
     const target = event.target;
+    const columnElement =
+        target instanceof Element
+            ? target.closest<HTMLElement>("td[data-column]")
+            : null;
+    const column = columnElement
+        ? (table.visibleColumns.value.find(
+              (candidate) =>
+                  candidate.attribute === columnElement.dataset.column,
+          ) ?? null)
+        : null;
+
+    emit("rowClick", item, column);
+
+    const url = rowUrl(item);
+    if (!url || url.disabled || event.defaultPrevented) return;
+
     if (
         target instanceof Element &&
         target.closest("a, button, input, select, textarea, [role=checkbox]")
@@ -32,10 +48,22 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
         return;
     }
 
-    router.visit(url, {
+    if (url.newTab) {
+        window.open(url.url, "_blank", "noopener");
+
+        return;
+    }
+
+    if (url.download) {
+        window.location.assign(url.url);
+
+        return;
+    }
+
+    router.visit(url.url, {
         method: "get",
-        preserveScroll: true,
-        preserveState: true,
+        preserveScroll: url.preserveScroll,
+        preserveState: url.preserveState,
     });
 }
 </script>
@@ -63,8 +91,14 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
             v-else
             :key="String(item.id ?? index)"
             :data-selected="actions.isItemSelected(item, index) || undefined"
-            :data-row-clickable="rowUrl(item) ? true : undefined"
-            :class="rowUrl(item) ? 'tb-row-clickable' : undefined"
+            :data-row-clickable="
+                rowUrl(item) && !rowUrl(item)?.disabled ? true : undefined
+            "
+            :class="
+                rowUrl(item) && !rowUrl(item)?.disabled
+                    ? 'tb-row-clickable'
+                    : undefined
+            "
             @click="handleRowClick($event, item)"
         >
             <UiTableCell v-if="canSelect" class="tb-selection-cell">
@@ -78,6 +112,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                 v-for="column in table.visibleColumns.value"
                 :key="column.attribute"
                 :data-alignment="column.alignment"
+                :data-column="column.attribute"
                 :class="[
                     column.cellClass,
                     alignmentClass(column.alignment),
@@ -116,9 +151,37 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                             <ActionButton :action="action" :item="item" />
                         </SlotOutlet>
                     </div>
+                    <a
+                        v-else-if="
+                            cellUrl(item, column.attribute)?.newTab ||
+                            cellUrl(item, column.attribute)?.download
+                        "
+                        :href="cellUrl(item, column.attribute)?.url"
+                        :target="
+                            cellUrl(item, column.attribute)?.newTab
+                                ? '_blank'
+                                : undefined
+                        "
+                        :download="
+                            cellUrl(item, column.attribute)?.download ||
+                            undefined
+                        "
+                        class="tb-cell-link"
+                    >
+                        <CellContent :item="item" :column="column" />
+                    </a>
                     <Link
-                        v-else-if="cellUrl(item, column.attribute)"
-                        :href="cellUrl(item, column.attribute) ?? '#'"
+                        v-else-if="
+                            cellUrl(item, column.attribute) &&
+                            !cellUrl(item, column.attribute)?.disabled
+                        "
+                        :href="cellUrl(item, column.attribute)?.url ?? '#'"
+                        :preserve-scroll="
+                            cellUrl(item, column.attribute)?.preserveScroll
+                        "
+                        :preserve-state="
+                            cellUrl(item, column.attribute)?.preserveState
+                        "
                         class="tb-cell-link"
                     >
                         <CellContent :item="item" :column="column" />

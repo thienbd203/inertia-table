@@ -2,11 +2,15 @@
 import { computed } from "vue";
 import { UiTable } from "@/components/ui/table";
 import { useTableContext } from "@/context/tableContext";
+import type { TableColumn, TableItem } from "@/types";
 import { Header } from "../columns";
 import { Body } from "../rows";
 import { SlotOutlet } from "../shared";
 
 const { resource, actions } = useTableContext();
+const emit = defineEmits<{
+    rowClick: [item: TableItem, column: TableColumn | null];
+}>();
 const canSelect = computed(
     () =>
         resource.value.capabilities.selectable &&
@@ -21,7 +25,12 @@ const canSelect = computed(
                 <Header :can-select="canSelect" />
             </SlotOutlet>
             <SlotOutlet name="tbody">
-                <Body :can-select="canSelect" />
+                <Body
+                    :can-select="canSelect"
+                    @row-click="
+                        (item, column) => emit('rowClick', item, column)
+                    "
+                />
             </SlotOutlet>
         </UiTable>
     </SlotOutlet>

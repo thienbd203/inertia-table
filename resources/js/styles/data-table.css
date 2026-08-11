@@ -9,6 +9,22 @@
     animation-name: slideDown;
 }
 
+.tb-cell-wrap {
+    white-space: normal;
+}
+
+.tb-cell-truncate {
+    white-space: normal;
+}
+
+.tb-cell-truncate .tb-cell-content,
+.tb-cell-truncate .tb-cell-link {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--tb-line-clamp);
+}
+
 @keyframes slideUp {
     from {
         opacity: 0;

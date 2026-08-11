@@ -95,6 +95,41 @@ protected array|string|null $search = ['name', 'email'];
 // protected array|string|null $search = [];
 ```
 
+## Column presentation and navigation
+
+All standard column types support `mapAs()`, `headerClass()`, `cellClass()`,
+`tooltip()`, alignment, wrapping, and multi-line truncation. Mapped values may
+also drive the database ordering:
+
+```php
+TextColumn::make('status')
+    ->sortable()
+    ->mapAs(['pending' => 'Pending', 'approved' => 'Approved'])
+    ->sortUsingMap();
+
+TextColumn::make('score')->sortable()->sortUsing(
+    fn (Builder $query, SortDirection $direction) =>
+        $query->orderBy('score', $direction->value),
+);
+```
+
+Cell and row links may return a URL string or a `Url` object. The object carries
+Inertia navigation options to the client:
+
+```php
+TextColumn::make('name')->url(
+    fn (Topic $topic, Url $url) => $url
+        ->route('topics.edit', $topic)
+        ->openInNewTab(),
+);
+```
+
+The Vue component emits `row-click` with the row and clicked column:
+
+```vue
+<DataTable :resource="topics" @row-click="(row, column) => inspect(row, column)" />
+```
+
 Filters ship with type-specific clauses through `TextFilter`, `SetFilter`,
 `NumericFilter`, `BooleanFilter`, and `DateFilter`. `SelectFilter` remains as a
 deprecated alias of `SetFilter` for backwards compatibility.

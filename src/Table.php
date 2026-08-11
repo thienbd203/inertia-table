@@ -326,7 +326,7 @@ abstract class Table implements Arrayable
         return $model->toArray();
     }
 
-    protected function rowUrl(Model $model): ?string
+    protected function rowUrl(Model $model): string|Url|null
     {
         return null;
     }
@@ -368,12 +368,24 @@ abstract class Table implements Arrayable
         return [
             ...$data,
             '_table' => [
-                'url' => $this->rowUrl($model),
+                'url' => $this->resolveUrl($this->rowUrl($model)),
                 'columns' => $columnUrls,
                 'cells' => $cellMeta,
                 'actions' => $rowActions,
             ],
         ];
+    }
+
+    /** @return array<string, bool|string>|null */
+    private function resolveUrl(string|Url|null $url): ?array
+    {
+        if (is_string($url)) {
+            $url = Url::make()->to($url);
+        }
+
+        return $url instanceof Url && $url->hasUrl() && ! $url->isHidden()
+            ? $url->toArray()
+            : null;
     }
 
     /**

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\QueryBuilder\AllowedSort;
 use Toolbelt\InertiaTable\Image;
+use Toolbelt\InertiaTable\SortDirection;
+use Toolbelt\InertiaTable\Url;
 
 /** @implements Arrayable<string, mixed> */
 class Column implements Arrayable
@@ -34,6 +36,12 @@ class Column implements Arrayable
 
     /** @var Closure|array<string|int, mixed>|null */
     protected Closure|array|null $valueMapper = null;
+
+    /** @var Closure(Builder, SortDirection): void|null */
+    protected ?Closure $sortResolver = null;
+
+    /** @var array<string|int, mixed>|null */
+    protected ?array $sortMap = null;
 
     /** @var array<string, mixed> */
     protected array $meta = [];
@@ -207,6 +215,28 @@ class Column implements Arrayable
         return $this;
     }
 
+    /** @param Closure(Builder, SortDirection): void $resolver */
+    public function sortUsing(Closure $resolver): static
+    {
+        $this->sortResolver = $resolver;
+
+        return $this;
+    }
+
+    /** @param array<string|int, mixed>|null $map */
+    public function sortUsingMap(?array $map = null): static
+    {
+        $map ??= is_array($this->valueMapper) ? $this->valueMapper : null;
+
+        if ($map === null) {
+            throw new \LogicException('sortUsingMap() requires an array passed to mapAs(), or an explicit map.');
+        }
+
+        $this->sortMap = $map;
+
+        return $this;
+    }
+
     /** @param array<string, mixed> $meta */
     public function meta(array $meta): static
     {
@@ -230,15 +260,22 @@ class Column implements Arrayable
         return $this;
     }
 
-    public function resolveUrl(Model $model): ?string
+    /** @return array<string, bool|string>|null */
+    public function resolveUrl(Model $model): ?array
     {
         if ($this->urlResolver === null) {
             return null;
         }
 
-        $url = ($this->urlResolver)($model);
+        $url = ($this->urlResolver)($model, Url::make());
 
-        return is_string($url) && $url !== '' ? $url : null;
+        if (is_string($url)) {
+            $url = Url::make()->to($url);
+        }
+
+        return $url instanceof Url && $url->hasUrl() && ! $url->isHidden()
+            ? $url->toArray()
+            : null;
     }
 
     public function resolveValue(Model $model): mixed
@@ -308,12 +345,51 @@ class Column implements Arrayable
 
     public function applySort(Builder $query, string $direction): void
     {
-        $query->orderBy($this->attribute, $direction);
+        $sortDirection = SortDirection::from($direction);
+
+        if ($this->sortResolver !== null) {
+            ($this->sortResolver)($query, $sortDirection);
+
+            return;
+        }
+
+        if ($this->sortMap !== null) {
+            $this->applyMappedSort($query, $sortDirection);
+
+            return;
+        }
+
+        $query->orderBy($this->attribute, $sortDirection->value);
     }
 
     public function allowedSort(): AllowedSort
     {
-        return AllowedSort::field($this->attribute);
+        return AllowedSort::callback(
+            $this->attribute,
+            fn (Builder $query, bool $descending) => $this->applySort(
+                $query,
+                $descending ? SortDirection::Descending->value : SortDirection::Ascending->value,
+            ),
+        );
+    }
+
+    private function applyMappedSort(Builder $query, SortDirection $direction): void
+    {
+        $grammar = $query->getQuery()->getGrammar();
+        $attribute = $grammar->wrap($this->attribute);
+        $cases = [];
+        $bindings = [];
+
+        foreach ($this->sortMap as $value => $mappedValue) {
+            $cases[] = 'when ? then ?';
+            $bindings[] = $value;
+            $bindings[] = $mappedValue;
+        }
+
+        $query->orderByRaw(
+            "case {$attribute} ".implode(' ', $cases)." else ? end {$direction->value}",
+            [...$bindings, $this->attribute],
+        );
     }
 
     /**

@@ -21,7 +21,9 @@ use Toolbelt\InertiaTable\Filters\NumericFilter;
 use Toolbelt\InertiaTable\Filters\SelectFilter;
 use Toolbelt\InertiaTable\Filters\SetFilter;
 use Toolbelt\InertiaTable\Filters\TextFilter;
+use Toolbelt\InertiaTable\SortDirection;
 use Toolbelt\InertiaTable\Table;
+use Toolbelt\InertiaTable\Url;
 use Toolbelt\InertiaTable\Variant;
 
 class TopicRecord extends Model
@@ -412,12 +414,52 @@ it('resolves row links, cell links, and row actions without frontend slots', fun
     $row = $resource['results']['data'][0];
 
     expect($row['_table'])
-        ->url->toBe('/topics/1')
-        ->columns->toBe(['name' => '/topics/1'])
+        ->url->toMatchArray([
+            'url' => '/topics/1',
+            'preserveScroll' => true,
+            'preserveState' => true,
+        ])
+        ->columns->name->toMatchArray(['url' => '/topics/1'])
         ->actions->toHaveCount(1)
         ->and($row['_table']['actions'][0])
         ->key->toBe('edit')
         ->endpoint->toBe(['method' => 'get', 'url' => '/topics/1']);
+});
+
+it('supports mapped and custom column sorts', function () {
+    $mapped = BooleanColumn::make('is_featured')
+        ->sortable()
+        ->mapAs([false => 'Z', true => 'A'])
+        ->sortUsingMap();
+
+    $query = TopicRecord::query();
+    $mapped->applySort($query, 'asc');
+
+    expect($query->pluck('name')->all())->toBe(['Beta', 'Gamma', 'Alpha']);
+
+    $custom = NumberColumn::make('score')->sortable()->sortUsing(
+        fn (Builder $query, SortDirection $direction) => $query->orderBy('score', $direction->value),
+    );
+    $query = TopicRecord::query();
+    $custom->applySort($query, 'desc');
+
+    expect($query->pluck('name')->all())->toBe(['Beta', 'Gamma', 'Alpha']);
+});
+
+it('serializes URL navigation options for clickable columns', function () {
+    $topic = TopicRecord::query()->firstOrFail();
+    $url = TextColumn::make('name')->url(
+        fn (TopicRecord $model, Url $url) => $url
+            ->to("/topics/{$model->id}")
+            ->openInNewTab()
+            ->preserveScroll(false),
+    )->resolveUrl($topic);
+
+    expect($url)->toMatchArray([
+        'url' => '/topics/1',
+        'newTab' => true,
+        'preserveScroll' => false,
+    ]);
 });
 
 it('formats date columns on the server', function () {
