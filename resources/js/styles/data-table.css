@@ -1,0 +1,48 @@
+.DropdownMenuContentAnimate {
+    animation-duration: 0.1s;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+.DropdownMenuContentAnimate[data-side="top"] {
+    animation-name: slideUp;
+}
+.DropdownMenuContentAnimate[data-side="bottom"] {
+    animation-name: slideDown;
+}
+
+.tb-cell-wrap {
+    white-space: normal;
+}
+
+.tb-cell-truncate {
+    white-space: normal;
+}
+
+.tb-cell-truncate .tb-cell-content,
+.tb-cell-truncate .tb-cell-link {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--tb-line-clamp);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

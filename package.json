@@ -1,0 +1,67 @@
+{
+    "name": "@toolbelt/inertia-table-vue",
+    "version": "0.1.0",
+    "description": "Vue renderer for Toolbelt Inertia Table.",
+    "type": "module",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/thienbd203/inertia-table.git"
+    },
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+    },
+    "files": [
+        "dist",
+        "resources/js"
+    ],
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        },
+        "./style.css": "./dist/inertia-table.css"
+    },
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite build --watch",
+        "format": "prettier --write resources/js tests-js vite.config.ts tsconfig.json package.json",
+        "format:check": "prettier --check resources/js tests-js vite.config.ts tsconfig.json package.json",
+        "prepack": "npm run build",
+        "test": "vitest run",
+        "types:check": "vue-tsc --noEmit"
+    },
+    "peerDependencies": {
+        "@inertiajs/vue3": "^2.0.0 || ^3.0.0",
+        "@lucide/vue": "^1.30.0",
+        "reka-ui": "^2.10.0",
+        "tailwindcss": "^4.1.0",
+        "vue": "^3.4.0"
+    },
+    "devDependencies": {
+        "@inertiajs/vue3": "^3.0.0",
+        "@lucide/vue": "^1.31.0",
+        "@vitejs/plugin-vue": "^6.0.0",
+        "@vue/test-utils": "^2.4.0",
+        "happy-dom": "^20.0.0",
+        "prettier": "^3.0.0",
+        "reka-ui": "^2.10.3",
+        "tailwindcss": "^4.3.3",
+        "typescript": "^5.2.0",
+        "vite": "^8.0.0",
+        "vite-plugin-dts": "^4.0.0",
+        "vitest": "^4.0.0",
+        "vue": "^3.5.0",
+        "vue-tsc": "^2.2.0"
+    },
+    "dependencies": {
+        "@internationalized/date": "^3.12.3",
+        "@vueuse/core": "^14.4.0",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "tailwind-merge": "^3.6.0"
+    }
+}
