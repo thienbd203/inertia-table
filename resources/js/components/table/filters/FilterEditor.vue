@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import type { TableFilter } from "@/types";
 import { SlotOutlet } from "../shared";
 import FilterClauseSelect from "./FilterClauseSelect.vue";
@@ -11,6 +11,11 @@ const emit = defineEmits<{ "update:displayValue": [value: string | null] }>();
 const { clause, clauseOptions, state, table, update, updateClause, value } =
     useFilterEditor(props.filter);
 const debounceTime = computed(() => table.resource.value.options.debounceTime);
+const valueControl = ref<InstanceType<typeof FilterValueControl> | null>(null);
+
+defineExpose({
+    focusValueControl: () => valueControl.value?.focus(),
+});
 </script>
 
 <template>
@@ -33,6 +38,7 @@ const debounceTime = computed(() => table.resource.value.options.debounceTime);
                 @update:model-value="updateClause"
             />
             <FilterValueControl
+                ref="valueControl"
                 :filter="filter"
                 :clause="clause"
                 :model-value="value"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import {
     UiPopover,
     UiPopoverContent,
@@ -21,9 +21,11 @@ const props = defineProps<{
     autoOpen?: boolean;
 }>();
 const isOpen = ref(false);
+const filterEditor = ref<InstanceType<typeof FilterEditor> | null>(null);
 const state = computed(
     () => resource.value.state.filters[props.filter.attribute],
 );
+const valuelessClauses = ["is_true", "is_false", "is_set", "is_not_set"];
 
 watch(state, () => {
     displayValue.value = null;
@@ -41,6 +43,17 @@ watch(
     },
     { immediate: true },
 );
+
+async function focusValueControl(event: Event) {
+    if (valuelessClauses.includes(state.value?.clause ?? "")) {
+        return;
+    }
+
+    event.preventDefault();
+    await nextTick();
+
+    filterEditor.value?.focusValueControl();
+}
 </script>
 
 <template>
@@ -60,8 +73,10 @@ watch(
             <UiPopoverContent
                 align="start"
                 class="DropdownMenuContentAnimate w-fit"
+                @open-auto-focus="focusValueControl"
             >
                 <FilterEditor
+                    ref="filterEditor"
                     :filter="filter"
                     @update:display-value="displayValue = $event"
                 />

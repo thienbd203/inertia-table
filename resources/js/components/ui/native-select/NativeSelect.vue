@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { AcceptableValue } from "reka-ui";
-import type { HTMLAttributes } from "vue";
+import { useTemplateRef, type HTMLAttributes } from "vue";
 import { ChevronDownIcon } from "@lucide/vue";
 import { reactiveOmit, useVModel } from "@vueuse/core";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,11 @@ const modelValue = useVModel(props, "modelValue", emit, {
 });
 
 const delegatedProps = reactiveOmit(props, "class");
+const select = useTemplateRef<HTMLSelectElement>("select");
+
+defineExpose({
+    focus: () => select.value?.focus(),
+});
 </script>
 
 <template>
@@ -32,6 +37,7 @@ const delegatedProps = reactiveOmit(props, "class");
         data-slot="native-select-wrapper"
     >
         <select
+            ref="select"
             v-bind="{ ...$attrs, ...delegatedProps }"
             v-model="modelValue"
             data-slot="native-select"

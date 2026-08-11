@@ -52,13 +52,29 @@ const range = computed<[string, string]>(() => {
     return [String(value[0] ?? ""), String(value[1] ?? "")];
 });
 const draftRange = ref<[string, string]>(range.value);
+const draftInput = ref(String(props.modelValue ?? ""));
+const isInputFocused = ref(false);
+const valueControl = ref<{ focus: () => void } | null>(null);
 
 watch(range, (nextRange) => {
     draftRange.value = nextRange;
 });
 
+watch(
+    () => props.modelValue,
+    (nextValue) => {
+        if (!isInputFocused.value) {
+            draftInput.value = String(nextValue ?? "");
+        }
+    },
+);
+
 function updateInput(value: string | number) {
-    emitInputValue(value);
+    draftInput.value = String(value);
+
+    emitInputValue(
+        props.filter.type === "text" ? draftInput.value.trim() : value,
+    );
 }
 
 function updateRange(index: 0 | 1, value: string | number) {
@@ -68,6 +84,10 @@ function updateRange(index: 0 | 1, value: string | number) {
 
     if (next[0] !== "" && next[1] !== "") emitInputValue(next);
 }
+
+defineExpose({
+    focus: () => valueControl.value?.focus(),
+});
 </script>
 
 <template>
@@ -76,8 +96,10 @@ function updateRange(index: 0 | 1, value: string | number) {
 
         <NativeSelect
             v-if="control === 'select'"
+            ref="valueControl"
             class="flex-1"
             :model-value="String(modelValue ?? '')"
+            :data-filter-value="filter.attribute"
             @update:model-value="emit('update:modelValue', $event)"
         >
             <NativeSelectOption
@@ -91,8 +113,10 @@ function updateRange(index: 0 | 1, value: string | number) {
 
         <div v-else-if="control === 'range'" class="tb-filter-range flex-1">
             <UiInput
+                ref="valueControl"
                 :type="filter.type === 'date' ? 'date' : 'number'"
                 :model-value="draftRange[0]"
+                :data-filter-value="filter.attribute"
                 @update:model-value="(value) => updateRange(0, value)"
             />
             <span aria-hidden="true">–</span>
@@ -105,9 +129,13 @@ function updateRange(index: 0 | 1, value: string | number) {
 
         <UiInput
             v-else
+            ref="valueControl"
             class="flex-1"
             :type="inputType"
-            :model-value="String(modelValue ?? '')"
+            :model-value="draftInput"
+            :data-filter-value="filter.attribute"
+            @focus="isInputFocused = true"
+            @blur="isInputFocused = false"
             @update:model-value="updateInput"
         />
     </div>
