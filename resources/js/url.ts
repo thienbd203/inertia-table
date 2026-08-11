@@ -53,10 +53,15 @@ export function tableUrl<T extends TableItem>(
             nestedKey(table, "filters", attribute, "clause"),
             filter.clause,
         );
-        params.set(
-            nestedKey(table, "filters", attribute, "value"),
-            String(filter.value),
-        );
+        const valueKey = nestedKey(table, "filters", attribute, "value");
+
+        if (Array.isArray(filter.value)) {
+            for (const value of filter.value) {
+                params.append(`${valueKey}[]`, String(value));
+            }
+        } else {
+            params.set(valueKey, String(filter.value));
+        }
     }
 
     for (const [attribute, visible] of Object.entries(state.columns)) {

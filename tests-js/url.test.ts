@@ -61,4 +61,28 @@ describe("tableUrl", () => {
         expect(parsed.searchParams.has("table[topics][page]")).toBe(false);
         expect(parsed.searchParams.get("table[topics][perPage]")).toBe("25");
     });
+
+    it("serializes multiple filter values as an array", () => {
+        const url = tableUrl("/admin", topicResource(), {
+            search: "",
+            sort: null,
+            filters: {
+                status: {
+                    enabled: true,
+                    clause: "in",
+                    value: ["featured", "pending"],
+                },
+            },
+            columns: { name: true, is_featured: true, __actions: true },
+            page: 1,
+            perPage: 25,
+        });
+        const parsed = new URL(url, "http://toolbelt.local");
+
+        expect(
+            parsed.searchParams.getAll(
+                "table[topics][filters][status][value][]",
+            ),
+        ).toEqual(["featured", "pending"]);
+    });
 });

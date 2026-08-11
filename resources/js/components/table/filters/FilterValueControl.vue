@@ -3,6 +3,13 @@ import { useDebounceFn } from "@vueuse/core";
 import { computed, ref, watch } from "vue";
 import { Search } from "@lucide/vue";
 import { UiInput } from "@/components/ui/input";
+import { UiButton } from "@/components/ui/button";
+import {
+    UiDropdownMenu,
+    UiDropdownMenuCheckboxItem,
+    UiDropdownMenuContent,
+    UiDropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
     NativeSelect,
     NativeSelectOption,
@@ -42,12 +49,35 @@ const showsSearchIcon = computed(
         (control.value === "input" && props.filter.type === "text") ||
         (control.value === "select" && props.filter.type === "set"),
 );
+const allowsMultipleValues = computed(
+    () => props.filter.multiple || ["in", "not_in"].includes(props.clause),
+);
 const setValue = computed(() => {
     const values = Array.isArray(props.modelValue)
         ? props.modelValue.map((value) => String(value))
         : [String(props.modelValue ?? "")];
 
-    return props.filter.multiple ? values : (values[0] ?? "");
+    return allowsMultipleValues.value ? values : (values[0] ?? "");
+});
+const selectedOptionLabels = computed(() => {
+    const selected = new Set(
+        (Array.isArray(setValue.value)
+            ? setValue.value
+            : [setValue.value]
+        ).filter((value) => value !== ""),
+    );
+
+    return props.filter.options
+        .filter((option) => selected.has(String(option.value)))
+        .map((option) => option.label);
+});
+const multipleSelectLabel = computed(() => {
+    const labels = selectedOptionLabels.value;
+
+    if (labels.length === 0) return "Select options";
+    if (labels.length <= 2) return labels.join(", ");
+
+    return `${labels.length} options selected`;
 });
 const inputType = computed<"date" | "number" | "text">(() =>
     props.filter.type === "date"
@@ -89,9 +119,28 @@ function updateInput(value: string | number) {
 function updateSetValue(value: unknown) {
     emit(
         "update:modelValue",
-        Array.isArray(value)
-            ? value.map((candidate) => String(candidate))
+        allowsMultipleValues.value
+            ? (Array.isArray(value) ? value : [value]).map((candidate) =>
+                  String(candidate),
+              )
             : value,
+    );
+}
+
+function toggleSetOption(value: string) {
+    const selected = new Set(
+        Array.isArray(setValue.value) ? setValue.value : [setValue.value],
+    );
+
+    if (selected.has(value)) {
+        selected.delete(value);
+    } else {
+        selected.add(value);
+    }
+
+    emit(
+        "update:modelValue",
+        [...selected].filter((candidate) => candidate !== ""),
     );
 }
 
@@ -112,12 +161,34 @@ defineExpose({
     <div v-if="control !== 'none'" class="flex items-center gap-2 mt-2">
         <Search v-if="showsSearchIcon" class="size-5" />
 
+        <UiDropdownMenu v-if="control === 'select' && allowsMultipleValues">
+            <UiDropdownMenuTrigger as-child>
+                <UiButton
+                    ref="valueControl"
+                    variant="outline"
+                    class="flex-1 justify-between font-normal"
+                    :data-filter-value="filter.attribute"
+                >
+                    <span class="truncate">{{ multipleSelectLabel }}</span>
+                </UiButton>
+            </UiDropdownMenuTrigger>
+            <UiDropdownMenuContent align="start" class="min-w-56">
+                <UiDropdownMenuCheckboxItem
+                    v-for="option in filter.options"
+                    :key="String(option.value)"
+                    :model-value="setValue.includes(String(option.value))"
+                    @select.prevent="toggleSetOption(String(option.value))"
+                >
+                    {{ option.label }}
+                </UiDropdownMenuCheckboxItem>
+            </UiDropdownMenuContent>
+        </UiDropdownMenu>
+
         <NativeSelect
-            v-if="control === 'select'"
+            v-else-if="control === 'select'"
             ref="valueControl"
             class="flex-1"
             :model-value="setValue"
-            :multiple="filter.multiple"
             :data-filter-value="filter.attribute"
             @update:model-value="updateSetValue"
         >
