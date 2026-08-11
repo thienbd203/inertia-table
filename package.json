@@ -22,7 +22,8 @@
         ".": {
             "types": "./dist/index.d.ts",
             "import": "./dist/index.js"
-        }
+        },
+        "./style.css": "./dist/inertia-table.css"
     },
     "scripts": {
         "build": "vite build",

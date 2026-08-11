@@ -57,7 +57,7 @@ watch(
                     @remove="emit('remove')"
                 />
             </UiPopoverTrigger>
-            <UiPopoverContent @close-auto-focus="(e) => e.stopPropagation()">
+            <UiPopoverContent align="start" class="DropdownMenuContentAnimate">
                 <FilterEditor
                     :filter="filter"
                     @update:display-value="displayValue = $event"

@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends TableItem">
-import { computed, ref, toRef, useSlots, watch } from "vue";
+import { computed, nextTick, ref, toRef, useSlots, watch } from "vue";
 import { Confirmation } from "@/components/table/actions";
 import { FilterList } from "@/components/table/filters";
 import { Pagination, Toolbar, Viewport } from "@/components/table/layout";
@@ -41,12 +41,16 @@ watch(
     },
 );
 
-function addFilter(attribute: string) {
+async function addFilter(attribute: string) {
     if (activeFilterAttributes.value.includes(attribute)) {
         return;
     }
 
     activeFilterAttributes.value = [...activeFilterAttributes.value, attribute];
+
+    // The dropdown must unmount before the popover mounts; otherwise its
+    // dismissable layer considers the menu selection an outside interaction.
+    await nextTick();
     pendingFilterPopover.value = attribute;
 
     const definition = props.resource.filters.find(

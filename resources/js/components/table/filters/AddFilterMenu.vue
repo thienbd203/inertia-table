@@ -31,7 +31,8 @@ defineEmits<{
         </UiDropdownMenuTrigger>
         <UiDropdownMenuContent
             align="end"
-            @close-auto-focus="(e) => e.preventDefault()"
+            class="DropdownMenuContentAnimate"
+            @closeAutoFocus="(e) => e.preventDefault()"
         >
             <UiDropdownMenuLabel>Add Filter</UiDropdownMenuLabel>
             <UiDropdownMenuSeparator />

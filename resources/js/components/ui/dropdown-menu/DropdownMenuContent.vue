@@ -11,19 +11,29 @@ import {
     useForwardPropsEmits,
 } from "reka-ui";
 import { cn } from "@/lib/utils";
-defineOptions({ inheritAttrs: false });
+
+defineOptions({
+    inheritAttrs: false,
+});
+
 const props = withDefaults(
     defineProps<
         DropdownMenuContentProps & { class?: HTMLAttributes["class"] }
     >(),
-    { sideOffset: 4 },
+    {
+        sideOffset: 4,
+    },
 );
 const emits = defineEmits<DropdownMenuContentEmits>();
-const forwarded = useForwardPropsEmits(reactiveOmit(props, "class"), emits);
+
+const delegatedProps = reactiveOmit(props, "class");
+
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
+
 <template>
-    <DropdownMenuPortal
-        ><DropdownMenuContent
+    <DropdownMenuPortal>
+        <DropdownMenuContent
             data-slot="dropdown-menu-content"
             v-bind="{ ...$attrs, ...forwarded }"
             :class="
@@ -32,6 +42,8 @@ const forwarded = useForwardPropsEmits(reactiveOmit(props, "class"), emits);
                     props.class,
                 )
             "
-            ><slot /></DropdownMenuContent
-    ></DropdownMenuPortal>
+        >
+            <slot />
+        </DropdownMenuContent>
+    </DropdownMenuPortal>
 </template>
