@@ -121,6 +121,16 @@ class AdvancedFilterTopicsTable extends TopicsTable
     }
 }
 
+class CustomPerPageTopicsTable extends TopicsTable
+{
+    protected ?string $name = 'topics';
+
+    protected ?int $perPage = 1;
+
+    /** @var array<int, int> */
+    protected ?array $perPageOptions = [1, 2];
+}
+
 beforeEach(function () {
     Schema::create('topics', function (Blueprint $table) {
         $table->id();
@@ -312,6 +322,18 @@ it('accepts only configured per-page values', function () {
         ->total->toBe(3)
         ->and($allowed['results']['data'][0]['name'])->toBe('Beta')
         ->and($rejected['results']['perPage'])->toBe(2);
+});
+
+it('lets a table override the global per-page default and options', function () {
+    config()->set('inertia-table.per_page', 25);
+    config()->set('inertia-table.per_page_options', [10, 25, 50, 100]);
+
+    $default = (new CustomPerPageTopicsTable)->resolve(tableRequest())->toArray();
+    $rejected = (new CustomPerPageTopicsTable)->resolve(tableRequest(['perPage' => 25]))->toArray();
+
+    expect($default['options']['perPage'])->toBe([1, 2])
+        ->and($default['results']['perPage'])->toBe(1)
+        ->and($rejected['results']['perPage'])->toBe(1);
 });
 
 it('declares extra inertia props to reload', function () {

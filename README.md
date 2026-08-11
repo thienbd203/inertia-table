@@ -90,6 +90,11 @@ final class TopicsTable extends Table
 {
     protected ?string $defaultSort = 'name';
 
+    // Optional: override the global per_page / per_page_options config for this table only.
+    protected ?int $perPage = 50;
+
+    protected ?array $perPageOptions = [25, 50, 100];
+
     public function query(): Builder
     {
         return Topic::query()->withCount('quotes');
