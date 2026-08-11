@@ -22,6 +22,14 @@ function sortDirection(attribute: string): "asc" | "desc" | null {
 
     return null;
 }
+
+function alignmentClass(alignment: "left" | "center" | "right"): string {
+    return {
+        left: "text-left",
+        center: "text-center",
+        right: "text-right",
+    }[alignment];
+}
 </script>
 
 <template>
@@ -38,7 +46,7 @@ function sortDirection(attribute: string): "asc" | "desc" | null {
                 v-for="column in table.visibleColumns.value"
                 :key="column.attribute"
                 :data-alignment="column.alignment"
-                :class="column.headerClass"
+                :class="[column.headerClass, alignmentClass(column.alignment)]"
                 :title="column.tooltip ?? undefined"
             >
                 <SlotOutlet

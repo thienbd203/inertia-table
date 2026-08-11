@@ -12,6 +12,14 @@ import { SlotOutlet } from "../shared";
 defineProps<{ canSelect: boolean }>();
 const { resource, table, actions } = useTableContext();
 
+function alignmentClass(alignment: "left" | "center" | "right"): string {
+    return {
+        left: "text-left",
+        center: "text-center",
+        right: "text-right",
+    }[alignment];
+}
+
 function handleRowClick(event: MouseEvent, item: TableItem) {
     const url = rowUrl(item);
     if (!url || event.defaultPrevented) return;
@@ -66,6 +74,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                 :data-alignment="column.alignment"
                 :class="[
                     column.cellClass,
+                    alignmentClass(column.alignment),
                     {
                         'tb-cell-wrap': column.wrap,
                         'tb-cell-truncate': column.truncate,
