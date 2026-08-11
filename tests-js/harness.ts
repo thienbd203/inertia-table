@@ -1,0 +1,53 @@
+import { mount } from "@vue/test-utils";
+import { defineComponent, h, ref, type Component } from "vue";
+import { provideTableContext } from "../resources/js/context/tableContext";
+import type { TableResource } from "../resources/js/types";
+import { useActions } from "../resources/js/useActions";
+import { useTable } from "../resources/js/useTable";
+import type { Topic } from "./fixtures";
+import { topicResource } from "./fixtures";
+
+/**
+ * Mounts a real component from `components/table/*` behind the same
+ * TableContext that `<DataTable>` provides, using the real `useTable`/
+ * `useActions` composables (against the mocked `@inertiajs/vue3` router)
+ * instead of hand-rolled fakes.
+ */
+export function mountWithTableContext(
+    component: Component,
+    resourceOverrides: Partial<TableResource<Topic>> = {},
+) {
+    const resource = ref(topicResource(resourceOverrides));
+    let table!: ReturnType<typeof useTable<Topic>>;
+    let actions!: ReturnType<typeof useActions<Topic>>;
+
+    const wrapper = mount(
+        defineComponent({
+            setup() {
+                table = useTable(resource);
+                actions = useActions(table);
+
+                provideTableContext({
+                    resource,
+                    table,
+                    actions,
+                    iconResolver: undefined,
+                    searchPlaceholder: ref("Search…"),
+                    slots: {},
+                    activeFilterAttributes: ref([]),
+                    pendingFilterPopover: ref(null),
+                    addFilter: () => {},
+                    consumePendingFilterPopover: () => {},
+                    removeFilter: () => {},
+                    clearFilters: () => {},
+                    scope: { table, actions },
+                });
+
+                return () => h(component);
+            },
+        }),
+        { attachTo: document.body },
+    );
+
+    return { actions: actions!, resource, table: table!, wrapper };
+}

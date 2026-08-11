@@ -553,3 +553,35 @@ it('can be passed directly as an inertia prop', function () {
         ->assertJsonPath('props.topics.name', 'topics')
         ->assertJsonCount(3, 'props.topics.results.data');
 });
+
+it('serializes select filter as a deprecated alias of set filter', function () {
+    $resource = (new TopicsTable)->resolve(tableRequest())->toArray();
+    $status = collect($resource['filters'])->firstWhere('attribute', 'status');
+
+    expect($status['type'])->toBe('select')
+        ->and($status['clauses'])->toBe(['equals'])
+        ->and($status['options'])->toBe([
+            ['value' => 'featured', 'label' => 'Featured'],
+            ['value' => 'regular', 'label' => 'Regular'],
+        ]);
+});
+
+it('drops an undeclared filter attribute before it ever reaches the query builder', function () {
+    $resource = (new TopicsTable)->resolve(tableRequest([
+        'filters' => [
+            'is_admin' => ['enabled' => true, 'clause' => 'equals', 'value' => true],
+        ],
+    ]))->toArray();
+
+    expect($resource['state']['filters'])->not->toHaveKey('is_admin')
+        ->and($resource['results']['total'])->toBe(3);
+});
+
+it('falls back to the default sort when an undeclared or malicious sort value is requested', function () {
+    $resource = (new TopicsTable)->resolve(tableRequest([
+        'sort' => 'id); drop table topics; --',
+    ]))->toArray();
+
+    expect($resource['state']['sort'])->toBe('name')
+        ->and($resource['results']['total'])->toBe(3);
+});
