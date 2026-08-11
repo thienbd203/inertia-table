@@ -6,7 +6,7 @@ import { Header } from "../columns";
 import { Body } from "../rows";
 import { SlotOutlet } from "../shared";
 
-const { resource, table, actions } = useTableContext();
+const { resource, actions } = useTableContext();
 const canSelect = computed(
     () =>
         resource.value.capabilities.selectable &&
@@ -15,20 +15,14 @@ const canSelect = computed(
 </script>
 
 <template>
-    <div class="tb-table-container">
-        <SlotOutlet name="table">
-            <UiTable class="tb-table">
-                <SlotOutlet name="thead">
-                    <Header :can-select="canSelect" />
-                </SlotOutlet>
-                <SlotOutlet name="tbody">
-                    <Body :can-select="canSelect" />
-                </SlotOutlet>
-            </UiTable>
-        </SlotOutlet>
-
-        <SlotOutlet v-if="table.isNavigating.value" name="loading">
-            <div class="tb-loading" role="status">Loading…</div>
-        </SlotOutlet>
-    </div>
+    <SlotOutlet name="table">
+        <UiTable class="tb-table">
+            <SlotOutlet name="thead">
+                <Header :can-select="canSelect" />
+            </SlotOutlet>
+            <SlotOutlet name="tbody">
+                <Body :can-select="canSelect" />
+            </SlotOutlet>
+        </UiTable>
+    </SlotOutlet>
 </template>

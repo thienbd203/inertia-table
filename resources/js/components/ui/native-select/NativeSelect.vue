@@ -12,6 +12,7 @@ defineOptions({
 const props = defineProps<{
     modelValue?: AcceptableValue | AcceptableValue[];
     class?: HTMLAttributes["class"];
+    wrapperClass?: HTMLAttributes["class"];
 }>();
 
 const emit = defineEmits<{
@@ -23,7 +24,7 @@ const modelValue = useVModel(props, "modelValue", emit, {
     defaultValue: "",
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "wrapperClass");
 const select = useTemplateRef<HTMLSelectElement>("select");
 
 defineExpose({
@@ -33,7 +34,12 @@ defineExpose({
 
 <template>
     <div
-        class="group/native-select relative w-full has-[select:disabled]:opacity-50"
+        :class="
+            cn(
+                'group/native-select relative w-full has-[select:disabled]:opacity-50',
+                props.wrapperClass,
+            )
+        "
         data-slot="native-select-wrapper"
     >
         <select

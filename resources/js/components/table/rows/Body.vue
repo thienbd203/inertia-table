@@ -49,7 +49,13 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                 "
                 class="tb-empty-state"
             >
-                <SlotOutlet name="emptyState">No results found.</SlotOutlet>
+                <SlotOutlet name="emptyState">
+                    <p
+                        class="p-8 text-center font-medium text-gray-900 dark:text-zinc-200"
+                    >
+                        No results found.
+                    </p>
+                </SlotOutlet>
             </UiTableCell>
         </UiTableRow>
         <UiTableRow

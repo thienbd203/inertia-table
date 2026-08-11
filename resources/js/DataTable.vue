@@ -117,12 +117,28 @@ provideTableContext({
 </script>
 
 <template>
-    <div class="tb-wrapper" :aria-busy="table.isNavigating.value">
-        <SlotOutlet name="topbar"><Toolbar /></SlotOutlet>
-        <SlotOutlet name="filters"><FilterList /></SlotOutlet>
-        <Viewport />
-        <SlotOutlet v-if="resource.results.total > 0" name="footer">
-            <Pagination />
+    <div
+        class="tb-wrapper relative"
+        :aria-busy="table.isNavigating.value"
+        :class="{ 'cursor-wait': table.isNavigating.value }"
+    >
+        <div
+            class="transition-opacity duration-150"
+            :class="{
+                'pointer-events-none opacity-50': table.isNavigating.value,
+            }"
+        >
+            <SlotOutlet name="topbar"><Toolbar /></SlotOutlet>
+            <SlotOutlet name="filters"><FilterList /></SlotOutlet>
+            <Viewport />
+            <SlotOutlet v-if="resource.results.total > 0" name="footer">
+                <Pagination />
+            </SlotOutlet>
+        </div>
+        <SlotOutlet v-if="table.isNavigating.value" name="loading">
+            <div class="absolute inset-0 z-10" role="status">
+                <span class="sr-only">Loading</span>
+            </div>
         </SlotOutlet>
         <SlotOutlet
             v-if="actions.pendingAction.value"

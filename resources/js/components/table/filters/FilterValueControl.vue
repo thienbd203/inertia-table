@@ -42,11 +42,13 @@ const showsSearchIcon = computed(
         (control.value === "input" && props.filter.type === "text") ||
         (control.value === "select" && props.filter.type === "set"),
 );
-const setValue = computed(() =>
-    Array.isArray(props.modelValue)
+const setValue = computed(() => {
+    const values = Array.isArray(props.modelValue)
         ? props.modelValue.map((value) => String(value))
-        : String(props.modelValue ?? ""),
-);
+        : [String(props.modelValue ?? "")];
+
+    return props.filter.multiple ? values : (values[0] ?? "");
+});
 const inputType = computed<"date" | "number" | "text">(() =>
     props.filter.type === "date"
         ? "date"
