@@ -6,7 +6,7 @@ use DateTimeInterface;
 use Illuminate\Support\Facades\URL as UrlGenerator;
 use Illuminate\Support\Traits\Conditionable;
 
-class Url
+final class Url
 {
     use Conditionable;
 
@@ -26,7 +26,7 @@ class Url
 
     public static function make(): static
     {
-        return new static;
+        return new self;
     }
 
     public function to(?string $url): static

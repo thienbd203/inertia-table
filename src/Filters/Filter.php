@@ -106,6 +106,13 @@ abstract class Filter implements Arrayable
     public function allowedFilter(): AllowedFilter
     {
         return AllowedFilter::callback($this->attribute, function (Builder $query, mixed $state) {
+            if (is_array($state)) {
+                $state = implode(',', array_map(
+                    fn (mixed $part) => (string) $part,
+                    $state,
+                ));
+            }
+
             if (is_string($state)) {
                 $decoded = json_decode($state, true);
                 $state = is_array($decoded) ? $decoded : $state;
@@ -133,7 +140,7 @@ abstract class Filter implements Arrayable
             }
 
             $this->apply($query, $clause, $state['value'] ?? null);
-        })->delimiter('');
+        });
     }
 
     /** @return array{enabled: bool, clause: string, value: mixed} */

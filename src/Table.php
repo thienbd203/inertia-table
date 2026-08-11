@@ -224,7 +224,7 @@ abstract class Table implements Arrayable
             $searchFilter = AllowedFilter::callback(
                 '__search',
                 function (Builder $query, mixed $value) use ($searchable) {
-                    $search = trim((string) $value);
+                    $search = trim(is_array($value) ? implode(',', $value) : (string) $value);
 
                     if ($search === '') {
                         return;
@@ -240,7 +240,7 @@ abstract class Table implements Arrayable
                         }
                     });
                 },
-            )->delimiter('');
+            );
             array_unshift($allowed, $searchFilter);
         }
 
