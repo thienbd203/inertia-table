@@ -553,3 +553,71 @@ it('can be passed directly as an inertia prop', function () {
         ->assertJsonPath('props.topics.name', 'topics')
         ->assertJsonCount(3, 'props.topics.results.data');
 });
+
+it('serializes select filter as a deprecated alias of set filter', function () {
+    $resource = (new TopicsTable)->resolve(tableRequest())->toArray();
+    $status = collect($resource['filters'])->firstWhere('attribute', 'status');
+
+    expect($status['type'])->toBe('select')
+        ->and($status['clauses'])->toBe(['equals'])
+        ->and($status['options'])->toBe([
+            ['value' => 'featured', 'label' => 'Featured'],
+            ['value' => 'regular', 'label' => 'Regular'],
+        ]);
+});
+
+it('drops an undeclared filter attribute before it ever reaches the query builder', function () {
+    $resource = (new TopicsTable)->resolve(tableRequest([
+        'filters' => [
+            'is_admin' => ['enabled' => true, 'clause' => 'equals', 'value' => true],
+        ],
+    ]))->toArray();
+
+    expect($resource['state']['filters'])->not->toHaveKey('is_admin')
+        ->and($resource['results']['total'])->toBe(3);
+});
+
+it('falls back to the default sort when an undeclared or malicious sort value is requested', function () {
+    $resource = (new TopicsTable)->resolve(tableRequest([
+        'sort' => 'id); drop table topics; --',
+    ]))->toArray();
+
+    expect($resource['state']['sort'])->toBe('name')
+        ->and($resource['results']['total'])->toBe(3);
+});
+
+it('treats sql metacharacters in the global search term as a literal value, not sql', function () {
+    $resource = (new TopicsTable)->resolve(tableRequest([
+        'search' => "' OR '1'='1",
+    ]))->toArray();
+
+    expect($resource['results']['data'])->toBe([])
+        ->and($resource['results']['total'])->toBe(0);
+});
+
+it('treats sql metacharacters in a text filter value as a literal value, not sql', function () {
+    $resource = (new AdvancedFilterTopicsTable)->resolve(tableRequest([
+        'filters' => [
+            'name' => ['enabled' => true, 'clause' => 'contains', 'value' => "'; DROP TABLE topics; --"],
+        ],
+    ]))->toArray();
+
+    expect($resource['results']['data'])->toBe([])
+        ->and($resource['results']['total'])->toBe(0);
+
+    // The injection attempt must not have actually dropped the table.
+    expect((new TopicsTable)->resolve(tableRequest())->toArray()['results']['total'])->toBe(3);
+});
+
+it('binds a numeric filter value as a query parameter instead of interpolating it', function () {
+    $resource = (new AdvancedFilterTopicsTable)->resolve(tableRequest([
+        'filters' => [
+            'score' => ['enabled' => true, 'clause' => 'equals', 'value' => '10 OR 1=1'],
+        ],
+    ]))->toArray();
+
+    // A non-numeric value normalizes to null and the filter is dropped entirely,
+    // rather than reaching the query as a raw, un-bound fragment.
+    expect($resource['state']['filters']['score']['enabled'])->toBeFalse()
+        ->and($resource['results']['total'])->toBe(3);
+});
