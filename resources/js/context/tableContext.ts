@@ -12,7 +12,9 @@ export type TableContext<T extends TableItem = TableItem> = {
     searchPlaceholder: Ref<string>;
     slots: Slots;
     activeFilterAttributes: Ref<string[]>;
+    pendingFilterPopover: Ref<string | null>;
     addFilter: (attribute: string) => void;
+    consumePendingFilterPopover: (attribute: string) => void;
     removeFilter: (attribute: string) => void;
     clearFilters: () => void;
     scope: {

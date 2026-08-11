@@ -29,7 +29,10 @@ defineEmits<{
                 Filters
             </UiButton>
         </UiDropdownMenuTrigger>
-        <UiDropdownMenuContent>
+        <UiDropdownMenuContent
+            align="end"
+            @close-auto-focus="(e) => e.preventDefault()"
+        >
             <UiDropdownMenuLabel>Add Filter</UiDropdownMenuLabel>
             <UiDropdownMenuSeparator />
             <UiDropdownMenuItem

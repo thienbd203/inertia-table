@@ -3,7 +3,13 @@ import { useTableContext } from "@/context/tableContext";
 import { computed } from "vue";
 import ActiveFilter from "./ActiveFilter.vue";
 
-const { resource, activeFilterAttributes, removeFilter } = useTableContext();
+const {
+    resource,
+    activeFilterAttributes,
+    pendingFilterPopover,
+    consumePendingFilterPopover,
+    removeFilter,
+} = useTableContext();
 const activeFilters = computed(() =>
     activeFilterAttributes.value
         .map((attribute) =>
@@ -24,6 +30,8 @@ const activeFilters = computed(() =>
             v-for="filter in activeFilters"
             :key="filter.attribute"
             :filter="filter"
+            :auto-open="pendingFilterPopover === filter.attribute"
+            @opened="consumePendingFilterPopover(filter.attribute)"
             @remove="removeFilter(filter.attribute)"
         />
     </div>

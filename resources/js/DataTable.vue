@@ -30,6 +30,7 @@ function enabledFilterAttributes(resource: TableResource<T>) {
 }
 
 const activeFilterAttributes = ref(enabledFilterAttributes(props.resource));
+const pendingFilterPopover = ref<string | null>(null);
 
 watch(
     () => enabledFilterAttributes(props.resource),
@@ -41,12 +42,12 @@ watch(
 );
 
 function addFilter(attribute: string) {
-    if (!activeFilterAttributes.value.includes(attribute)) {
-        activeFilterAttributes.value = [
-            ...activeFilterAttributes.value,
-            attribute,
-        ];
+    if (activeFilterAttributes.value.includes(attribute)) {
+        return;
     }
+
+    activeFilterAttributes.value = [...activeFilterAttributes.value, attribute];
+    pendingFilterPopover.value = attribute;
 
     const definition = props.resource.filters.find(
         (filter) => filter.attribute === attribute,
@@ -67,8 +68,15 @@ function removeFilter(attribute: string) {
     table.removeFilter(attribute);
 }
 
+function consumePendingFilterPopover(attribute: string) {
+    if (pendingFilterPopover.value === attribute) {
+        pendingFilterPopover.value = null;
+    }
+}
+
 function clearFilters() {
     activeFilterAttributes.value = [];
+    pendingFilterPopover.value = null;
     table.clearFilters();
 }
 
@@ -80,7 +88,9 @@ provideTableContext({
     searchPlaceholder: computed(() => props.searchPlaceholder),
     slots: useSlots(),
     activeFilterAttributes,
+    pendingFilterPopover,
     addFilter,
+    consumePendingFilterPopover,
     removeFilter,
     clearFilters,
     scope: { table, actions },

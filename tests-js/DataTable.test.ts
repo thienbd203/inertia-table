@@ -27,6 +27,7 @@ import {
     UiDropdownMenuContent,
     UiDropdownMenuTrigger,
 } from "../resources/js/components/ui/dropdown-menu";
+import AddFilterMenu from "../resources/js/components/table/filters/AddFilterMenu.vue";
 
 async function openDropdown(
     wrapper: ReturnType<typeof mount>,
@@ -181,6 +182,20 @@ describe("DataTable shadcn renderer", () => {
 
         expect(filter?.textContent).toContain("Status");
         expect(filter?.querySelector("svg")).not.toBeNull();
+    });
+
+    it("opens a filter editor after adding a filter", async () => {
+        const wrapper = mount(DataTable, {
+            props: { resource: topicResource() },
+            attachTo: document.body,
+        });
+
+        wrapper.findComponent(AddFilterMenu).vm.$emit("add", "status");
+        await flushPromises();
+
+        expect(
+            document.body.querySelector('[data-slot="popover-content"]'),
+        ).not.toBeNull();
     });
 
     it("offers clearing all filters when a filter is active", async () => {
