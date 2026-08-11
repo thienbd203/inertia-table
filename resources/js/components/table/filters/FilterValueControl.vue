@@ -15,6 +15,8 @@ import {
     NativeSelectOption,
 } from "@/components/ui/native-select";
 import type { TableFilter } from "@/types";
+import FilterDateCalendar from "./FilterDateCalendar.vue";
+import FilterDateRangeCalendar from "./FilterDateRangeCalendar.vue";
 
 const props = defineProps<{
     filter: TableFilter;
@@ -147,6 +149,11 @@ function toggleSetOption(value: string) {
 function updateRange(index: 0 | 1, value: string | number) {
     const next = [...draftRange.value] as [string, string];
     next[index] = String(value);
+    updateRangeValue(next);
+}
+
+function updateRangeValue(value: [string, string]) {
+    const next = [String(value[0]), String(value[1])] as [string, string];
     draftRange.value = next;
 
     if (next[0] !== "" && next[1] !== "") emitInputValue(next);
@@ -202,20 +209,37 @@ defineExpose({
         </NativeSelect>
 
         <div v-else-if="control === 'range'" class="tb-filter-range flex-1">
-            <UiInput
+            <FilterDateRangeCalendar
+                v-if="filter.type === 'date'"
                 ref="valueControl"
-                :type="filter.type === 'date' ? 'date' : 'number'"
+                :model-value="draftRange"
+                :data-filter-value="filter.attribute"
+                @update:model-value="updateRangeValue"
+            />
+            <UiInput
+                v-else
+                ref="valueControl"
+                type="number"
                 :model-value="draftRange[0]"
                 :data-filter-value="filter.attribute"
                 @update:model-value="(value) => updateRange(0, value)"
             />
-            <span aria-hidden="true">–</span>
             <UiInput
+                v-if="filter.type !== 'date'"
                 :type="filter.type === 'date' ? 'date' : 'number'"
                 :model-value="draftRange[1]"
                 @update:model-value="(value) => updateRange(1, value)"
             />
         </div>
+
+        <FilterDateCalendar
+            v-else-if="filter.type === 'date'"
+            ref="valueControl"
+            class="flex-1"
+            :model-value="draftInput"
+            :data-filter-value="filter.attribute"
+            @update:model-value="updateInput"
+        />
 
         <UiInput
             v-else

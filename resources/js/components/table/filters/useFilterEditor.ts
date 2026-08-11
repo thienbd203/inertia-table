@@ -49,11 +49,33 @@ export function useFilterEditor(filter: TableFilter) {
     }
 
     function updateClause(nextClause: string) {
+        const wasRangeClause = isRangeClause.value;
+        const becomesRangeClause = ["between", "not_between"].includes(
+            nextClause,
+        );
         clause.value = nextClause;
 
         if (valuelessClauses.includes(nextClause)) {
             table.setFilter(filter.attribute, true, nextClause);
-        } else if (value.value !== "") {
+            return;
+        }
+
+        if (wasRangeClause !== becomesRangeClause) {
+            value.value = becomesRangeClause ? ["", ""] : "";
+            return;
+        }
+
+        if (
+            becomesRangeClause &&
+            (!Array.isArray(value.value) ||
+                value.value.length < 2 ||
+                value.value[0] === "" ||
+                value.value[1] === "")
+        ) {
+            return;
+        }
+
+        if (value.value !== "") {
             update();
         }
     }
