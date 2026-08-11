@@ -30,7 +30,7 @@ defineExpose({
             table,
         }"
     >
-        <div class="tb-filter-editor">
+        <div class="tb-filter-editor max-w-[250px]">
             <FilterClauseSelect
                 v-if="filter.showClause !== false && clauseOptions.length > 1"
                 :model-value="clause"
