@@ -94,7 +94,14 @@ describe("Confirmation", () => {
         (confirm as HTMLElement).click();
         await nextTick();
 
-        expect(actions.pendingAction.value).toBeNull();
+        expect(actions.pendingAction.value).not.toBeNull();
+        expect(actions.isPerformingAction.value).toBe(true);
+        expect(
+            Array.from(
+                document.body.querySelectorAll('[data-slot="button"]'),
+            ).every((button) => (button as HTMLButtonElement).disabled),
+        ).toBe(true);
+        expect(document.body.querySelector(".animate-spin")).not.toBeNull();
         expect(visit).toHaveBeenCalledOnce();
         expect(visit.mock.calls[0][0]).toBe("/topics/bulk");
         expect(visit.mock.calls[0][1]).toMatchObject({ method: "delete" });
