@@ -140,7 +140,7 @@ const badgeClass = computed(() => {
         <component :is="icon" v-if="icon" class="tb-cell-icon" />
         {{ displayValue(item, column) }}
     </span>
-    <span v-else class="tb-cell-content">
+    <span v-else class="tb-cell-content font-medium">
         <component :is="icon" v-if="icon" class="tb-cell-icon" />
         {{ displayValue(item, column) }}
     </span>

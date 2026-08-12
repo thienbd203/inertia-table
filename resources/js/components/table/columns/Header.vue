@@ -58,11 +58,11 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
                             <UiButton
                                 :variant="
                                     sortDirection(column.attribute)
-                                        ? 'outline'
+                                        ? 'secondary'
                                         : 'ghost'
                                 "
                                 size="sm"
-                                class="tb-sort-button"
+                                class="tb-sort-button font-semibold"
                                 :data-active="
                                     sortDirection(column.attribute)
                                         ? ''
@@ -93,10 +93,11 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
                         <UiDropdownMenuContent align="start">
                             <template v-if="column.sortable">
                                 <UiDropdownMenuItem
+                                    class="font-medium"
                                     :class="
                                         sortDirection(column.attribute) ===
                                         'asc'
-                                            ? 'bg-accent text-accent-foreground'
+                                            ? 'bg-accent text-accent-foreground font-medium'
                                             : undefined
                                     "
                                     @select="
@@ -107,6 +108,7 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
                                     Asc
                                 </UiDropdownMenuItem>
                                 <UiDropdownMenuItem
+                                    class="font-medium"
                                     :class="
                                         sortDirection(column.attribute) ===
                                         'desc'
@@ -126,6 +128,7 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
                             />
                             <UiDropdownMenuItem
                                 v-if="column.toggleable"
+                                class="font-medium"
                                 @select="table.toggleColumn(column.attribute)"
                             >
                                 <EyeOff class="size-4" />
