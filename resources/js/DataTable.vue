@@ -31,6 +31,9 @@ const emit = defineEmits<{
     actionError: [action: TableAction, keys: TableKey[], error: unknown];
     rowClick: [item: T, column: TableColumn | null];
 }>();
+defineSlots<{
+    [name: string]: ((props: any) => any) | undefined;
+}>();
 
 const resource = toRef(props, "resource");
 const table = useTable(resource);
