@@ -384,6 +384,16 @@ it('serializes server-declared actions', function () {
     ]);
 });
 
+it('resolves row action tooltips from the model', function () {
+    $topic = new TopicRecord(['is_featured' => true]);
+
+    $action = Action::make('toggle-featured')
+        ->row()
+        ->tooltip(fn (TopicRecord $topic) => $topic->is_featured ? 'Remove featured' : 'Mark featured');
+
+    expect($action->resolve($topic)['tooltip'])->toBe('Remove featured');
+});
+
 it('supports set filter clauses, multiple values, and withoutClause', function () {
     $filter = SetFilter::make('status')
         ->options(['active' => 'Active', 'inactive' => 'Inactive'])

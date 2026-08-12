@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { UiButton } from "@/components/ui/button";
+import {
+    UiTooltip,
+    UiTooltipContent,
+    UiTooltipProvider,
+    UiTooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useTableContext } from "@/context/tableContext";
 import { resolveIcon } from "@/icons";
 import type { TableAction, TableItem } from "@/types";
@@ -26,40 +32,51 @@ const disabled = computed(
         props.action.disabled ||
         (props.bulk && actions.selectedItems.value.length === 0),
 );
+const tooltip = computed(
+    () =>
+        (props.action.disabled
+            ? props.action.disabledTooltip
+            : props.action.tooltip) ?? null,
+);
 </script>
 
 <template>
-    <UiButton
-        :variant="
-            action.variant === 'destructive'
-                ? action.labelHidden
-                    ? 'ghost'
-                    : 'destructive'
-                : bulk
-                  ? 'default'
-                  : 'ghost'
-        "
-        :size="bulk ? 'default' : 'sm'"
-        :class="[
-            action.buttonClass,
-            action.variant === 'destructive' && action.labelHidden
-                ? 'text-destructive hover:bg-destructive/10 hover:text-destructive'
-                : undefined,
-        ]"
-        :disabled="disabled"
-        :title="
-            (action.disabled ? action.disabledTooltip : action.tooltip) ??
-            undefined
-        "
-        :aria-label="action.labelHidden ? action.label : undefined"
-        @click="actions.performAction(action, item)"
-    >
-        <component
-            :is="icon"
-            v-if="action.icon"
-            class="tb-action-icon"
-            aria-hidden="true"
-        />
-        <span v-if="!action.labelHidden">{{ action.label }}</span>
-    </UiButton>
+    <UiTooltipProvider>
+        <UiTooltip>
+            <UiTooltipTrigger as-child>
+                <UiButton
+                    :variant="
+                        action.variant === 'destructive'
+                            ? action.labelHidden
+                                ? 'ghost'
+                                : 'destructive'
+                            : bulk
+                              ? 'default'
+                              : 'ghost'
+                    "
+                    :size="bulk ? 'default' : 'sm'"
+                    :class="[
+                        action.buttonClass,
+                        action.variant === 'destructive' && action.labelHidden
+                            ? 'text-destructive hover:bg-destructive/10 hover:text-destructive'
+                            : undefined,
+                    ]"
+                    :disabled="disabled"
+                    :aria-label="action.labelHidden ? action.label : undefined"
+                    @click="actions.performAction(action, item)"
+                >
+                    <component
+                        :is="icon"
+                        v-if="action.icon"
+                        class="tb-action-icon"
+                        aria-hidden="true"
+                    />
+                    <span v-if="!action.labelHidden">{{ action.label }}</span>
+                </UiButton>
+            </UiTooltipTrigger>
+            <UiTooltipContent v-if="tooltip">
+                {{ tooltip }}
+            </UiTooltipContent>
+        </UiTooltip>
+    </UiTooltipProvider>
 </template>
