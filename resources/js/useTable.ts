@@ -27,8 +27,13 @@ export function useTable<T extends TableItem>(
 
     watch(
         () => toValue(resource).state.search,
-        (value) => {
-            search.value = value;
+        (value, previousValue) => {
+            // The server may normalize the query (e.g. trim whitespace). Keep
+            // the input's draft untouched unless it has not been edited since
+            // the previous state was received.
+            if (search.value === previousValue) {
+                search.value = value;
+            }
         },
     );
 
@@ -54,7 +59,7 @@ export function useTable<T extends TableItem>(
         search.value = value;
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-            patchState({ search: value, page: 1 });
+            patchState({ search: value.trim(), page: 1 });
         }, toValue(resource).options.debounceTime);
     }
 
