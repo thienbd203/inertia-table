@@ -44,37 +44,47 @@ const tooltip = computed(
     <UiTooltipProvider>
         <UiTooltip>
             <UiTooltipTrigger as-child>
-                <UiButton
-                    :variant="
-                        action.variant === 'destructive'
-                            ? action.labelHidden
-                                ? 'ghost'
-                                : 'destructive'
-                            : bulk
-                              ? 'default'
-                              : 'ghost'
-                    "
-                    :size="bulk ? 'default' : 'sm'"
-                    :class="[
-                        action.buttonClass,
-                        action.variant === 'destructive' && action.labelHidden
-                            ? 'text-destructive hover:bg-destructive/10 hover:text-destructive'
-                            : undefined,
-                    ]"
-                    :disabled="disabled"
-                    :aria-label="action.labelHidden ? action.label : undefined"
-                    @click="actions.performAction(action, item)"
-                >
-                    <component
-                        :is="icon"
-                        v-if="action.icon"
-                        class="tb-action-icon"
-                        aria-hidden="true"
-                    />
-                    <span v-if="!action.labelHidden">{{ action.label }}</span>
-                </UiButton>
+                <span class="inline-flex">
+                    <UiButton
+                        :variant="
+                            action.variant === 'destructive'
+                                ? action.labelHidden
+                                    ? 'ghost'
+                                    : 'destructive'
+                                : bulk
+                                  ? 'default'
+                                  : 'ghost'
+                        "
+                        :size="bulk ? 'default' : 'sm'"
+                        :class="[
+                            action.buttonClass,
+                            disabled ? 'pointer-events-none' : undefined,
+                            action.variant === 'destructive' &&
+                            action.labelHidden
+                                ? 'text-destructive hover:bg-destructive/10 hover:text-destructive'
+                                : undefined,
+                        ]"
+                        :disabled="disabled"
+                        :aria-label="
+                            action.labelHidden ? action.label : undefined
+                        "
+                        @click="actions.performAction(action, item)"
+                    >
+                        <component
+                            :is="icon"
+                            v-if="action.icon"
+                            class="tb-action-icon"
+                            aria-hidden="true"
+                        />
+
+                        <span v-if="!action.labelHidden">
+                            {{ action.label }}
+                        </span>
+                    </UiButton>
+                </span>
             </UiTooltipTrigger>
-            <UiTooltipContent v-if="tooltip">
+
+            <UiTooltipContent v-if="tooltip" class="pointer-events-none">
                 {{ tooltip }}
             </UiTooltipContent>
         </UiTooltip>
