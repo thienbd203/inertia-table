@@ -534,12 +534,14 @@ it('resolves badge presentation metadata per row', function () {
     $column = BadgeColumn::make('is_featured')
         ->mapAs([1 => 'Featured', 0 => 'Regular'])
         ->variant([1 => Variant::Success, 0 => Variant::Default])
-        ->icon([1 => 'Star', 0 => null]);
+        ->icon([1 => 'Star', 0 => null])
+        ->badgeClass([1 => 'ring-1 ring-emerald-500', 0 => null]);
 
     expect($column->resolveValue($topic))->toBe('Featured')
         ->and($column->resolveCellMeta($topic))->toBe([
             'variant' => 'success',
             'icon' => 'Star',
+            'badgeClass' => 'ring-1 ring-emerald-500',
         ]);
 });
 
