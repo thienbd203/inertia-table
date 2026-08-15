@@ -71,7 +71,6 @@ async function focusValueControl(event: Event) {
                 />
             </UiPopoverTrigger>
             <UiPopoverContent
-                side="top"
                 align="start"
                 class="DropdownMenuContentAnimate w-fit"
                 @open-auto-focus="focusValueControl"
