@@ -397,7 +397,8 @@ it('resolves row action tooltips from the model', function () {
 it('supports set filter clauses, multiple values, and withoutClause', function () {
     $filter = SetFilter::make('status')
         ->options(['active' => 'Active', 'inactive' => 'Inactive'])
-        ->multiple();
+        ->multiple()
+        ->compactDisplay('statuses');
     $withoutClause = SetFilter::make('status')
         ->options(['active' => 'Active'])
         ->withoutClause();
@@ -405,6 +406,7 @@ it('supports set filter clauses, multiple values, and withoutClause', function (
     expect($filter->toArray())
         ->clauses->toBe(['in', 'not_in', 'equals', 'not_equals'])
         ->multiple->toBeTrue()
+        ->compactDisplayLabel->toBe('statuses')
         ->and($filter->normalize(['active', 'inactive'], 'in'))
         ->toBe(['active', 'inactive'])
         ->and($filter->normalize('active', 'not_in'))

@@ -23,6 +23,8 @@ abstract class Filter implements Arrayable
 
     protected bool $showClause = true;
 
+    protected ?string $compactDisplayLabel = null;
+
     final public function __construct(
         public readonly string $attribute,
         public readonly string $label,
@@ -82,6 +84,16 @@ abstract class Filter implements Arrayable
             $this->clauses = [Clause::Equals->value];
             $this->defaultClauseValue = Clause::Equals->value;
         }
+
+        return $this;
+    }
+
+    /**
+     * Summarize multiple selected values in the active-filter chip.
+     */
+    public function compactDisplay(string $label): static
+    {
+        $this->compactDisplayLabel = $label;
 
         return $this;
     }
@@ -189,6 +201,7 @@ abstract class Filter implements Arrayable
             'meta' => $this->meta,
             'hasDefaultValue' => $this->hasDefaultValue,
             'showClause' => $this->showClause,
+            'compactDisplayLabel' => $this->compactDisplayLabel,
         ];
     }
 }

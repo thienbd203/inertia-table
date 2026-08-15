@@ -51,6 +51,7 @@ export type TableFilter = {
     clauses: string[];
     options: TableFilterOption[];
     multiple?: boolean;
+    compactDisplayLabel?: string | null;
     showClause?: boolean;
     hasDefaultValue?: boolean;
     meta: Record<string, unknown>;
