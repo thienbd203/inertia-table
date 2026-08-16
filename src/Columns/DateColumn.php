@@ -1,6 +1,6 @@
 <?php
 
-namespace Toolbelt\InertiaTable\Columns;
+namespace Musing\InertiaTable\Columns;
 
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;

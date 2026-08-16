@@ -5,12 +5,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
-use Toolbelt\InertiaTable\Columns\DateColumn;
-use Toolbelt\InertiaTable\Columns\NumberColumn;
-use Toolbelt\InertiaTable\Columns\TextColumn;
-use Toolbelt\InertiaTable\Filters\DateFilter;
-use Toolbelt\InertiaTable\Filters\NumericFilter;
-use Toolbelt\InertiaTable\Table;
+use Musing\InertiaTable\Columns\DateColumn;
+use Musing\InertiaTable\Columns\NumberColumn;
+use Musing\InertiaTable\Columns\TextColumn;
+use Musing\InertiaTable\Filters\DateFilter;
+use Musing\InertiaTable\Filters\NumericFilter;
+use Musing\InertiaTable\Table;
 
 class ScoreRecord extends Model
 {

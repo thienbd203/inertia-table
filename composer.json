@@ -1,8 +1,8 @@
 {
-    "name": "toolbelt/inertia-table",
+    "name": "musing/inertia-table",
     "description": "Server-driven data tables for Laravel and Inertia.js.",
     "keywords": [
-        "Toolbelt",
+        "Musing",
         "laravel",
         "inertia-table"
     ],
@@ -36,12 +36,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Toolbelt\\InertiaTable\\": "src/"
+            "Musing\\InertiaTable\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Toolbelt\\InertiaTable\\Tests\\": "tests/",
+            "Musing\\InertiaTable\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
         }
     },
@@ -63,7 +63,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Toolbelt\\InertiaTable\\InertiaTableServiceProvider"
+                "Musing\\InertiaTable\\InertiaTableServiceProvider"
             ]
         }
     },

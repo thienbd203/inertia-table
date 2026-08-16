@@ -1,6 +1,6 @@
 <?php
 
-namespace Toolbelt\InertiaTable;
+namespace Musing\InertiaTable;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
@@ -8,11 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use LogicException;
+use Musing\InertiaTable\Actions\Action;
+use Musing\InertiaTable\Columns\Column;
+use Musing\InertiaTable\Filters\Filter;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
-use Toolbelt\InertiaTable\Actions\Action;
-use Toolbelt\InertiaTable\Columns\Column;
-use Toolbelt\InertiaTable\Filters\Filter;
 
 /** @implements Arrayable<string, mixed> */
 abstract class Table implements Arrayable

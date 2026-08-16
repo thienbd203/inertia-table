@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Toolbelt Inertia Table is a two-package monorepo: a Laravel/PHP package (`toolbelt/inertia-table`, root namespace `Toolbelt\InertiaTable`) that defines server-driven data tables, and a Vue renderer (`@toolbelt/inertia-table-vue`) that consumes the serialized table resource and renders it with Inertia.js. The PHP side is authoritative — the frontend can only request search/sort/filter/action operations the server has explicitly declared and allowlisted (via Spatie Laravel Query Builder). See [docs/architecture.md](docs/architecture.md) for the full design contract (resource shape, URL contract, layering rules) before making cross-cutting changes.
+Musing Inertia Table is a two-package monorepo: a Laravel/PHP package (`musing/inertia-table`, root namespace `Musing\InertiaTable`) that defines server-driven data tables, and a Vue renderer (`@musing/inertia-table-vue`) that consumes the serialized table resource and renders it with Inertia.js. The PHP side is authoritative — the frontend can only request search/sort/filter/action operations the server has explicitly declared and allowlisted (via Spatie Laravel Query Builder). See [docs/architecture.md](docs/architecture.md) for the full design contract (resource shape, URL contract, layering rules) before making cross-cutting changes.
 
 The package is pre-`v1.0` and the resource/API contract is still versioned as a spike (`schemaVersion: 1`).
 

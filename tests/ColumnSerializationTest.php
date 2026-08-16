@@ -2,9 +2,9 @@
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Toolbelt\InertiaTable\Columns\ActionColumn;
-use Toolbelt\InertiaTable\Columns\BooleanColumn;
-use Toolbelt\InertiaTable\Columns\DateTimeColumn;
+use Musing\InertiaTable\Columns\ActionColumn;
+use Musing\InertiaTable\Columns\BooleanColumn;
+use Musing\InertiaTable\Columns\DateTimeColumn;
 
 function anonymousModel(): Model
 {

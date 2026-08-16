@@ -1,6 +1,6 @@
 <?php
 
-namespace Toolbelt\InertiaTable\Actions;
+namespace Musing\InertiaTable\Actions;
 
 use Closure;
 use Illuminate\Contracts\Support\Arrayable;

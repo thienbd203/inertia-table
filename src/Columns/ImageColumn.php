@@ -1,9 +1,9 @@
 <?php
 
-namespace Toolbelt\InertiaTable\Columns;
+namespace Musing\InertiaTable\Columns;
 
 use Illuminate\Database\Eloquent\Model;
-use Toolbelt\InertiaTable\Image;
+use Musing\InertiaTable\Image;
 
 class ImageColumn extends Column
 {

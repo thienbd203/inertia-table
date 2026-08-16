@@ -1,7 +1,7 @@
 {
-    "name": "@toolbelt/inertia-table-vue",
-    "version": "0.1.2",
-    "description": "Vue renderer for Toolbelt Inertia Table.",
+    "name": "@musing/inertia-table-vue",
+    "version": "0.2.0",
+    "description": "Vue renderer for Musing Inertia Table.",
     "type": "module",
     "license": "MIT",
     "repository": {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Toolbelt\InertiaTable;
+namespace Musing\InertiaTable;
 
 use Illuminate\Support\Facades\URL;
 

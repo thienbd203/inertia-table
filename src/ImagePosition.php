@@ -1,6 +1,6 @@
 <?php
 
-namespace Toolbelt\InertiaTable;
+namespace Musing\InertiaTable;
 
 enum ImagePosition: string
 {

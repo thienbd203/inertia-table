@@ -1,9 +1,9 @@
-# Toolbelt Inertia Table
+# Musing Inertia Table
 
 [![PHP tests](https://github.com/thienbd203/inertia-table/actions/workflows/run-tests.yml/badge.svg)](https://github.com/thienbd203/inertia-table/actions/workflows/run-tests.yml)
 [![JavaScript tests](https://github.com/thienbd203/inertia-table/actions/workflows/run-js-tests.yml/badge.svg)](https://github.com/thienbd203/inertia-table/actions/workflows/run-js-tests.yml)
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/toolbelt/inertia-table?style=flat-square)](https://packagist.org/packages/toolbelt/inertia-table)
-[![Total Downloads](https://img.shields.io/packagist/dt/toolbelt/inertia-table?style=flat-square)](https://packagist.org/packages/toolbelt/inertia-table)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/musing/inertia-table?style=flat-square)](https://packagist.org/packages/musing/inertia-table)
+[![Total Downloads](https://img.shields.io/packagist/dt/musing/inertia-table?style=flat-square)](https://packagist.org/packages/musing/inertia-table)
 
 **Server-driven data tables for Laravel and Inertia.js.** Define the table once in PHP—columns, sorting, search, filters and actions—and render it in Vue with one component.
 
@@ -37,15 +37,15 @@ Toolbelt keeps the server authoritative. The browser can only request capabiliti
 Install the Laravel core and Vue renderer:
 
 ```bash
-composer require toolbelt/inertia-table
-npm install @toolbelt/inertia-table-vue
+composer require musing/inertia-table
+npm install @musing/inertia-table-vue
 ```
 
 ## Releases
 
 The Laravel package is distributed through Packagist and the Vue renderer through npm. A pushed Git tag in the form `vX.Y.Z` is the release trigger. The tag must match the `version` in `package.json`.
 
-Before the first release, submit `https://github.com/thienbd203/inertia-table` to Packagist and add an `NPM_TOKEN` repository secret with permission to publish `@toolbelt/inertia-table-vue`. The release workflow runs PHP and JavaScript checks, then publishes the Vue package with npm provenance.
+Before the first release, submit `https://github.com/thienbd203/inertia-table` to Packagist and add an `NPM_TOKEN` repository secret with permission to publish `@musing/inertia-table-vue`. The release workflow runs PHP and JavaScript checks, then publishes the Vue package with npm provenance.
 
 ```bash
 npm version 0.1.1 --no-git-tag-version
@@ -76,7 +76,7 @@ The renderer contains Vue source that Tailwind must scan. Add this to the host a
 
 ```css
 /* resources/css/app.css */
-@source '../../node_modules/@toolbelt/inertia-table-vue/resources/js/**/*.vue';
+@source '../../node_modules/@musing/inertia-table-vue/resources/js/**/*.vue';
 ```
 
 The package uses your existing shadcn/Tailwind CSS variables. It does not require an application `@/components/ui` alias.
@@ -92,13 +92,13 @@ namespace App\Tables;
 
 use App\Models\Topic;
 use Illuminate\Database\Eloquent\Builder;
-use Toolbelt\InertiaTable\Actions\Action;
-use Toolbelt\InertiaTable\Columns\BadgeColumn;
-use Toolbelt\InertiaTable\Columns\NumberColumn;
-use Toolbelt\InertiaTable\Columns\TextColumn;
-use Toolbelt\InertiaTable\Filters\SetFilter;
-use Toolbelt\InertiaTable\Table;
-use Toolbelt\InertiaTable\Variant;
+use Musing\InertiaTable\Actions\Action;
+use Musing\InertiaTable\Columns\BadgeColumn;
+use Musing\InertiaTable\Columns\NumberColumn;
+use Musing\InertiaTable\Columns\TextColumn;
+use Musing\InertiaTable\Filters\SetFilter;
+use Musing\InertiaTable\Table;
+use Musing\InertiaTable\Variant;
 
 final class TopicsTable extends Table
 {
@@ -162,7 +162,7 @@ Then render it. For most screens this is all the frontend code required.
 
 ```vue
 <script setup lang="ts">
-import { DataTable, type TableResource } from "@toolbelt/inertia-table-vue";
+import { DataTable, type TableResource } from "@musing/inertia-table-vue";
 
 type Topic = {
     id: number;
@@ -329,7 +329,7 @@ Action icons are intentionally library-agnostic. Register your Lucide resolver o
 
 ```ts
 import { Pencil, Trash2 } from "@lucide/vue";
-import { setIconResolver } from "@toolbelt/inertia-table-vue";
+import { setIconResolver } from "@musing/inertia-table-vue";
 
 setIconResolver((name) => ({ Pencil, Trash2 })[name]);
 ```
@@ -355,7 +355,7 @@ Useful slots include `topbar`, `beforeSearch`, `afterSearch`, `beforeActions`, `
 For a fully custom renderer, use the composables instead:
 
 ```ts
-import { useActions, useTable } from "@toolbelt/inertia-table-vue";
+import { useActions, useTable } from "@musing/inertia-table-vue";
 
 const table = useTable(() => props.topics);
 const actions = useActions(table);

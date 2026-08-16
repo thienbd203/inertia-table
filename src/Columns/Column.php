@@ -1,15 +1,15 @@
 <?php
 
-namespace Toolbelt\InertiaTable\Columns;
+namespace Musing\InertiaTable\Columns;
 
 use Closure;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Musing\InertiaTable\Image;
+use Musing\InertiaTable\SortDirection;
+use Musing\InertiaTable\Url;
 use Spatie\QueryBuilder\AllowedSort;
-use Toolbelt\InertiaTable\Image;
-use Toolbelt\InertiaTable\SortDirection;
-use Toolbelt\InertiaTable\Url;
 
 /** @implements Arrayable<string, mixed> */
 class Column implements Arrayable

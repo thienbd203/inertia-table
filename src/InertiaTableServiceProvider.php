@@ -1,6 +1,6 @@
 <?php
 
-namespace Toolbelt\InertiaTable;
+namespace Musing\InertiaTable;
 
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;

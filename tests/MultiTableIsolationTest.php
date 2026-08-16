@@ -5,8 +5,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
-use Toolbelt\InertiaTable\Columns\TextColumn;
-use Toolbelt\InertiaTable\Table;
+use Musing\InertiaTable\Columns\TextColumn;
+use Musing\InertiaTable\Table;
 
 class IsolationPrimaryRecord extends Model
 {

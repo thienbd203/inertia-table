@@ -1,6 +1,6 @@
 <?php
 
-namespace Toolbelt\InertiaTable\Filters;
+namespace Musing\InertiaTable\Filters;
 
 /** @deprecated Use SetFilter instead. */
 class SelectFilter extends SetFilter

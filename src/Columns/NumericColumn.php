@@ -1,5 +1,5 @@
 <?php
 
-namespace Toolbelt\InertiaTable\Columns;
+namespace Musing\InertiaTable\Columns;
 
 class NumericColumn extends NumberColumn {}

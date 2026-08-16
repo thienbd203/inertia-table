@@ -1,9 +1,9 @@
 <?php
 
-namespace Toolbelt\InertiaTable\Tests;
+namespace Musing\InertiaTable\Tests;
 
+use Musing\InertiaTable\InertiaTableServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Toolbelt\InertiaTable\InertiaTableServiceProvider;
 
 class TestCase extends Orchestra
 {

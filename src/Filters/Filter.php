@@ -1,6 +1,6 @@
 <?php
 
-namespace Toolbelt\InertiaTable\Filters;
+namespace Musing\InertiaTable\Filters;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;

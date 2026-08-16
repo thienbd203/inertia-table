@@ -1,10 +1,10 @@
 <?php
 
-namespace Toolbelt\InertiaTable\Columns;
+namespace Musing\InertiaTable\Columns;
 
 use Closure;
 use Illuminate\Database\Eloquent\Model;
-use Toolbelt\InertiaTable\Variant;
+use Musing\InertiaTable\Variant;
 
 class BadgeColumn extends Column
 {

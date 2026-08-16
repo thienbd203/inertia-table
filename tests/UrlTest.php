@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Toolbelt\InertiaTable\Url;
+use Musing\InertiaTable\Url;
 
 it('has no url by default', function () {
     $url = Url::make();

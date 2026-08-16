@@ -1,6 +1,6 @@
 <?php
 
-namespace Toolbelt\InertiaTable\Filters;
+namespace Musing\InertiaTable\Filters;
 
 enum Clause: string
 {

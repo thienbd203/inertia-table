@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
-use Toolbelt\InertiaTable\TableState;
+use Musing\InertiaTable\TableState;
 
 function stateRequest(array $tableState = []): Request
 {

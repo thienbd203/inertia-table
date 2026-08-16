@@ -1,10 +1,10 @@
-# Toolbelt Inertia Table — Architecture v0.1
+# Musing Inertia Table — Architecture v0.1
 
 Status: proposal. The current implementation is a spike and does not define the public API.
 
 ## Product boundary
 
-Toolbelt Inertia Table is a server-driven table framework for Laravel and Inertia.js. A PHP table definition is the source of truth for query capabilities and serialized UI metadata. The frontend owns interaction state and rendering, but it may only request operations explicitly declared by the server.
+Musing Inertia Table is a server-driven table framework for Laravel and Inertia.js. A PHP table definition is the source of truth for query capabilities and serialized UI metadata. The frontend owns interaction state and rendering, but it may only request operations explicitly declared by the server.
 
 Spatie Laravel Query Builder v7 is the query execution engine. Toolbelt owns the namespaced URL contract, table resource, state validation, action protocol, and frontend integrations.
 
@@ -63,9 +63,9 @@ The renderer must use actual SFC source components following shadcn-vue conventi
 ## Proposed package layout
 
 ```text
-toolbelt/inertia-table                 Laravel/PHP core
-@toolbelt/inertia-table                framework-neutral TypeScript core (future)
-@toolbelt/inertia-table-vue            Vue composables and shadcn renderer
+musing/inertia-table                 Laravel/PHP core
+@musing/inertia-table                framework-neutral TypeScript core (future)
+@musing/inertia-table-vue            Vue composables and shadcn renderer
 ```
 
 For v0.1 the TypeScript core may live inside the Vue package, but its modules must remain free of Vue component and shadcn imports so it can be extracted without changing the resource contract.
