@@ -104,17 +104,21 @@ export function useActions<T extends TableItem>(
     }
 
     function confirmAction() {
-        if (!pendingAction.value) return;
+        if (!pendingAction.value || isPerformingAction.value) return;
         const { action, item } = pendingAction.value;
-        pendingAction.value = null;
-        executeAction(action, item);
+        executeAction(action, item, true);
     }
 
     function cancelAction() {
+        if (isPerformingAction.value) return;
         pendingAction.value = null;
     }
 
-    function executeAction(action: TableAction, item?: T) {
+    function executeAction(
+        action: TableAction,
+        item?: T,
+        keepConfirmationOpen = false,
+    ) {
         const rowIndex = item
             ? table.resource.value.results.data.indexOf(item)
             : -1;
@@ -127,6 +131,7 @@ export function useActions<T extends TableItem>(
         if (!action.endpoint) {
             callbacks.onCustomAction?.(action, keys, () => {
                 isPerformingAction.value = false;
+                if (keepConfirmationOpen) pendingAction.value = null;
             });
 
             return;
@@ -143,6 +148,7 @@ export function useActions<T extends TableItem>(
             onError: (errors) => callbacks.onError?.(action, keys, errors),
             onFinish: () => {
                 isPerformingAction.value = false;
+                if (keepConfirmationOpen) pendingAction.value = null;
             },
         });
     }

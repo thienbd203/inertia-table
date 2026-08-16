@@ -26,7 +26,7 @@ final class Action implements Arrayable
 
     private bool $labelHidden = false;
 
-    private ?string $tooltip = null;
+    private string|Closure|null $tooltip = null;
 
     private string|Closure|null $buttonClass = null;
 
@@ -125,7 +125,8 @@ final class Action implements Arrayable
         return $this;
     }
 
-    public function tooltip(?string $tooltip): self
+    /** @param string|Closure(Model|null): string|null $tooltip */
+    public function tooltip(string|Closure|null $tooltip): self
     {
         $this->tooltip = $tooltip;
 
@@ -205,6 +206,9 @@ final class Action implements Arrayable
         $buttonClass = $this->buttonClass instanceof Closure
             ? ($this->buttonClass)($model)
             : $this->buttonClass;
+        $tooltip = $this->tooltip instanceof Closure
+            ? ($this->tooltip)($model)
+            : $this->tooltip;
 
         return [
             'key' => $this->key,
@@ -216,7 +220,7 @@ final class Action implements Arrayable
             'variant' => $this->variant,
             'icon' => $this->icon,
             'labelHidden' => $this->labelHidden,
-            'tooltip' => $this->tooltip,
+            'tooltip' => is_string($tooltip) && $tooltip !== '' ? $tooltip : null,
             'buttonClass' => is_string($buttonClass) && $buttonClass !== '' ? $buttonClass : null,
             'disabledTooltip' => $this->disabledTooltip,
             'confirmation' => $this->confirmation,

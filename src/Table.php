@@ -21,6 +21,11 @@ abstract class Table implements Arrayable
 
     protected ?string $defaultSort = null;
 
+    protected ?int $perPage = null;
+
+    /** @var array<int, int>|null */
+    protected ?array $perPageOptions = null;
+
     /** @var array<int, string>|string|null */
     protected array|string|null $search = null;
 
@@ -81,12 +86,12 @@ abstract class Table implements Arrayable
         $filters = $this->validatedFilters();
         $actions = $this->validatedActions();
         $searchable = $this->searchableColumns($columns);
-        $perPageOptions = config('inertia-table.per_page_options', [10, 25, 50, 100]);
+        $perPageOptions = $this->perPageOptions ?? config('inertia-table.per_page_options', [10, 25, 50, 100]);
         $state = TableState::fromRequest(
             $request,
             $this->name(),
             $this->defaultSort,
-            (int) config('inertia-table.per_page', 25),
+            $this->perPage ?? (int) config('inertia-table.per_page', 25),
             $perPageOptions,
             collect($columns)->mapWithKeys(fn (Column $column) => [
                 $column->attribute => $column->isVisibleByDefault(),

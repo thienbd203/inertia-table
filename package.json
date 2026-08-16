@@ -8,6 +8,9 @@
         "type": "git",
         "url": "git+https://github.com/thienbd203/inertia-table.git"
     },
+    "publishConfig": {
+        "access": "public"
+    },
     "engines": {
         "node": "^20.19.0 || >=22.12.0"
     },

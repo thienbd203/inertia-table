@@ -7,13 +7,14 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { LoaderCircle } from "@lucide/vue";
 import { UiButton } from "@/components/ui/button";
 import { useTableContext } from "@/context/tableContext";
 
 const { actions } = useTableContext();
 
 function updateOpen(open: boolean) {
-    if (!open) actions.cancelAction();
+    if (!open && !actions.isPerformingAction.value) actions.cancelAction();
 }
 </script>
 
@@ -37,7 +38,11 @@ function updateOpen(open: boolean) {
                 </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-                <UiButton variant="outline" @click="actions.cancelAction">
+                <UiButton
+                    variant="outline"
+                    :disabled="actions.isPerformingAction.value"
+                    @click="actions.cancelAction"
+                >
                     {{
                         actions.pendingAction.value?.action.confirmation
                             ?.cancelLabel
@@ -47,8 +52,13 @@ function updateOpen(open: boolean) {
                     :variant="
                         actions.pendingAction.value?.action.variant ?? 'default'
                     "
+                    :disabled="actions.isPerformingAction.value"
                     @click="actions.confirmAction"
                 >
+                    <LoaderCircle
+                        v-if="actions.isPerformingAction.value"
+                        class="size-4 animate-spin"
+                    />
                     {{
                         actions.pendingAction.value?.action.confirmation
                             ?.confirmLabel

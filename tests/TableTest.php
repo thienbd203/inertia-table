@@ -121,6 +121,16 @@ class AdvancedFilterTopicsTable extends TopicsTable
     }
 }
 
+class CustomPerPageTopicsTable extends TopicsTable
+{
+    protected ?string $name = 'topics';
+
+    protected ?int $perPage = 1;
+
+    /** @var array<int, int> */
+    protected ?array $perPageOptions = [1, 2];
+}
+
 beforeEach(function () {
     Schema::create('topics', function (Blueprint $table) {
         $table->id();
@@ -314,6 +324,18 @@ it('accepts only configured per-page values', function () {
         ->and($rejected['results']['perPage'])->toBe(2);
 });
 
+it('lets a table override the global per-page default and options', function () {
+    config()->set('inertia-table.per_page', 25);
+    config()->set('inertia-table.per_page_options', [10, 25, 50, 100]);
+
+    $default = (new CustomPerPageTopicsTable)->resolve(tableRequest())->toArray();
+    $rejected = (new CustomPerPageTopicsTable)->resolve(tableRequest(['perPage' => 25]))->toArray();
+
+    expect($default['options']['perPage'])->toBe([1, 2])
+        ->and($default['results']['perPage'])->toBe(1)
+        ->and($rejected['results']['perPage'])->toBe(1);
+});
+
 it('declares extra inertia props to reload', function () {
     $resource = (new TopicsTable)
         ->reloadProps('featuredCount')
@@ -362,10 +384,21 @@ it('serializes server-declared actions', function () {
     ]);
 });
 
+it('resolves row action tooltips from the model', function () {
+    $topic = new TopicRecord(['is_featured' => true]);
+
+    $action = Action::make('toggle-featured')
+        ->row()
+        ->tooltip(fn (TopicRecord $topic) => $topic->is_featured ? 'Remove featured' : 'Mark featured');
+
+    expect($action->resolve($topic)['tooltip'])->toBe('Remove featured');
+});
+
 it('supports set filter clauses, multiple values, and withoutClause', function () {
     $filter = SetFilter::make('status')
         ->options(['active' => 'Active', 'inactive' => 'Inactive'])
-        ->multiple();
+        ->multiple()
+        ->compactDisplay('statuses');
     $withoutClause = SetFilter::make('status')
         ->options(['active' => 'Active'])
         ->withoutClause();
@@ -373,6 +406,7 @@ it('supports set filter clauses, multiple values, and withoutClause', function (
     expect($filter->toArray())
         ->clauses->toBe(['in', 'not_in', 'equals', 'not_equals'])
         ->multiple->toBeTrue()
+        ->compactDisplayLabel->toBe('statuses')
         ->and($filter->normalize(['active', 'inactive'], 'in'))
         ->toBe(['active', 'inactive'])
         ->and($filter->normalize('active', 'not_in'))
@@ -502,12 +536,14 @@ it('resolves badge presentation metadata per row', function () {
     $column = BadgeColumn::make('is_featured')
         ->mapAs([1 => 'Featured', 0 => 'Regular'])
         ->variant([1 => Variant::Success, 0 => Variant::Default])
-        ->icon([1 => 'Star', 0 => null]);
+        ->icon([1 => 'Star', 0 => null])
+        ->badgeClass([1 => 'ring-1 ring-emerald-500', 0 => null]);
 
     expect($column->resolveValue($topic))->toBe('Featured')
         ->and($column->resolveCellMeta($topic))->toBe([
             'variant' => 'success',
             'icon' => 'Star',
+            'badgeClass' => 'ring-1 ring-emerald-500',
         ]);
 });
 

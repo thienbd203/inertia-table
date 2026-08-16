@@ -49,6 +49,21 @@ export function filterDisplayValue(
 
     const values = Array.isArray(state.value) ? state.value : [state.value];
 
+    if (filter.compactDisplayLabel && values.length > 1) {
+        return `${values.length} ${filter.compactDisplayLabel}`;
+    }
+
+    return filterFullDisplayValue(filter, state);
+}
+
+export function filterFullDisplayValue(
+    filter: TableFilter,
+    state: TableFilterState | undefined,
+): string {
+    if (!state) return "";
+
+    const values = Array.isArray(state.value) ? state.value : [state.value];
+
     return values
         .map((value) => {
             const option = filter.options.find(

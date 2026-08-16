@@ -135,7 +135,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                         column,
                     }"
                 >
-                    <div v-if="column.type === 'action'" class="tb-row-actions">
+                    <div v-if="column.type === 'action'">
                         <SlotOutlet
                             v-for="action in actions.rowActionsFor(item)"
                             :key="action.key"

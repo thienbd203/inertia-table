@@ -14,6 +14,9 @@ class BadgeColumn extends Column
     /** @var Closure|array<string|int, string|null>|string|null */
     protected Closure|array|string|null $icon = null;
 
+    /** @var Closure|array<string|int, string|null>|string|null */
+    protected Closure|array|string|null $badgeClass = null;
+
     public function variant(Closure|array|string|Variant $variant): static
     {
         $this->variant = $variant;
@@ -28,6 +31,20 @@ class BadgeColumn extends Column
         return $this;
     }
 
+    /**
+     * Apply CSS classes to the badge itself.
+     *
+     * Use cellClass() to style the table cell instead.
+     *
+     * @param  Closure|array<string|int, string|null>|string|null  $class
+     */
+    public function badgeClass(Closure|array|string|null $class): static
+    {
+        $this->badgeClass = $class;
+
+        return $this;
+    }
+
     public function resolveCellMeta(Model $model): array
     {
         $raw = data_get($model, $this->attribute);
@@ -37,6 +54,7 @@ class BadgeColumn extends Column
         return [
             'variant' => $variant instanceof Variant ? $variant->value : $variant,
             'icon' => $this->resolveMappedProperty($this->icon, $raw, $model),
+            'badgeClass' => $this->resolveMappedProperty($this->badgeClass, $raw, $model),
         ];
     }
 

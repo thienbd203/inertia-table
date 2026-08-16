@@ -57,7 +57,7 @@ const imageIcon = computed(() =>
 const hasImage = computed(
     () => (image.value?.urls?.length ?? 0) > 0 || imageIcon.value,
 );
-const badgeClass = computed(() => {
+const badgeVariantClass = computed(() => {
     const variant = String(meta.value.variant ?? "default");
 
     return (
@@ -134,13 +134,13 @@ const badgeClass = computed(() => {
     <span
         v-else-if="column.type === 'badge'"
         class="tb-badge inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap"
-        :class="badgeClass"
+        :class="[badgeVariantClass, meta.badgeClass]"
         :data-style="meta.variant ?? 'default'"
     >
         <component :is="icon" v-if="icon" class="tb-cell-icon" />
         {{ displayValue(item, column) }}
     </span>
-    <span v-else class="tb-cell-content">
+    <span v-else class="tb-cell-content font-medium">
         <component :is="icon" v-if="icon" class="tb-cell-icon" />
         {{ displayValue(item, column) }}
     </span>
