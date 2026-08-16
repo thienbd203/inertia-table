@@ -41,6 +41,20 @@ composer require toolbelt/inertia-table
 npm install @toolbelt/inertia-table-vue
 ```
 
+## Releases
+
+The Laravel package is distributed through Packagist and the Vue renderer through npm. A pushed Git tag in the form `vX.Y.Z` is the release trigger. The tag must match the `version` in `package.json`.
+
+Before the first release, submit `https://github.com/thienbd203/inertia-table` to Packagist and add an `NPM_TOKEN` repository secret with permission to publish `@toolbelt/inertia-table-vue`. The release workflow runs PHP and JavaScript checks, then publishes the Vue package with npm provenance.
+
+```bash
+npm version 0.1.1 --no-git-tag-version
+git add package.json package-lock.json
+git commit -m "chore: release v0.1.1"
+git tag v0.1.1
+git push origin main --follow-tags
+```
+
 Publish configuration only when you want to change pagination or debounce defaults:
 
 ```bash
