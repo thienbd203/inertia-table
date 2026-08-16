@@ -56,7 +56,7 @@ jobs:
 
       - name: Verify tag matches package version
         run: |
-          test "v$(node -p 'require(\"./package.json\").version')" = "$GITHUB_REF_NAME"
+          test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
 
       - name: Check formatting, types and tests
         run: |
