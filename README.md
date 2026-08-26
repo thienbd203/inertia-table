@@ -21,6 +21,7 @@ Toolbelt keeps the server authoritative. The browser can only request capabiliti
 - Per-table query-string state, Inertia partial reloads, pagination, column visibility and current-page selection.
 - Presentation helpers for badges, dates, images, links, tooltips, alignment and Tailwind classes.
 - Slots and headless composables when the default renderer needs an escape hatch.
+- Built-in English and Vietnamese interface messages with per-app and per-table overrides.
 
 ## Requirements
 
@@ -177,6 +178,48 @@ defineProps<{ topics: TableResource<Topic> }>();
 <template>
     <DataTable :resource="topics" />
 </template>
+```
+
+## Internationalization
+
+The Vue renderer defaults to English and ships with Vietnamese messages. Configure it once on the Vue app:
+
+```ts
+import { createInertiaTable, vi } from "@musing/inertia-table-vue";
+
+app.use(
+    createInertiaTable({
+        locale: "vi-VN",
+        messages: vi,
+    }),
+);
+```
+
+The configuration uses Vue provide/inject, so each SSR application instance keeps its own locale. A table can override the app defaults without changing other tables:
+
+```vue
+<script setup lang="ts">
+import { DataTable, vi } from "@musing/inertia-table-vue";
+</script>
+
+<template>
+    <DataTable
+        :resource="topics"
+        locale="vi-VN"
+        :messages="{
+            ...vi,
+            noResults: 'Chưa có chủ đề nào.',
+        }"
+    />
+</template>
+```
+
+`locale` controls calendars and locale-sensitive UI. `messages` controls package-owned interface text. Application-owned labels such as column names, filter options and action labels should still be translated by the host application.
+
+Laravel-owned defaults follow `app()->getLocale()` automatically. Publish the language files when an application needs to customize them:
+
+```bash
+php artisan vendor:publish --tag=inertia-table-translations
 ```
 
 ## Columns

@@ -14,7 +14,7 @@ import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from "@lucide/vue";
 import { SlotOutlet } from "../shared";
 
 defineProps<{ canSelect: boolean }>();
-const { resource, table, actions } = useTableContext();
+const { resource, table, actions, i18n } = useTableContext();
 
 function sortDirection(attribute: string): "asc" | "desc" | null {
     if (resource.value.state.sort === attribute) return "asc";
@@ -37,7 +37,7 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
         <UiTableRow>
             <UiTableHead v-if="canSelect" class="tb-selection-cell">
                 <UiCheckbox
-                    aria-label="Select current page"
+                    :aria-label="i18n.t('selectCurrentPage')"
                     :model-value="actions.allItemsAreSelected.value"
                     @update:model-value="actions.toggleAll"
                 />
@@ -105,7 +105,7 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
                                     "
                                 >
                                     <ArrowUp class="size-4" />
-                                    Asc
+                                    {{ i18n.t("ascending") }}
                                 </UiDropdownMenuItem>
                                 <UiDropdownMenuItem
                                     class="font-medium"
@@ -120,7 +120,7 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
                                     "
                                 >
                                     <ArrowDown class="size-4" />
-                                    Desc
+                                    {{ i18n.t("descending") }}
                                 </UiDropdownMenuItem>
                             </template>
                             <UiDropdownMenuSeparator
@@ -132,7 +132,7 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
                                 @select="table.toggleColumn(column.attribute)"
                             >
                                 <EyeOff class="size-4" />
-                                Hide
+                                {{ i18n.t("hideColumn") }}
                             </UiDropdownMenuItem>
                         </UiDropdownMenuContent>
                     </UiDropdownMenu>

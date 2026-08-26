@@ -11,23 +11,28 @@ import {
     NativeSelectOption,
 } from "@/components/ui/native-select";
 import { useTableContext } from "@/context/tableContext";
+import { computed } from "vue";
 
-const { actions, resource, table } = useTableContext();
+const { actions, resource, table, i18n } = useTableContext();
+const selectedRowsLabel = computed(() => {
+    const count = actions.selectedItems.value.length;
+
+    if (count === 0) return i18n.t("noRowsSelected");
+    if (count === 1) return i18n.t("oneRowSelected");
+
+    return i18n.t("manyRowsSelected", { count });
+});
 </script>
 
 <template>
     <div
         class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between"
     >
-        <span class="text-sm">
-            {{ actions.selectedItems.value.length || "No" }}
-            {{ actions.selectedItems.value.length === 1 ? "row" : "rows" }}
-            selected
-        </span>
+        <span class="text-sm">{{ selectedRowsLabel }}</span>
 
         <div class="flex flex-wrap items-center gap-2 sm:justify-end">
             <span class="text-muted-foreground text-sm whitespace-nowrap">
-                Rows per page
+                {{ i18n.t("rowsPerPage") }}
             </span>
             <NativeSelect
                 wrapper-class="w-20 shrink-0"
@@ -44,14 +49,18 @@ const { actions, resource, table } = useTableContext();
             </NativeSelect>
 
             <span class="ms-2 text-sm whitespace-nowrap">
-                Page {{ resource.results.currentPage }} of
-                {{ resource.results.lastPage }}
+                {{
+                    i18n.t("pageOf", {
+                        page: resource.results.currentPage,
+                        pages: resource.results.lastPage,
+                    })
+                }}
             </span>
 
             <UiButton
                 variant="outline"
                 size="icon-sm"
-                aria-label="First page"
+                :aria-label="i18n.t('firstPage')"
                 :disabled="resource.results.currentPage <= 1"
                 @click="table.setPage(1)"
             >
@@ -60,7 +69,7 @@ const { actions, resource, table } = useTableContext();
             <UiButton
                 variant="outline"
                 size="icon-sm"
-                aria-label="Previous page"
+                :aria-label="i18n.t('previousPage')"
                 :disabled="resource.results.currentPage <= 1"
                 @click="table.setPage(resource.results.currentPage - 1)"
             >
@@ -69,7 +78,7 @@ const { actions, resource, table } = useTableContext();
             <UiButton
                 variant="outline"
                 size="icon-sm"
-                aria-label="Next page"
+                :aria-label="i18n.t('nextPage')"
                 :disabled="
                     resource.results.currentPage >= resource.results.lastPage
                 "
@@ -80,7 +89,7 @@ const { actions, resource, table } = useTableContext();
             <UiButton
                 variant="outline"
                 size="icon-sm"
-                aria-label="Last page"
+                :aria-label="i18n.t('lastPage')"
                 :disabled="
                     resource.results.currentPage >= resource.results.lastPage
                 "

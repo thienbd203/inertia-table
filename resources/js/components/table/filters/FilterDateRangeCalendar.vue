@@ -17,6 +17,7 @@ import {
 import { ChevronLeft, ChevronRight } from "@lucide/vue";
 import { computed, ref, watch } from "vue";
 import { UiButton } from "@/components/ui/button";
+import { useTableContext } from "@/context/tableContext";
 
 const props = defineProps<{
     modelValue: [string, string];
@@ -24,6 +25,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     "update:modelValue": [value: [string, string]];
 }>();
+const { i18n } = useTableContext();
 
 function parse(value: string) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
@@ -89,7 +91,7 @@ defineExpose({
         :model-value="selectedRange as never"
         :default-placeholder="placeholder"
         :number-of-months="2"
-        locale="vi-VN"
+        :locale="i18n.locale.value"
         initial-focus
         @update:model-value="updateRange"
     >
@@ -150,7 +152,7 @@ defineExpose({
 
         <div class="pt-2">
             <UiButton variant="outline" size="sm" @click="selectToday">
-                Today
+                {{ i18n.t("today") }}
             </UiButton>
         </div>
     </RangeCalendarRoot>

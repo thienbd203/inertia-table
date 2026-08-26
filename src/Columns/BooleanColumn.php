@@ -4,9 +4,9 @@ namespace Musing\InertiaTable\Columns;
 
 class BooleanColumn extends Column
 {
-    protected static string $defaultTrueLabel = 'Yes';
+    protected static ?string $defaultTrueLabel = null;
 
-    protected static string $defaultFalseLabel = 'No';
+    protected static ?string $defaultFalseLabel = null;
 
     protected static ?string $defaultTrueIcon = null;
 
@@ -73,8 +73,12 @@ class BooleanColumn extends Column
         return [
             ...parent::toArray(),
             'type' => 'boolean',
-            'trueLabel' => $this->trueLabel ?? static::$defaultTrueLabel,
-            'falseLabel' => $this->falseLabel ?? static::$defaultFalseLabel,
+            'trueLabel' => $this->trueLabel
+                ?? static::$defaultTrueLabel
+                ?? (string) trans('inertia-table::messages.boolean.yes'),
+            'falseLabel' => $this->falseLabel
+                ?? static::$defaultFalseLabel
+                ?? (string) trans('inertia-table::messages.boolean.no'),
             'trueIcon' => $this->trueIcon ?? static::$defaultTrueIcon,
             'falseIcon' => $this->falseIcon ?? static::$defaultFalseIcon,
         ];

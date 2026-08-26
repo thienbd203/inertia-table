@@ -12,18 +12,20 @@ import { SlotOutlet } from "../shared";
 import ActionMenuItem from "./ActionMenuItem.vue";
 import { Wrench } from "@lucide/vue";
 
-const { actions } = useTableContext();
+const { actions, i18n } = useTableContext();
 </script>
 
 <template>
     <UiDropdownMenu v-if="actions.bulkActions.value.length">
         <UiDropdownMenuTrigger>
             <UiButton variant="outline">
-                <Wrench class="h-4 w-4" />Actions</UiButton
+                <Wrench class="h-4 w-4" />{{ i18n.t("actions") }}</UiButton
             >
         </UiDropdownMenuTrigger>
         <UiDropdownMenuContent>
-            <UiDropdownMenuLabel>Bulk Actions</UiDropdownMenuLabel>
+            <UiDropdownMenuLabel>
+                {{ i18n.t("bulkActions") }}
+            </UiDropdownMenuLabel>
             <UiDropdownMenuSeparator />
             <SlotOutlet
                 v-for="action in actions.bulkActions.value"

@@ -156,11 +156,16 @@ final class Action implements Arrayable
     }
 
     public function confirm(
-        string $title = 'Confirm action',
-        string $message = 'Are you sure you want to perform this action?',
-        string $confirmLabel = 'Yes',
-        string $cancelLabel = 'Cancel',
+        ?string $title = null,
+        ?string $message = null,
+        ?string $confirmLabel = null,
+        ?string $cancelLabel = null,
     ): self {
+        $title ??= (string) trans('inertia-table::messages.actions.confirm_title');
+        $message ??= (string) trans('inertia-table::messages.actions.confirm_message');
+        $confirmLabel ??= (string) trans('inertia-table::messages.actions.confirm');
+        $cancelLabel ??= (string) trans('inertia-table::messages.actions.cancel');
+
         $this->confirmation = compact('title', 'message', 'confirmLabel', 'cancelLabel');
 
         return $this;

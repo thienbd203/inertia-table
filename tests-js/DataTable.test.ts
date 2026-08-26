@@ -22,6 +22,7 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import DataTable from "../resources/js/DataTable.vue";
 import { setIconResolver } from "../resources/js/icons";
+import { vi as vietnameseMessages } from "../resources/js/i18n";
 import {
     UiDropdownMenu,
     UiDropdownMenuContent,
@@ -80,6 +81,28 @@ describe("DataTable shadcn renderer", () => {
 
         await openDropdown(wrapper, "Actions");
         expect(document.body.textContent).toContain("Delete");
+    });
+
+    it("renders built-in interface text in Vietnamese", async () => {
+        const wrapper = mount(DataTable, {
+            props: {
+                resource: topicResource(),
+                locale: "vi-VN",
+                messages: vietnameseMessages,
+            },
+            attachTo: document.body,
+        });
+
+        expect(
+            wrapper.get('input[type="search"]').attributes("placeholder"),
+        ).toBe("Tìm kiếm…");
+        expect(wrapper.text()).toContain("Thao tác");
+        expect(wrapper.text()).toContain("Bộ lọc");
+        expect(wrapper.text()).toContain("Cột");
+        expect(wrapper.text()).toContain("Số dòng mỗi trang");
+
+        await openDropdown(wrapper, "Thao tác");
+        expect(document.body.textContent).toContain("Thao tác hàng loạt");
     });
 
     it("allows one action renderer to be replaced by its dynamic slot", async () => {

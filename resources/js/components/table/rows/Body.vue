@@ -13,7 +13,7 @@ defineProps<{ canSelect: boolean }>();
 const emit = defineEmits<{
     rowClick: [item: TableItem, column: TableColumn | null];
 }>();
-const { resource, table, actions } = useTableContext();
+const { resource, table, actions, i18n } = useTableContext();
 
 function alignmentClass(alignment: "left" | "center" | "right"): string {
     return {
@@ -81,7 +81,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                     <p
                         class="p-8 text-center font-medium text-gray-900 dark:text-zinc-200"
                     >
-                        No results found.
+                        {{ i18n.t("noResults") }}
                     </p>
                 </SlotOutlet>
             </UiTableCell>
@@ -103,7 +103,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
         >
             <UiTableCell v-if="canSelect" class="tb-selection-cell">
                 <UiCheckbox
-                    aria-label="Select row"
+                    :aria-label="i18n.t('selectRow')"
                     :model-value="actions.isItemSelected(item, index)"
                     @update:model-value="actions.toggleItem(item, index)"
                 />

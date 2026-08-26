@@ -15,6 +15,7 @@ import {
     NativeSelectOption,
 } from "@/components/ui/native-select";
 import type { TableFilter } from "@/types";
+import { useTableContext } from "@/context/tableContext";
 import FilterDateCalendar from "./FilterDateCalendar.vue";
 import FilterDateRangeCalendar from "./FilterDateRangeCalendar.vue";
 
@@ -25,6 +26,7 @@ const props = defineProps<{
     debounceTime: number;
 }>();
 const emit = defineEmits<{ "update:modelValue": [value: unknown] }>();
+const { i18n } = useTableContext();
 const emitInputValue = useDebounceFn(
     (value: unknown) => emit("update:modelValue", value),
     props.debounceTime,
@@ -76,10 +78,10 @@ const selectedOptionLabels = computed(() => {
 const multipleSelectLabel = computed(() => {
     const labels = selectedOptionLabels.value;
 
-    if (labels.length === 0) return "Select options";
+    if (labels.length === 0) return i18n.t("selectOptions");
     if (labels.length <= 2) return labels.join(", ");
 
-    return `${labels.length} options selected`;
+    return i18n.t("optionsSelected", { count: labels.length });
 });
 const inputType = computed<"date" | "number" | "text">(() =>
     props.filter.type === "date"

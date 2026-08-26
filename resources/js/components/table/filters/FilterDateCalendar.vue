@@ -18,11 +18,13 @@ import {
 import { ChevronLeft, ChevronRight } from "@lucide/vue";
 import { computed } from "vue";
 import { UiButton } from "@/components/ui/button";
+import { useTableContext } from "@/context/tableContext";
 
 const props = defineProps<{
     modelValue: string;
 }>();
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
+const { i18n } = useTableContext();
 
 const date = computed<DateValue | undefined>({
     get: () => {
@@ -51,7 +53,7 @@ defineExpose({
         v-slot="{ weekDays, grid }"
         v-model="date"
         :default-placeholder="date ?? today(getLocalTimeZone())"
-        locale="vi-VN"
+        :locale="i18n.locale.value"
         initial-focus
         class="rounded-md"
     >
@@ -110,7 +112,7 @@ defineExpose({
 
         <div class="pt-2">
             <UiButton variant="outline" size="sm" @click="selectToday">
-                Today
+                {{ i18n.t("today") }}
             </UiButton>
         </div>
     </CalendarRoot>

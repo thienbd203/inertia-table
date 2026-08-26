@@ -7,7 +7,7 @@ import type { TableColumn, TableItem } from "@/types";
 import { SlotOutlet } from "../shared";
 
 const props = defineProps<{ item: TableItem; column: TableColumn }>();
-const { iconResolver } = useTableContext();
+const { iconResolver, i18n } = useTableContext();
 const value = computed(() => cellValue(props.item, props.column.attribute));
 const meta = computed(() => cellMeta(props.item, props.column.attribute));
 const iconName = computed(() => {
@@ -56,6 +56,12 @@ const imageIcon = computed(() =>
 );
 const hasImage = computed(
     () => (image.value?.urls?.length ?? 0) > 0 || imageIcon.value,
+);
+const display = computed(() =>
+    displayValue(props.item, props.column, {
+        trueLabel: i18n.t("yes"),
+        falseLabel: i18n.t("no"),
+    }),
 );
 const badgeVariantClass = computed(() => {
     const variant = String(meta.value.variant ?? "default");
@@ -116,7 +122,7 @@ const badgeVariantClass = computed(() => {
                 </span>
             </span>
             <template v-if="column.type !== 'image'">
-                {{ displayValue(item, column) }}
+                {{ display }}
             </template>
         </span>
         <SlotOutlet
@@ -138,10 +144,10 @@ const badgeVariantClass = computed(() => {
         :data-style="meta.variant ?? 'default'"
     >
         <component :is="icon" v-if="icon" class="tb-cell-icon" />
-        {{ displayValue(item, column) }}
+        {{ display }}
     </span>
     <span v-else class="tb-cell-content font-medium">
         <component :is="icon" v-if="icon" class="tb-cell-icon" />
-        {{ displayValue(item, column) }}
+        {{ display }}
     </span>
 </template>

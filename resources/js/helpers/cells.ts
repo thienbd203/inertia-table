@@ -29,13 +29,20 @@ function normalizeUrl(
     return value ?? null;
 }
 
-export function displayValue(item: TableItem, column: TableColumn): unknown {
+export function displayValue(
+    item: TableItem,
+    column: TableColumn,
+    booleanLabels: { trueLabel: string; falseLabel: string } = {
+        trueLabel: "Yes",
+        falseLabel: "No",
+    },
+): unknown {
     const value = cellValue(item, column.attribute);
 
     return column.type === "boolean"
         ? value
-            ? (column.trueLabel ?? "Yes")
-            : (column.falseLabel ?? "No")
+            ? (column.trueLabel ?? booleanLabels.trueLabel)
+            : (column.falseLabel ?? booleanLabels.falseLabel)
         : value;
 }
 

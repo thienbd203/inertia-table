@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTableContext } from "@/context/tableContext";
 
-const { resource, table } = useTableContext();
+const { resource, table, i18n } = useTableContext();
 const columns = computed(() =>
     resource.value.columns.filter((column) => column.toggleable),
 );
@@ -23,11 +23,11 @@ const columns = computed(() =>
         <UiDropdownMenuTrigger>
             <UiButton variant="outline">
                 <Eye class="h-4 w-4" />
-                Columns
+                {{ i18n.t("columns") }}
             </UiButton>
         </UiDropdownMenuTrigger>
         <UiDropdownMenuContent>
-            <UiDropdownMenuLabel>Columns</UiDropdownMenuLabel>
+            <UiDropdownMenuLabel>{{ i18n.t("columns") }}</UiDropdownMenuLabel>
             <UiDropdownMenuSeparator />
             <UiDropdownMenuCheckboxItem
                 v-for="column in columns"

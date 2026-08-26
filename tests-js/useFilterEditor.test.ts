@@ -17,6 +17,7 @@ import { provideTableContext } from "../resources/js/context/tableContext";
 import { useActions } from "../resources/js/useActions";
 import { useTable } from "../resources/js/useTable";
 import type { TableFilter } from "../resources/js/types";
+import { useTableI18n } from "../resources/js/i18n";
 
 const scoreFilter: TableFilter = {
     attribute: "score",
@@ -76,11 +77,13 @@ function mountEditor(filter: TableFilter, filters: TableFilter[]) {
             setup() {
                 table = useTable(resource);
                 actions = useActions(table);
+                const i18n = useTableI18n();
                 provideTableContext({
                     resource,
                     table,
                     actions,
                     iconResolver: undefined,
+                    i18n,
                     searchPlaceholder: ref("Search…"),
                     slots: {},
                     activeFilterAttributes: ref([]),

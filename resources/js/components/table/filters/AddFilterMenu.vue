@@ -9,6 +9,7 @@ import {
     UiDropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { TableFilter } from "@/types";
+import { useTableContext } from "@/context/tableContext";
 import { Funnel, Plus, X } from "@lucide/vue";
 
 defineProps<{
@@ -19,6 +20,7 @@ defineEmits<{
     add: [attribute: string];
     clear: [];
 }>();
+const { i18n } = useTableContext();
 </script>
 
 <template>
@@ -26,7 +28,7 @@ defineEmits<{
         <UiDropdownMenuTrigger>
             <UiButton variant="outline">
                 <Funnel class="h-4 w-4" />
-                Filters
+                {{ i18n.t("filters") }}
             </UiButton>
         </UiDropdownMenuTrigger>
         <UiDropdownMenuContent
@@ -34,7 +36,7 @@ defineEmits<{
             class="DropdownMenuContentAnimate"
             @closeAutoFocus="(e) => e.preventDefault()"
         >
-            <UiDropdownMenuLabel>Add Filter</UiDropdownMenuLabel>
+            <UiDropdownMenuLabel>{{ i18n.t("addFilter") }}</UiDropdownMenuLabel>
             <UiDropdownMenuSeparator />
             <UiDropdownMenuItem
                 v-for="filter in filters"
@@ -53,7 +55,7 @@ defineEmits<{
                 <UiDropdownMenuSeparator />
                 <UiDropdownMenuItem @select="$emit('clear')">
                     <X class="size-4" />
-                    Clear all filters
+                    {{ i18n.t("clearAllFilters") }}
                 </UiDropdownMenuItem>
             </template>
         </UiDropdownMenuContent>

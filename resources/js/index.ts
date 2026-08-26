@@ -4,6 +4,22 @@ export { useTable } from "./useTable";
 export { tableUrl } from "./url";
 export { setIconResolver } from "./icons";
 export type { IconResolver } from "./icons";
+export {
+    createInertiaTable,
+    createTableI18n,
+    en,
+    provideTableI18n,
+    useTableI18n,
+    vi,
+} from "./i18n";
+export type {
+    InertiaTableI18nOptions,
+    TableI18n,
+    TableMessageKey,
+    TableMessageOverrides,
+    TableMessageParams,
+    TableMessages,
+} from "./i18n";
 export { setClauseSymbols } from "./filters";
 export {
     UiButton,

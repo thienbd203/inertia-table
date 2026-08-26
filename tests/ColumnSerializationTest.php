@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Musing\InertiaTable\Actions\Action;
 use Musing\InertiaTable\Columns\ActionColumn;
 use Musing\InertiaTable\Columns\BooleanColumn;
 use Musing\InertiaTable\Columns\DateTimeColumn;
@@ -69,4 +70,22 @@ it('serializes boolean column presentation overrides', function () {
         'trueIcon' => 'Check',
         'falseIcon' => 'X',
     ]);
+});
+
+it('translates package-owned Laravel defaults', function () {
+    app()->setLocale('vi');
+
+    expect(ActionColumn::new()->toArray()['header'])->toBe('Thao tác')
+        ->and(BooleanColumn::make('is_featured')->toArray())->toMatchArray([
+            'trueLabel' => 'Có',
+            'falseLabel' => 'Không',
+        ])
+        ->and(Action::make('delete')->confirm()->toArray()['confirmation'])->toBe([
+            'title' => 'Xác nhận thao tác',
+            'message' => 'Bạn có chắc chắn muốn thực hiện thao tác này không?',
+            'confirmLabel' => 'Xác nhận',
+            'cancelLabel' => 'Hủy',
+        ]);
+
+    app()->setLocale('en');
 });

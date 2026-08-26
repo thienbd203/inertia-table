@@ -1,5 +1,6 @@
 import { inject, provide, type InjectionKey, type Ref, type Slots } from "vue";
 import type { IconResolver } from "@/icons";
+import type { TableI18n } from "@/i18n";
 import type { TableItem, TableResource } from "@/types";
 import type { UseActions } from "@/useActions";
 import type { UseTable } from "@/useTable";
@@ -9,6 +10,7 @@ export type TableContext<T extends TableItem = TableItem> = {
     table: UseTable<T>;
     actions: UseActions<T>;
     iconResolver?: IconResolver;
+    i18n: TableI18n;
     searchPlaceholder: Ref<string>;
     slots: Slots;
     activeFilterAttributes: Ref<string[]>;

@@ -6,6 +6,12 @@ import { Pagination, Toolbar, Viewport } from "@/components/table/layout";
 import { SlotOutlet } from "@/components/table/shared";
 import { provideTableContext } from "@/context/tableContext";
 import type { IconResolver } from "@/icons";
+import {
+    createTableI18n,
+    provideTableI18n,
+    useTableI18n,
+    type TableMessageOverrides,
+} from "@/i18n";
 import "@/styles/data-table.css";
 import type {
     TableAction,
@@ -22,8 +28,10 @@ const props = withDefaults(
         resource: TableResource<T>;
         searchPlaceholder?: string;
         iconResolver?: IconResolver;
+        locale?: string;
+        messages?: TableMessageOverrides;
     }>(),
-    { searchPlaceholder: "Search…" },
+    {},
 );
 const emit = defineEmits<{
     customAction: [action: TableAction, keys: TableKey[], onFinish: () => void];
@@ -36,6 +44,13 @@ defineSlots<{
 }>();
 
 const resource = toRef(props, "resource");
+const inheritedI18n = useTableI18n();
+const i18n = createTableI18n(
+    computed(() => props.locale ?? inheritedI18n.locale.value),
+    computed(() => props.messages ?? {}),
+    inheritedI18n,
+);
+provideTableI18n(i18n);
 const table = useTable(resource);
 const actions = useActions(
     table,
@@ -114,7 +129,10 @@ provideTableContext({
     table,
     actions,
     iconResolver: props.iconResolver,
-    searchPlaceholder: computed(() => props.searchPlaceholder),
+    i18n,
+    searchPlaceholder: computed(
+        () => props.searchPlaceholder ?? i18n.t("searchPlaceholder"),
+    ),
     slots: useSlots(),
     activeFilterAttributes,
     pendingFilterPopover,
@@ -151,7 +169,7 @@ provideTableContext({
         </div>
         <SlotOutlet v-if="table.isNavigating.value" name="loading">
             <div class="absolute inset-0 z-10" role="status">
-                <span class="sr-only">Loading</span>
+                <span class="sr-only">{{ i18n.t("loading") }}</span>
             </div>
         </SlotOutlet>
         <SlotOutlet
