@@ -133,6 +133,7 @@ describe("DataTable shadcn renderer", () => {
 
     it("forwards public feature slots through internal components", async () => {
         const resource = topicResource();
+        let filterSlotProps: Record<string, unknown> = {};
         resource.state.filters.status = {
             enabled: true,
             clause: "equals",
@@ -143,8 +144,11 @@ describe("DataTable shadcn renderer", () => {
             slots: {
                 beforeActions: () =>
                     h("span", { "data-before-actions": "" }, "Before"),
-                "filter(status)": () =>
-                    h("span", { "data-custom-filter": "" }, "Filter"),
+                "filter(status)": (props: Record<string, unknown>) => {
+                    filterSlotProps = props;
+
+                    return h("span", { "data-custom-filter": "" }, "Filter");
+                },
                 "header(name)": () =>
                     h("span", { "data-custom-header": "" }, "Topic"),
                 "cell(name)": ({ item }: { item: { name: string } }) =>
@@ -167,6 +171,11 @@ describe("DataTable shadcn renderer", () => {
         ).toEqual(["Alpha", "Beta"]);
 
         expect(wrapper.get("[data-custom-filter]").text()).toBe("Filter");
+        expect(filterSlotProps.filter).toEqual(resource.filters[0]);
+        expect(filterSlotProps.state).toEqual(resource.state.filters.status);
+        expect(filterSlotProps.value).toBe("featured");
+        expect(filterSlotProps.update).toBeTypeOf("function");
+        expect(filterSlotProps.close).toBeTypeOf("function");
     });
 
     it("renders the column chooser with shadcn dropdown primitives", () => {

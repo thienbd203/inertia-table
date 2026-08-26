@@ -395,6 +395,33 @@ The default renderer is intended to cover normal tables. Use slots only for targ
 
 Useful slots include `topbar`, `beforeSearch`, `afterSearch`, `beforeActions`, `afterActions`, `filters`, `table`, `thead`, `tbody`, `footer`, `loading`, `emptyState`, `confirmation`, `cell(attribute)`, `header(attribute)`, `filter(attribute)`, `image(attribute)` and `image-fallback(attribute)`.
 
+Use `filter(attribute)` when an option source needs application-owned behavior such as remote search, pagination or creating a missing option. The slot receives `filter`, `state`, `value`, `update`, `setDisplayValue`, `close`, `table` and `actions`:
+
+Declare the stored value with a regular server-side filter. For example, an integer foreign key can use a clause-less numeric filter:
+
+```php
+NumericFilter::make('source_id', 'Source')->withoutClause();
+```
+
+```vue
+<DataTable :resource="quotes">
+  <template
+    #filter(source_id)="{ value, update, setDisplayValue, close }"
+  >
+    <AsyncSourceSelect
+      :model-value="value"
+      @select="({ value: nextValue, label }) => {
+        update(nextValue);
+        setDisplayValue(label);
+        close();
+      }"
+    />
+  </template>
+</DataTable>
+```
+
+The package only owns the selected filter value and URL state in this case. The application owns the endpoint, loading state, debounce, result pagination and option creation.
+
 For a fully custom renderer, use the composables instead:
 
 ```ts

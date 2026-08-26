@@ -7,7 +7,10 @@ import FilterValueControl from "./FilterValueControl.vue";
 import { useFilterEditor } from "./useFilterEditor";
 
 const props = defineProps<{ filter: TableFilter }>();
-const emit = defineEmits<{ "update:displayValue": [value: string | null] }>();
+const emit = defineEmits<{
+    close: [];
+    "update:displayValue": [value: string | null];
+}>();
 const { clause, clauseOptions, state, table, update, updateClause, value } =
     useFilterEditor(props.filter);
 const debounceTime = computed(() => table.resource.value.options.debounceTime);
@@ -24,7 +27,9 @@ defineExpose({
         :slot-props="{
             filter,
             state,
+            value,
             update,
+            close: () => emit('close'),
             setDisplayValue: (value: string | null) =>
                 emit('update:displayValue', value),
             table,

@@ -101,6 +101,7 @@ async function focusValueControl(event: Event) {
                                 <FilterEditor
                                     ref="filterEditor"
                                     :filter="filter"
+                                    @close="isOpen = false"
                                     @update:display-value="
                                         displayValue = $event
                                     "
