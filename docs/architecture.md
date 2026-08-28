@@ -222,7 +222,7 @@ const table = useTable(resource);
 const actions = useActions(table);
 ```
 
-`useTable()` owns resolved state and navigation operations. `useActions()` owns selected keys, row/bulk action availability, confirmation, execution, and pending state.
+`useTable()` owns resolved state and navigation operations. `useActions()` owns explicit keys, all-results selection with exclusions, current-page Shift-click ranges, row/bulk action availability, confirmation, execution, and pending state. The header checkbox selects every row matching the normalized search/filter state across pagination immediately; it never stops at the current page.
 
 The default `<DataTable>` exposes these scopes through documented slots:
 
@@ -253,7 +253,7 @@ Included:
 - text, boolean, and select filters with a default clause;
 - full and simple pagination;
 - column visibility;
-- row selection on the current result page;
+- explicit row selection and all-results selection across pagination;
 - server-declared row and bulk actions;
 - multiple named tables and partial reloads;
 - headless Vue composables and one shadcn-vue renderer;
@@ -268,7 +268,7 @@ Deferred:
 - cursor pagination;
 - React renderer;
 - sticky columns and virtualized rows;
-- persisted cross-page selection.
+- persisted selection across search/filter changes.
 
 ## Required test boundaries
 

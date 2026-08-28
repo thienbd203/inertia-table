@@ -1,6 +1,7 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { h } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { TableItem } from "../resources/js/types";
 import { topicResource } from "./fixtures";
 
 const { listeners } = vi.hoisted(() => ({
@@ -81,6 +82,88 @@ describe("DataTable shadcn renderer", () => {
 
         await openDropdown(wrapper, "Actions");
         expect(document.body.textContent).toContain("Delete");
+    });
+
+    it("forwards a custom row key resolver to selection and rendering", () => {
+        const resource = topicResource();
+        const rowKey = vi.fn((item: TableItem) => `topic-${item.id}`);
+
+        mount(DataTable, {
+            props: { resource, rowKey },
+            attachTo: document.body,
+        });
+
+        expect(rowKey).toHaveBeenCalledWith(resource.results.data[0], 0);
+        expect(rowKey).toHaveBeenCalledWith(resource.results.data[1], 1);
+    });
+
+    it("selects every matching result directly from the header checkbox", async () => {
+        const wrapper = mount(DataTable, {
+            props: { resource: topicResource() },
+            attachTo: document.body,
+        });
+
+        await wrapper
+            .get('[aria-label="Select all matching results"]')
+            .trigger("click");
+        await flushPromises();
+
+        expect(wrapper.text()).toContain("30 rows selected");
+        expect(
+            wrapper
+                .findAll('tbody [data-slot="checkbox"]')
+                .every(
+                    (checkbox) =>
+                        checkbox.attributes("data-state") === "checked",
+                ),
+        ).toBe(true);
+    });
+
+    it("selects the range from the previous row on Shift-click", async () => {
+        const wrapper = mount(DataTable, {
+            props: { resource: topicResource() },
+            attachTo: document.body,
+        });
+        const checkboxes = wrapper.findAll('tbody [data-slot="checkbox"]');
+
+        await checkboxes[0].trigger("click");
+        await checkboxes[1].trigger("click", { shiftKey: true });
+        await flushPromises();
+
+        expect(
+            wrapper
+                .findAll('tbody [data-slot="checkbox"]')
+                .every(
+                    (checkbox) =>
+                        checkbox.attributes("data-state") === "checked",
+                ),
+        ).toBe(true);
+        expect(wrapper.text()).toContain("2 rows selected");
+    });
+
+    it("renders a dash for the partial header selection state", async () => {
+        const wrapper = mount(DataTable, {
+            props: { resource: topicResource() },
+            attachTo: document.body,
+        });
+
+        await wrapper
+            .findAll('tbody [data-slot="checkbox"]')[0]
+            .trigger("click");
+        await flushPromises();
+
+        const headerCheckbox = wrapper.get(
+            '[aria-label="Select all matching results"]',
+        );
+        expect(headerCheckbox.attributes("data-state")).toBe("indeterminate");
+        expect(
+            headerCheckbox
+                .find('[data-slot="checkbox-indeterminate-icon"]')
+                .exists(),
+        ).toBe(true);
+        expect(
+            headerCheckbox.find('[data-slot="checkbox-checked-icon"]').exists(),
+        ).toBe(false);
     });
 
     it("renders built-in interface text in Vietnamese", async () => {

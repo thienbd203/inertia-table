@@ -3,6 +3,7 @@ export type TableKey = string | number;
 export type TableItem = {
     id?: TableKey;
     _table?: {
+        key?: TableKey;
         url: TableUrl | string | null;
         columns: Record<string, TableUrl | string>;
         cells?: Record<string, Record<string, unknown>>;
@@ -96,6 +97,14 @@ export type TableState = {
     columns: Record<string, boolean>;
     page: number;
     perPage: number;
+};
+
+export type TableSelection = {
+    all: boolean;
+    keys: TableKey[];
+    except: TableKey[];
+    table: string;
+    state: Pick<TableState, "search" | "filters">;
 };
 
 export type PaginationLink = {

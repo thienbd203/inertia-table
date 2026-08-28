@@ -17,13 +17,7 @@ export function useTable<T extends TableItem>(
     const search = ref(toValue(resource).state.search);
     const isNavigating = ref(false);
     let debounceTimer: ReturnType<typeof setTimeout> | undefined;
-
-    const removeStartListener = router.on("start", () => {
-        isNavigating.value = true;
-    });
-    const removeFinishListener = router.on("finish", () => {
-        isNavigating.value = false;
-    });
+    let latestVisit = 0;
 
     watch(
         () => toValue(resource).state.search,
@@ -39,14 +33,29 @@ export function useTable<T extends TableItem>(
 
     function visit(state: TableState, replace = true) {
         const current = toValue(resource);
+        const visitId = ++latestVisit;
+        isNavigating.value = true;
 
-        router.visit(tableUrl(page.url, current, state), {
-            method: "get",
-            preserveScroll: true,
-            preserveState: true,
-            replace,
-            only: [current.name, ...current.options.reloadProps],
-        });
+        try {
+            router.visit(tableUrl(page.url, current, state), {
+                method: "get",
+                preserveScroll: true,
+                preserveState: true,
+                replace,
+                only: [current.name, ...current.options.reloadProps],
+                onFinish: () => {
+                    if (visitId === latestVisit) {
+                        isNavigating.value = false;
+                    }
+                },
+            });
+        } catch (error) {
+            if (visitId === latestVisit) {
+                isNavigating.value = false;
+            }
+
+            throw error;
+        }
     }
 
     function patchState(patch: Partial<TableState>) {
@@ -203,8 +212,8 @@ export function useTable<T extends TableItem>(
 
     onScopeDispose(() => {
         clearTimeout(debounceTimer);
-        removeStartListener();
-        removeFinishListener();
+        latestVisit++;
+        isNavigating.value = false;
     });
 
     return {

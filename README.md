@@ -18,7 +18,7 @@ Toolbelt keeps the server authoritative. The browser can only request capabiliti
 - Allowlisted search, sort and filter queries—never raw client input in SQL.
 - A ready-to-use Vue `<DataTable>` built from shadcn-vue-style source and Reka UI primitives.
 - Text, numeric, set, boolean and date filters, including single-date and date-range calendars.
-- Per-table query-string state, Inertia partial reloads, pagination, column visibility and current-page selection.
+- Per-table query-string state, Inertia partial reloads, pagination, column visibility and all-results selection across pages.
 - Presentation helpers for badges, dates, images, links, tooltips, alignment and Tailwind classes.
 - Slots and headless composables when the default renderer needs an escape hatch.
 - Built-in English and Vietnamese interface messages with per-app and per-table overrides.
@@ -362,11 +362,33 @@ Action::make('archive', 'Archive')
     ->buttonClass('text-amber-600 hover:bg-amber-500/10');
 ```
 
-Omit `endpoint()` for a frontend-owned action. The component emits `custom-action` with `(action, keys, onFinish)`; call `onFinish()` after the custom work completes.
+Omit `endpoint()` for a frontend-owned action. The component emits `custom-action` with `(action, keys, onFinish, selection)`; call `onFinish()` after the custom work completes. Existing handlers can keep using the first three arguments.
 
 ```vue
 <DataTable :resource="topics" @custom-action="handleCustomAction" />
 ```
+
+The header checkbox immediately selects every result matching the current search and filters, across all pages. There is no intermediate "current page" selection step. Individual rows can then be unchecked and are tracked in `selection.except`. Shift-clicking a row checkbox applies the target checkbox state to the contiguous range from the previously clicked row on the current page.
+
+Explicit bulk selections keep the existing `{ ids: [...] }` request payload. Selecting all matching results sends a selection descriptor instead of attempting to load every ID into the browser:
+
+```ts
+{
+    ids: [],
+    selection: {
+        all: true,
+        keys: [],
+        except: [42],
+        table: "topics",
+        state: {
+            search: "laravel",
+            filters: { status: { enabled: true, clause: "equals", value: "published" } },
+        },
+    },
+}
+```
+
+Bulk endpoints should rebuild the matching query through the table's declared search/filter allowlist and then exclude `selection.except`; they must not apply raw client attributes directly to SQL.
 
 Action icons are intentionally library-agnostic. Register your Lucide resolver once:
 
@@ -430,6 +452,14 @@ import { useActions, useTable } from "@musing/inertia-table-vue";
 const table = useTable(() => props.topics);
 const actions = useActions(table);
 ```
+
+Laravel resources include the model's Eloquent primary key as stable row metadata, so selection also works for UUIDs and primary keys not named `id`. When rendering an application-owned resource, override the identity explicitly:
+
+```vue
+<DataTable :resource="topics" :row-key="(topic) => topic.uuid" />
+```
+
+The equivalent headless option is `useActions(table, { rowKey: (topic) => topic.uuid })`. Selection persists across pagination and is cleared when the active search or filters change.
 
 ## URL state and multiple tables
 

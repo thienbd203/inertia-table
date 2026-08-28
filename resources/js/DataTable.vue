@@ -19,6 +19,7 @@ import type {
     TableItem,
     TableKey,
     TableResource,
+    TableSelection,
 } from "@/types";
 import { useActions } from "@/useActions";
 import { useTable } from "@/useTable";
@@ -30,13 +31,28 @@ const props = withDefaults(
         iconResolver?: IconResolver;
         locale?: string;
         messages?: TableMessageOverrides;
+        rowKey?: (item: T, index: number) => TableKey;
     }>(),
     {},
 );
 const emit = defineEmits<{
-    customAction: [action: TableAction, keys: TableKey[], onFinish: () => void];
-    actionSuccess: [action: TableAction, keys: TableKey[]];
-    actionError: [action: TableAction, keys: TableKey[], error: unknown];
+    customAction: [
+        action: TableAction,
+        keys: TableKey[],
+        onFinish: () => void,
+        selection: TableSelection,
+    ];
+    actionSuccess: [
+        action: TableAction,
+        keys: TableKey[],
+        selection: TableSelection,
+    ];
+    actionError: [
+        action: TableAction,
+        keys: TableKey[],
+        error: unknown,
+        selection: TableSelection,
+    ];
     rowClick: [item: T, column: TableColumn | null];
 }>();
 defineSlots<{
@@ -54,13 +70,14 @@ provideTableI18n(i18n);
 const table = useTable(resource);
 const actions = useActions(
     table,
-    {},
+    { rowKey: props.rowKey },
     {
-        onCustomAction: (action, keys, onFinish) =>
-            emit("customAction", action, keys, onFinish),
-        onSuccess: (action, keys) => emit("actionSuccess", action, keys),
-        onError: (action, keys, error) =>
-            emit("actionError", action, keys, error),
+        onCustomAction: (action, keys, onFinish, selection) =>
+            emit("customAction", action, keys, onFinish, selection),
+        onSuccess: (action, keys, selection) =>
+            emit("actionSuccess", action, keys, selection),
+        onError: (action, keys, error, selection) =>
+            emit("actionError", action, keys, error, selection),
     },
 );
 function enabledFilterAttributes(resource: TableResource<T>) {

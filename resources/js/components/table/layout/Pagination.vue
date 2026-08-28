@@ -15,7 +15,7 @@ import { computed } from "vue";
 
 const { actions, resource, table, i18n } = useTableContext();
 const selectedRowsLabel = computed(() => {
-    const count = actions.selectedItems.value.length;
+    const count = actions.selectedCount.value;
 
     if (count === 0) return i18n.t("noRowsSelected");
     if (count === 1) return i18n.t("oneRowSelected");

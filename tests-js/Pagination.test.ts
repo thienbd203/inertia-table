@@ -111,4 +111,13 @@ describe("Pagination", () => {
             "table%5Btopics%5D%5BperPage%5D=10",
         );
     });
+
+    it("shows the total matching selection count across all pages", async () => {
+        const { actions, wrapper } = mountWithTableContext(Pagination);
+
+        actions.toggleAll();
+        await Promise.resolve();
+
+        expect(wrapper.text()).toContain("30 rows selected");
+    });
 });

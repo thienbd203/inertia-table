@@ -131,6 +131,34 @@ class CustomPerPageTopicsTable extends TopicsTable
     protected ?array $perPageOptions = [1, 2];
 }
 
+class ExternalTopicRecord extends Model
+{
+    protected $table = 'external_topics';
+
+    protected $primaryKey = 'uuid';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
+    protected $guarded = [];
+
+    public $timestamps = false;
+}
+
+class ExternalTopicsTable extends Table
+{
+    public function query(): Builder
+    {
+        return ExternalTopicRecord::query();
+    }
+
+    public function columns(): array
+    {
+        return [TextColumn::make('name', 'Name')];
+    }
+}
+
 beforeEach(function () {
     Schema::create('topics', function (Blueprint $table) {
         $table->id();
@@ -198,6 +226,21 @@ it('serializes a versioned table resource', function () {
             'alignment' => 'left',
             'meta' => [],
         ]);
+});
+
+it('serializes the eloquent primary key as stable row metadata', function () {
+    Schema::create('external_topics', function (Blueprint $table) {
+        $table->string('uuid')->primary();
+        $table->string('name');
+    });
+    ExternalTopicRecord::query()->create([
+        'uuid' => 'topic-alpha',
+        'name' => 'Alpha',
+    ]);
+
+    $resource = (new ExternalTopicsTable)->resolve(Request::create('/external-topics'))->toArray();
+
+    expect($resource['results']['data'][0]['_table']['key'])->toBe('topic-alpha');
 });
 
 it('searches only searchable columns', function () {

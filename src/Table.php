@@ -373,6 +373,7 @@ abstract class Table implements Arrayable
         return [
             ...$data,
             '_table' => [
+                'key' => $model->getKey(),
                 'url' => $this->resolveUrl($this->rowUrl($model)),
                 'columns' => $columnUrls,
                 'cells' => $cellMeta,

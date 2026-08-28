@@ -30,7 +30,7 @@ const disabled = computed(
     () =>
         actions.isPerformingAction.value ||
         props.action.disabled ||
-        (props.bulk && actions.selectedItems.value.length === 0),
+        (props.bulk && actions.selectedCount.value === 0),
 );
 const tooltip = computed(
     () =>

@@ -17,7 +17,7 @@ const icon = computed(() =>
 <template>
     <UiDropdownMenuItem
         :disabled="
-            actions.selectedItems.value.length === 0 ||
+            actions.selectedCount.value === 0 ||
             action.disabled ||
             actions.isPerformingAction.value
         "

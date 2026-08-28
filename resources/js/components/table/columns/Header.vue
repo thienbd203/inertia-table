@@ -37,8 +37,9 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
         <UiTableRow>
             <UiTableHead v-if="canSelect" class="tb-selection-cell">
                 <UiCheckbox
-                    :aria-label="i18n.t('selectCurrentPage')"
-                    :model-value="actions.allItemsAreSelected.value"
+                    :aria-label="i18n.t('selectAllResults')"
+                    :model-value="actions.selectionState.value"
+                    :disabled="resource.results.total === 0"
                     @update:model-value="actions.toggleAll"
                 />
             </UiTableHead>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CheckboxRootEmits, CheckboxRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
-import { Check } from "@lucide/vue";
+import { Check, Minus } from "@lucide/vue";
 import { reactiveOmit } from "@vueuse/core";
 import { CheckboxIndicator, CheckboxRoot, useForwardPropsEmits } from "reka-ui";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ const forwarded = useForwardPropsEmits(reactiveOmit(props, "class"), emits);
         v-bind="forwarded"
         :class="
             cn(
-                'peer border-input data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none disabled:cursor-not-allowed disabled:opacity-50',
+                'peer border-input data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none disabled:cursor-not-allowed disabled:opacity-50',
                 props.class,
             )
         "
@@ -26,7 +26,17 @@ const forwarded = useForwardPropsEmits(reactiveOmit(props, "class"), emits);
         <CheckboxIndicator
             data-slot="checkbox-indicator"
             class="grid place-content-center text-current transition-none"
-            ><slot v-bind="slotProps"><Check class="size-3.5" /></slot
+            ><slot v-bind="slotProps"
+                ><Minus
+                    v-if="slotProps.state === 'indeterminate'"
+                    data-slot="checkbox-indeterminate-icon"
+                    class="size-3.5"
+                />
+                <Check
+                    v-else
+                    data-slot="checkbox-checked-icon"
+                    class="size-3.5"
+                /> </slot
         ></CheckboxIndicator>
     </CheckboxRoot>
 </template>

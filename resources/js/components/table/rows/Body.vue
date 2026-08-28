@@ -23,6 +23,14 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
     }[alignment];
 }
 
+function handleSelectionClick(
+    event: MouseEvent,
+    item: TableItem,
+    index: number,
+) {
+    actions.toggleItem(item, index, event.shiftKey);
+}
+
 function handleRowClick(event: MouseEvent, item: TableItem) {
     const target = event.target;
     const columnElement =
@@ -89,7 +97,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
         <UiTableRow
             v-for="(item, index) in resource.results.data"
             v-else
-            :key="String(item.id ?? index)"
+            :key="String(actions.rowKey(item, index))"
             :data-selected="actions.isItemSelected(item, index) || undefined"
             :data-row-clickable="
                 rowUrl(item) && !rowUrl(item)?.disabled ? true : undefined
@@ -105,7 +113,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                 <UiCheckbox
                     :aria-label="i18n.t('selectRow')"
                     :model-value="actions.isItemSelected(item, index)"
-                    @update:model-value="actions.toggleItem(item, index)"
+                    @click="handleSelectionClick($event, item, index)"
                 />
             </UiTableCell>
             <UiTableCell
@@ -144,6 +152,8 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                                 action,
                                 item,
                                 selectedItems: actions.selectedItems.value,
+                                selectedCount: actions.selectedCount.value,
+                                selection: actions.selection.value,
                                 execute: () =>
                                     actions.performAction(action, item),
                             }"

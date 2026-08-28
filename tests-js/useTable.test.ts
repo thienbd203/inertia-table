@@ -4,19 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
 
-const { visit, listeners } = vi.hoisted(() => ({
-    visit: vi.fn(),
-    listeners: new Map<string, () => void>(),
-}));
+const { visit } = vi.hoisted(() => ({ visit: vi.fn() }));
 
 vi.mock("@inertiajs/vue3", () => ({
-    router: {
-        visit,
-        on: vi.fn((event: string, callback: () => void) => {
-            listeners.set(event, callback);
-            return vi.fn();
-        }),
-    },
+    router: { visit },
     usePage: () => ({ url: "/admin/topics?keep=yes" }),
 }));
 
@@ -25,7 +16,6 @@ import { useTable } from "../resources/js/useTable";
 describe("useTable", () => {
     beforeEach(() => {
         visit.mockReset();
-        listeners.clear();
     });
 
     function mountTable() {
@@ -104,11 +94,29 @@ describe("useTable", () => {
         expect(visit).not.toHaveBeenCalled();
     });
 
-    it("reflects inertia navigation state", () => {
+    it("tracks only navigation initiated by its own table instance", () => {
+        const first = mountTable();
+        const second = mountTable();
+
+        first.table.setSort("name");
+
+        expect(first.table.isNavigating.value).toBe(true);
+        expect(second.table.isNavigating.value).toBe(false);
+
+        visit.mock.calls[0][1].onFinish();
+        expect(first.table.isNavigating.value).toBe(false);
+    });
+
+    it("does not finish a newer visit when an older visit completes", () => {
         const { table } = mountTable();
-        listeners.get("start")?.();
+
+        table.setSort("name", "asc");
+        table.setSort("name", "desc");
+
+        visit.mock.calls[0][1].onFinish();
         expect(table.isNavigating.value).toBe(true);
-        listeners.get("finish")?.();
+
+        visit.mock.calls[1][1].onFinish();
         expect(table.isNavigating.value).toBe(false);
     });
 });

@@ -105,6 +105,7 @@ export function topicResource(
                     name: "Alpha",
                     is_featured: false,
                     _table: {
+                        key: 1,
                         url: "/topics/1",
                         columns: { name: "/topics/1" },
                         actions: [
@@ -135,7 +136,7 @@ export function topicResource(
                     id: 2,
                     name: "Beta",
                     is_featured: true,
-                    _table: { url: null, columns: {}, actions: [] },
+                    _table: { key: 2, url: null, columns: {}, actions: [] },
                 },
             ],
             currentPage: 1,

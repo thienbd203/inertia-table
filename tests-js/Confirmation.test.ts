@@ -56,6 +56,7 @@ describe("Confirmation", () => {
 
     it("shows the declared confirmation title, message, and button labels", async () => {
         const { actions } = mountWithTableContext(Confirmation);
+        actions.toggleAll();
         actions.performAction(deleteAction);
         await nextTick();
 
@@ -70,6 +71,7 @@ describe("Confirmation", () => {
 
     it("clears the pending action without visiting when cancelled", async () => {
         const { actions } = mountWithTableContext(Confirmation);
+        actions.toggleAll();
         actions.performAction(deleteAction);
         await nextTick();
 
@@ -85,6 +87,7 @@ describe("Confirmation", () => {
 
     it("performs the endpoint action when confirmed", async () => {
         const { actions } = mountWithTableContext(Confirmation);
+        actions.toggleAll();
         actions.performAction(deleteAction);
         await nextTick();
 

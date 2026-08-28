@@ -35,6 +35,8 @@ const { actions, i18n } = useTableContext();
                     action,
                     item: null,
                     selectedItems: actions.selectedItems.value,
+                    selectedCount: actions.selectedCount.value,
+                    selection: actions.selection.value,
                     execute: () => actions.performAction(action),
                 }"
             >

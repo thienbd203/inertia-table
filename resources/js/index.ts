@@ -46,6 +46,7 @@ export type {
     TableKey,
     TableResource,
     TableResults,
+    TableSelection,
     TableState,
     TableOptions,
 } from "./types";
