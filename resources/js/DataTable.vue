@@ -26,6 +26,7 @@ import type {
 import { useActions } from "@/useActions";
 import { useExports } from "@/useExports";
 import { useTable } from "@/useTable";
+import { useStickyColumns } from "@/useStickyColumns";
 import { useViews } from "@/useViews";
 
 const props = withDefaults(
@@ -75,6 +76,7 @@ const i18n = createTableI18n(
 );
 provideTableI18n(i18n);
 const table = useTable(resource);
+const sticky = useStickyColumns(table);
 const views = useViews(table);
 const actions = useActions(
     table,
@@ -157,6 +159,7 @@ function clearFilters() {
 provideTableContext({
     resource,
     table,
+    sticky,
     actions,
     exports: tableExports,
     views,
@@ -172,7 +175,7 @@ provideTableContext({
     consumePendingFilterPopover,
     removeFilter,
     clearFilters,
-    scope: { table, actions, exports: tableExports, views },
+    scope: { table, sticky, actions, exports: tableExports, views },
 });
 </script>
 

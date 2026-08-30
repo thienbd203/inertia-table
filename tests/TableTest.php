@@ -107,6 +107,24 @@ class ExplicitSearchTopicsTable extends TopicsTable
     protected array|string|null $search = [];
 }
 
+class StickyTopicsTable extends TopicsTable
+{
+    protected ?string $name = 'topics';
+
+    protected ?bool $stickyHeader = true;
+
+    public function columns(): array
+    {
+        return [
+            NumberColumn::make('id', 'ID')->sticky()->toggleable(false),
+            TextColumn::make('name', 'Name')->searchable()->sortable()->stickable(),
+            NumberColumn::make('score', 'Score')->sortable(),
+            BooleanColumn::make('is_featured', 'Featured'),
+            ActionColumn::new()->sticky(),
+        ];
+    }
+}
+
 class AdvancedFilterTopicsTable extends TopicsTable
 {
     protected ?string $name = 'topics';
@@ -223,12 +241,14 @@ it('serializes a versioned table resource', function () {
             'hasBulkActions' => true,
             'hasExports' => false,
             'hasToggleableColumns' => true,
+            'hasStickableColumns' => false,
         ])
         ->search->toBe(['name'])
         ->options->toBe([
             'debounceTime' => 300,
             'perPage' => [10, 25, 50, 100],
             'reloadProps' => [],
+            'stickyHeader' => false,
         ])
         ->state->sort->toBe('name')
         ->state->columns->toBe([
@@ -265,6 +285,27 @@ it('serializes the eloquent primary key as stable row metadata', function () {
     $resource = (new ExternalTopicsTable)->resolve(Request::create('/external-topics'))->toArray();
 
     expect($resource['results']['data'][0]['_table']['key'])->toBe('topic-alpha');
+});
+
+it('normalizes sticky header and pinned column state through declarations', function () {
+    $defaults = (new StickyTopicsTable)->resolve(tableRequest())->toArray();
+    $requested = (new StickyTopicsTable)->resolve(tableRequest([
+        'pinnedColumns' => [
+            'left' => ['name', 'score', '__actions'],
+            'right' => ['name', 'id', 'unknown'],
+        ],
+    ]))->toArray();
+
+    expect($defaults['options']['stickyHeader'])->toBeTrue()
+        ->and($defaults['capabilities']['hasStickableColumns'])->toBeTrue()
+        ->and($defaults['state']['pinnedColumns'])->toBe([
+            'left' => ['id'],
+            'right' => ['__actions'],
+        ])
+        ->and($requested['state']['pinnedColumns'])->toBe([
+            'left' => ['id', 'name'],
+            'right' => ['__actions'],
+        ]);
 });
 
 it('serializes row eligibility and the exact selectable result count', function () {

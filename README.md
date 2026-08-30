@@ -18,7 +18,7 @@ Toolbelt keeps the server authoritative. The browser can only request capabiliti
 - Allowlisted search, sort and filter queries—never raw client input in SQL.
 - A ready-to-use Vue `<DataTable>` built from shadcn-vue-style source and Reka UI primitives.
 - Text, numeric, set, boolean and date filters, including single-date and date-range calendars.
-- Per-table query-string state, Inertia partial reloads, pagination, column visibility and all-results selection across pages.
+- Per-table query-string state, Inertia partial reloads, pagination, column visibility, sticky headers/columns and all-results selection across pages.
 - Scoped saved views with defaults, sharing, optimistic locking and live dirty-state feedback.
 - Signed synchronous or queued exports for all, filtered or selected rows, plus optional XLSX/PDF adapters.
 - Presentation helpers for badges, dates, images, links, tooltips, alignment and Tailwind classes.
@@ -276,6 +276,46 @@ ActionColumn::new()->asDropdown();
 `ActionColumn::asDropdown()` groups each row's actions behind one accessible
 menu trigger. Dynamic `action(<key>)` slots work in both the inline and dropdown
 renderers.
+
+### Sticky header and columns
+
+Enable a sticky header on one table with a property or the fluent API. The
+default renderer gives sticky-header tables a `70vh` scroll viewport so the
+header has a vertical scroll container; override
+`--tb-sticky-header-max-height` on the wrapper when a screen needs another
+height.
+
+```php
+final class TopicsTable extends Table
+{
+    protected ?bool $stickyHeader = true;
+}
+
+TopicsTable::make()->stickyHeader();
+```
+
+`stickable()` lets the user pin or unpin a column from its header menu.
+`sticky()` makes the column permanently pinned and works with every column
+type, including `ActionColumn`:
+
+```php
+public function columns(): array
+{
+    return [
+        NumberColumn::make('id')->sticky(),
+        TextColumn::make('name')->stickable(),
+        TextColumn::make('email')->stickable(),
+        ActionColumn::new()->sticky(),
+    ];
+}
+```
+
+The pin side is inferred from the column's visible position. Adjacent pinned
+columns stack measured widths, hidden columns retain their pin preference, and
+offsets are recalculated after visibility or responsive width changes. Logical
+CSS insets mirror the leading/trailing groups in RTL layouts. Pin state is
+namespaced in the table URL and included in Saved Views; it never changes the
+search/filter identity used by bulk selection.
 
 Use a custom sort for expressions or application-specific ordering:
 

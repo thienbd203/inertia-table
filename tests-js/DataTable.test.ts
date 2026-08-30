@@ -354,12 +354,21 @@ describe("DataTable shadcn renderer", () => {
     it("renders accessible row actions in an action-column dropdown", async () => {
         const resource = topicResource();
         resource.columns[2].asDropdown = true;
+        resource.columns[2].stickable = true;
+        resource.columns[2].sticky = true;
+        resource.state.pinnedColumns = {
+            left: [],
+            right: ["__actions"],
+        };
         const wrapper = mount(DataTable, {
             props: { resource },
             attachTo: document.body,
         });
 
         const trigger = wrapper.get('[aria-label="Row actions"]');
+        expect(
+            trigger.element.closest("td")?.getAttribute("data-sticky-side"),
+        ).toBe("right");
         expect(trigger.attributes("aria-haspopup")).toBe("menu");
 
         await trigger.trigger("keydown", { key: "Enter" });
@@ -571,6 +580,99 @@ describe("DataTable shadcn renderer", () => {
         expect(cell.get('.tb-badge[data-style="success"]').text()).toBe(
             "Alpha",
         );
+    });
+
+    it("renders sticky headers and measured column offsets with logical RTL-safe properties", async () => {
+        const originalRect = HTMLElement.prototype.getBoundingClientRect;
+        let nameWidth = 120;
+        HTMLElement.prototype.getBoundingClientRect = function () {
+            const width = this.classList.contains("tb-selection-cell")
+                ? 40
+                : this.getAttribute("data-column") === "name"
+                  ? nameWidth
+                  : 80;
+
+            return {
+                x: 0,
+                y: 0,
+                top: 0,
+                right: width,
+                bottom: 40,
+                left: 0,
+                width,
+                height: 40,
+                toJSON: () => ({}),
+            };
+        };
+
+        try {
+            const resource = topicResource();
+            resource.options.stickyHeader = true;
+            resource.columns[0].stickable = true;
+            resource.columns[1].stickable = true;
+            resource.columns[2].stickable = true;
+            resource.state.pinnedColumns = {
+                left: ["name", "is_featured"],
+                right: ["__actions"],
+            };
+            const wrapper = mount(DataTable, {
+                props: { resource },
+                attachTo: document.body,
+            });
+
+            await flushPromises();
+
+            const selection = wrapper.get("thead .tb-selection-cell");
+            const name = wrapper.get('thead th[data-column="name"]');
+            const featured = wrapper.get('thead th[data-column="is_featured"]');
+            const actions = wrapper.get('thead th[data-column="__actions"]');
+
+            expect(
+                wrapper.get('[data-slot="table-container"]').classes(),
+            ).toContain("tb-sticky-header-container");
+            expect(selection.classes()).toContain("tb-sticky-header-cell");
+            expect(name.attributes("style")).toContain(
+                "inset-inline-start: 40px",
+            );
+            expect(featured.attributes("style")).toContain(
+                "inset-inline-start: 160px",
+            );
+            expect(featured.attributes("data-sticky-edge")).toBe("start");
+            expect(actions.attributes("style")).toContain(
+                "inset-inline-end: 0px",
+            );
+            expect(actions.attributes("data-sticky-edge")).toBe("end");
+
+            nameWidth = 200;
+            window.dispatchEvent(new Event("resize"));
+            await flushPromises();
+            expect(
+                wrapper
+                    .get('thead th[data-column="is_featured"]')
+                    .attributes("style"),
+            ).toContain("inset-inline-start: 240px");
+
+            await wrapper.setProps({
+                resource: {
+                    ...resource,
+                    state: {
+                        ...resource.state,
+                        columns: {
+                            ...resource.state.columns,
+                            name: false,
+                        },
+                    },
+                },
+            });
+            await flushPromises();
+            expect(
+                wrapper
+                    .get('thead th[data-column="is_featured"]')
+                    .attributes("style"),
+            ).toContain("inset-inline-start: 40px");
+        } finally {
+            HTMLElement.prototype.getBoundingClientRect = originalRect;
+        }
     });
 
     it("renders server-declared images and their fallback slot", () => {

@@ -94,6 +94,37 @@ describe("useTable", () => {
         expect(visit).not.toHaveBeenCalled();
     });
 
+    it("pins stickable columns to their automatic side and lets users unpin them", () => {
+        const { resource, table } = mountTable();
+        resource.value.columns[0].stickable = true;
+
+        table.togglePinnedColumn("name");
+        expect(visit.mock.calls[0][0]).toContain(
+            "table%5Btopics%5D%5BpinnedColumns%5D%5Bleft%5D%5B%5D=name",
+        );
+
+        visit.mockReset();
+        resource.value.state.pinnedColumns = {
+            left: ["name"],
+            right: [],
+        };
+        table.togglePinnedColumn("name");
+        const url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        expect(
+            url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
+        ).toEqual([]);
+    });
+
+    it("does not let client state unpin permanently sticky columns", () => {
+        const { resource, table } = mountTable();
+        resource.value.columns[0].stickable = true;
+        resource.value.columns[0].sticky = true;
+
+        table.togglePinnedColumn("name");
+
+        expect(visit).not.toHaveBeenCalled();
+    });
+
     it("tracks only navigation initiated by its own table instance", () => {
         const first = mountTable();
         const second = mountTable();

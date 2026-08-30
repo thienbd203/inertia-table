@@ -5,6 +5,7 @@ import type { TableResource } from "../resources/js/types";
 import { useActions } from "../resources/js/useActions";
 import { useExports } from "../resources/js/useExports";
 import { useTable } from "../resources/js/useTable";
+import { useStickyColumns } from "../resources/js/useStickyColumns";
 import { useViews } from "../resources/js/useViews";
 import { useTableI18n } from "../resources/js/i18n";
 import type { Topic } from "./fixtures";
@@ -23,6 +24,7 @@ export function mountWithTableContext(
     const resource = ref(topicResource(resourceOverrides));
     let table!: ReturnType<typeof useTable<Topic>>;
     let actions!: ReturnType<typeof useActions<Topic>>;
+    let sticky!: ReturnType<typeof useStickyColumns<Topic>>;
     let tableExports!: ReturnType<typeof useExports<Topic>>;
     let views!: ReturnType<typeof useViews<Topic>>;
 
@@ -30,6 +32,7 @@ export function mountWithTableContext(
         defineComponent({
             setup() {
                 table = useTable(resource);
+                sticky = useStickyColumns(table);
                 actions = useActions(table);
                 tableExports = useExports(table, actions);
                 views = useViews(table);
@@ -38,6 +41,7 @@ export function mountWithTableContext(
                 provideTableContext({
                     resource,
                     table,
+                    sticky,
                     actions,
                     exports: tableExports,
                     views,
@@ -51,7 +55,13 @@ export function mountWithTableContext(
                     consumePendingFilterPopover: () => {},
                     removeFilter: () => {},
                     clearFilters: () => {},
-                    scope: { table, actions, exports: tableExports, views },
+                    scope: {
+                        table,
+                        sticky,
+                        actions,
+                        exports: tableExports,
+                        views,
+                    },
                 });
 
                 return () => h(component);
@@ -65,6 +75,7 @@ export function mountWithTableContext(
         exports: tableExports!,
         resource,
         table: table!,
+        sticky: sticky!,
         views: views!,
         wrapper,
     };

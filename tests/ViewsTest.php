@@ -51,8 +51,8 @@ class ViewTopicsTable extends Table
     {
         return [
             NumberColumn::make('id')->toggleable(false),
-            TextColumn::make('name')->searchable()->sortable(),
-            NumberColumn::make('score')->sortable(),
+            TextColumn::make('name')->searchable()->sortable()->stickable(),
+            NumberColumn::make('score')->sortable()->stickable(),
         ];
     }
 

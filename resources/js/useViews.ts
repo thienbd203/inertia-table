@@ -24,7 +24,7 @@ export function useViews<T extends TableItem>(table: UseTable<T>) {
             sort: state.sort,
             filters: state.filters,
             columns: state.columns,
-            pinnedColumns: { left: [], right: [] },
+            pinnedColumns: state.pinnedColumns ?? { left: [], right: [] },
             perPage: state.perPage,
         };
 
@@ -66,6 +66,7 @@ export function useViews<T extends TableItem>(table: UseTable<T>) {
             sort: view.state.sort,
             filters: view.state.filters,
             columns: view.state.columns,
+            pinnedColumns: view.state.pinnedColumns,
             perPage: view.state.perPage,
             search: resource.value?.includeSearch
                 ? (view.state.search ?? "")

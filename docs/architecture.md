@@ -91,6 +91,7 @@ type TableResource<T> = {
         hasBulkActions: boolean;
         hasExports: boolean;
         hasToggleableColumns: boolean;
+        hasStickableColumns: boolean;
     };
     state: TableState;
     results: PaginatedResults<T>;
@@ -98,6 +99,7 @@ type TableResource<T> = {
         debounceTime: number;
         perPage: number[];
         reloadProps: string[];
+        stickyHeader: boolean;
     };
     views: TableViewsResource | null;
     exports: ExportResource[];
@@ -114,6 +116,8 @@ type ColumnResource = {
     sortable: boolean;
     toggleable: boolean;
     visibleByDefault: boolean;
+    stickable: boolean;
+    sticky: boolean;
     alignment: "left" | "center" | "right";
     wrap: boolean;
     truncate: number | null;
@@ -197,6 +201,7 @@ type TableState = {
     page: number;
     perPage: number;
     view?: string | number | null;
+    pinnedColumns: { left: string[]; right: string[] };
 };
 ```
 
@@ -322,12 +327,30 @@ Spatie Query Builder does not own column visibility, table naming, action execut
 
 ```ts
 const table = useTable(resource);
+const sticky = useStickyColumns(table);
 const actions = useActions(table);
 const views = useViews(table);
 const exports = useExports(table, actions);
 ```
 
-`useTable()` owns resolved state and navigation operations. `useActions()` owns explicit keys, all-results selection with exclusions, current-page Shift-click ranges, row/bulk action availability, confirmation, execution, and pending state. `useViews()` owns view switching, normalized persistence payloads, dirty comparison and authorized mutations. `useExports()` owns signed download and queued-dispatch requests, pending/error/queued state and browser downloads while preserving selection. The header checkbox selects every selectable row matching the normalized search/filter state across pagination immediately; it never stops at the current page. Its three states use `selectableTotal`, and ranges skip unselectable rows.
+`useTable()` owns resolved state and navigation operations. `useStickyColumns()`
+owns visible pin groups, measured widths, logical offsets and edge metadata.
+`useActions()` owns explicit keys, all-results selection with exclusions,
+current-page Shift-click ranges, row/bulk action availability, confirmation,
+execution, and pending state. `useViews()` owns view switching, normalized
+persistence payloads, dirty comparison and authorized mutations. `useExports()`
+owns signed download and queued-dispatch requests, pending/error/queued state and
+browser downloads while preserving selection. The header checkbox selects every
+selectable row matching the normalized search/filter state across pagination
+immediately; it never stops at the current page. Its three states use
+`selectableTotal`, and ranges skip unselectable rows.
+
+Sticky state remains presentation/navigation state and is excluded from the
+selection descriptor. The server normalizes pinned attributes through current
+column declarations, restores permanent `sticky()` columns, and persists the
+result in Saved Views. The default renderer measures header cells once for both
+header and body offsets, recalculates on resize or visibility changes, uses
+logical insets for RTL, and keeps sticky backgrounds and edge shadows opaque.
 
 The default `<DataTable>` exposes these scopes through documented slots:
 
@@ -364,6 +387,7 @@ Included:
 - synchronous and queued CSV exports with optional exporter adapters;
 - allowlisted nested relationship search, filtering and sorting;
 - shared Spatie query customization across results, selections and exports;
+- sticky headers and user-toggleable or permanent columns with Saved View state;
 - multiple named tables and partial reloads;
 - headless Vue composables and one shadcn-vue renderer;
 - localization-ready labels;
@@ -373,7 +397,7 @@ Deferred:
 
 - cursor pagination;
 - React renderer;
-- sticky columns and virtualized rows;
+- virtualized rows;
 - persisted selection across search/filter changes.
 
 ## Required test boundaries

@@ -5,11 +5,13 @@ import type { TableItem, TableResource } from "@/types";
 import type { UseActions } from "@/useActions";
 import type { UseExports } from "@/useExports";
 import type { UseTable } from "@/useTable";
+import type { UseStickyColumns } from "@/useStickyColumns";
 import type { UseViews } from "@/useViews";
 
 export type TableContext<T extends TableItem = TableItem> = {
     resource: Ref<TableResource<T>>;
     table: UseTable<T>;
+    sticky: UseStickyColumns<T>;
     actions: UseActions<T>;
     exports: UseExports<T>;
     views: UseViews<T>;
@@ -25,6 +27,7 @@ export type TableContext<T extends TableItem = TableItem> = {
     clearFilters: () => void;
     scope: {
         table: UseTable<T>;
+        sticky: UseStickyColumns<T>;
         actions: UseActions<T>;
         exports: UseExports<T>;
         views: UseViews<T>;

@@ -10,11 +10,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UiTableHead, UiTableHeader, UiTableRow } from "@/components/ui/table";
 import { useTableContext } from "@/context/tableContext";
-import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from "@lucide/vue";
+import {
+    ArrowDown,
+    ArrowUp,
+    ChevronsUpDown,
+    EyeOff,
+    Pin,
+    PinOff,
+} from "@lucide/vue";
 import { SlotOutlet } from "../shared";
 
 defineProps<{ canSelect: boolean }>();
-const { resource, table, actions, i18n } = useTableContext();
+const { resource, table, actions, sticky, i18n } = useTableContext();
 
 function sortDirection(attribute: string): "asc" | "desc" | null {
     if (resource.value.state.sort === attribute) return "asc";
@@ -30,12 +37,40 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
         right: "text-right",
     }[alignment];
 }
+
+function canTogglePin(attribute: string): boolean {
+    const column = resource.value.columns.find(
+        (candidate) => candidate.attribute === attribute,
+    );
+
+    return column?.stickable === true && column.sticky !== true;
+}
 </script>
 
 <template>
-    <UiTableHeader>
+    <UiTableHeader
+        :data-sticky-header="resource.options.stickyHeader || undefined"
+    >
         <UiTableRow>
-            <UiTableHead v-if="canSelect" class="tb-selection-cell">
+            <UiTableHead
+                v-if="canSelect"
+                :ref="
+                    (element) =>
+                        sticky.registerHeaderCell(
+                            sticky.selectionColumn,
+                            element,
+                        )
+                "
+                class="tb-selection-cell"
+                :class="{
+                    'tb-sticky-cell': sticky.selectionPinned.value,
+                    'tb-sticky-header-cell': resource.options.stickyHeader,
+                }"
+                :data-sticky-side="
+                    sticky.selectionPinned.value ? 'left' : undefined
+                "
+                :style="sticky.style(sticky.selectionColumn)"
+            >
                 <UiCheckbox
                     :aria-label="
                         i18n.t('selectAllMatching', {
@@ -55,15 +90,38 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
             <UiTableHead
                 v-for="column in table.visibleColumns.value"
                 :key="column.attribute"
+                :data-column="column.attribute"
                 :data-alignment="column.alignment"
-                :class="[column.headerClass, alignmentClass(column.alignment)]"
+                :data-sticky-side="
+                    sticky.pinSide(column.attribute) ?? undefined
+                "
+                :data-sticky-edge="sticky.edge(column.attribute) ?? undefined"
+                :class="[
+                    column.headerClass,
+                    alignmentClass(column.alignment),
+                    {
+                        'tb-sticky-cell': sticky.pinSide(column.attribute),
+                        'tb-sticky-header-cell': resource.options.stickyHeader,
+                    },
+                ]"
+                :style="sticky.style(column.attribute)"
                 :title="column.tooltip ?? undefined"
+                :ref="
+                    (element) =>
+                        sticky.registerHeaderCell(column.attribute, element)
+                "
             >
                 <SlotOutlet
                     :name="`header(${column.attribute})`"
                     :slot-props="{ column }"
                 >
-                    <UiDropdownMenu v-if="column.sortable || column.toggleable">
+                    <UiDropdownMenu
+                        v-if="
+                            column.sortable ||
+                            column.toggleable ||
+                            canTogglePin(column.attribute)
+                        "
+                    >
                         <UiDropdownMenuTrigger class="-ms-3">
                             <UiButton
                                 :variant="
@@ -134,7 +192,11 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
                                 </UiDropdownMenuItem>
                             </template>
                             <UiDropdownMenuSeparator
-                                v-if="column.sortable && column.toggleable"
+                                v-if="
+                                    column.sortable &&
+                                    (column.toggleable ||
+                                        canTogglePin(column.attribute))
+                                "
                             />
                             <UiDropdownMenuItem
                                 v-if="column.toggleable"
@@ -143,6 +205,32 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
                             >
                                 <EyeOff class="size-4" />
                                 {{ i18n.t("hideColumn") }}
+                            </UiDropdownMenuItem>
+                            <UiDropdownMenuSeparator
+                                v-if="
+                                    column.toggleable &&
+                                    canTogglePin(column.attribute)
+                                "
+                            />
+                            <UiDropdownMenuItem
+                                v-if="canTogglePin(column.attribute)"
+                                class="font-medium"
+                                @select="
+                                    table.togglePinnedColumn(column.attribute)
+                                "
+                            >
+                                <PinOff
+                                    v-if="table.columnPinSide(column.attribute)"
+                                    class="size-4"
+                                />
+                                <Pin v-else class="size-4" />
+                                {{
+                                    i18n.t(
+                                        table.columnPinSide(column.attribute)
+                                            ? "unpinColumn"
+                                            : "pinColumn",
+                                    )
+                                }}
                             </UiDropdownMenuItem>
                         </UiDropdownMenuContent>
                     </UiDropdownMenu>

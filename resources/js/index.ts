@@ -2,6 +2,8 @@ export { default as DataTable } from "./DataTable.vue";
 export { useActions } from "./useActions";
 export { useExports } from "./useExports";
 export { useTable } from "./useTable";
+export { useStickyColumns } from "./useStickyColumns";
+export type { StickySide, UseStickyColumns } from "./useStickyColumns";
 export { useViews } from "./useViews";
 export { tableUrl } from "./url";
 export { setIconResolver } from "./icons";

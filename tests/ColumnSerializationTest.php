@@ -6,6 +6,7 @@ use Musing\InertiaTable\Actions\Action;
 use Musing\InertiaTable\Columns\ActionColumn;
 use Musing\InertiaTable\Columns\BooleanColumn;
 use Musing\InertiaTable\Columns\DateTimeColumn;
+use Musing\InertiaTable\Columns\TextColumn;
 
 function anonymousModel(): Model
 {
@@ -29,6 +30,15 @@ it('serializes the actions column as a non-toggleable, right-aligned action type
 
 it('lets the actions column header be renamed', function () {
     expect(ActionColumn::new('Manage')->toArray()['header'])->toBe('Manage');
+});
+
+it('serializes user-toggleable and permanently sticky columns', function () {
+    expect(TextColumn::make('name', stickable: true)->toArray())
+        ->toMatchArray(['stickable' => true, 'sticky' => false])
+        ->and(TextColumn::make('total')->sticky()->toArray())
+        ->toMatchArray(['stickable' => true, 'sticky' => true])
+        ->and(ActionColumn::new()->sticky()->toArray())
+        ->toMatchArray(['stickable' => true, 'sticky' => true]);
 });
 
 it('can group row actions in a dropdown', function () {

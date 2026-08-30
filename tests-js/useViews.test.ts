@@ -153,6 +153,33 @@ describe("useViews", () => {
         expect(views.persistableState().search).toBe("Gamma");
     });
 
+    it("persists and restores normalized pinned columns", () => {
+        const resource = resourceWithViews();
+        resource.state.pinnedColumns = {
+            left: ["name"],
+            right: ["__actions"],
+        };
+        resource.views!.items[0].state.pinnedColumns = {
+            left: [],
+            right: ["__actions"],
+        };
+        const { views } = mountViews(resource);
+
+        expect(views.persistableState().pinnedColumns).toEqual({
+            left: ["name"],
+            right: ["__actions"],
+        });
+
+        views.reset();
+        const url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        expect(
+            url.searchParams.getAll("table[topics][pinnedColumns][right][]"),
+        ).toEqual(["__actions"]);
+        expect(
+            url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
+        ).toEqual([""]);
+    });
+
     it("uses independent signed endpoints and lock versions for mutations", () => {
         const { views } = mountViews();
         const view = savedView();

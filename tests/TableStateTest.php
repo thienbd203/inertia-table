@@ -81,6 +81,37 @@ it('does not read another table namespace', function () {
     expect($state->search)->toBe('');
 });
 
+it('reads nested pinned columns and falls back to declared defaults', function () {
+    $defaults = ['left' => ['id'], 'right' => ['__actions']];
+    $defaultState = TableState::fromRequest(
+        stateRequest(),
+        'topics',
+        null,
+        25,
+        [25],
+        [],
+        $defaults,
+    );
+    $requested = TableState::fromRequest(
+        stateRequest(['pinnedColumns' => [
+            'left' => ['name'],
+            'right' => [],
+        ]]),
+        'topics',
+        null,
+        25,
+        [25],
+        [],
+        $defaults,
+    );
+
+    expect($defaultState->pinnedColumns)->toBe($defaults)
+        ->and($requested->pinnedColumns)->toBe([
+            'left' => ['name'],
+            'right' => [],
+        ]);
+});
+
 it('parses an isolated saved view identifier', function () {
     $state = TableState::fromRequest(
         stateRequest(['view' => 'view-7']),

@@ -26,6 +26,8 @@ abstract class Table implements Arrayable
 
     protected ?int $perPage = null;
 
+    protected ?bool $stickyHeader = null;
+
     /** @var array<int, int>|null */
     protected ?array $perPageOptions = null;
 
@@ -93,6 +95,13 @@ abstract class Table implements Arrayable
         return $this;
     }
 
+    public function stickyHeader(bool $sticky = true): static
+    {
+        $this->stickyHeader = $sticky;
+
+        return $this;
+    }
+
     public function resolve(?Request $request = null): TableResource
     {
         $request ??= request();
@@ -152,6 +161,7 @@ abstract class Table implements Arrayable
                 'hasBulkActions' => $bulkActions !== [],
                 'hasExports' => $resolvedExports !== [],
                 'hasToggleableColumns' => collect($columns)->contains(fn (Column $column) => $column->isToggleable()),
+                'hasStickableColumns' => collect($columns)->contains(fn (Column $column) => $column->isStickable()),
             ],
             state: $state,
             results: $this->paginate(
@@ -165,6 +175,7 @@ abstract class Table implements Arrayable
                 'debounceTime' => (int) config('inertia-table.debounce', 300),
                 'perPage' => $perPageOptions,
                 'reloadProps' => $this->reloadProps,
+                'stickyHeader' => $this->stickyHeader ?? false,
             ],
             views: $resolvedViews['resource'] ?? null,
             exports: $resolvedExports,
@@ -221,24 +232,12 @@ abstract class Table implements Arrayable
             $columns,
             $this->validatedFilters(),
         );
-        $allowedColumns = array_map(
-            fn (Column $column) => $column->attribute,
-            $columns,
-        );
-        $pinned = is_array($state['pinnedColumns'] ?? null)
-            ? $state['pinnedColumns']
-            : [];
-        $left = $this->normalizePinnedColumns($pinned['left'] ?? [], $allowedColumns);
-        $right = array_values(array_diff(
-            $this->normalizePinnedColumns($pinned['right'] ?? [], $allowedColumns),
-            $left,
-        ));
         $normalized = [
             'schemaVersion' => 1,
             'sort' => $resolved->sort,
             'filters' => $resolved->filters,
             'columns' => $resolved->columns,
-            'pinnedColumns' => ['left' => $left, 'right' => $right],
+            'pinnedColumns' => $resolved->pinnedColumns,
             'perPage' => $resolved->perPage,
         ];
 
@@ -521,6 +520,7 @@ abstract class Table implements Arrayable
             collect($columns)->mapWithKeys(fn (Column $column) => [
                 $column->attribute => $column->isVisibleByDefault(),
             ])->all(),
+            $this->defaultPinnedColumns($columns),
         );
         $state = $this->normalizeSort($columns, $state);
 
@@ -528,10 +528,10 @@ abstract class Table implements Arrayable
             $state = $state->withSearch('');
         }
 
-        return $this->normalizeColumns(
+        return $this->normalizePinnedState($columns, $this->normalizeColumns(
             $columns,
             $this->normalizeFilters($filters, $state),
-        );
+        ));
     }
 
     /** @param array<string, mixed> $baseState */
@@ -548,7 +548,7 @@ abstract class Table implements Arrayable
             : [];
         $merged = array_replace($baseState, $explicit);
 
-        foreach (['filters', 'columns'] as $group) {
+        foreach (['filters', 'columns', 'pinnedColumns'] as $group) {
             if (is_array($baseState[$group] ?? null) && is_array($explicit[$group] ?? null)) {
                 $merged[$group] = array_replace($baseState[$group], $explicit[$group]);
             }
@@ -872,9 +872,64 @@ abstract class Table implements Arrayable
             return [];
         }
 
-        return array_values(array_unique(array_filter(
+        $requested = array_filter(
             $columns,
-            fn (mixed $column) => is_string($column) && in_array($column, $allowed, true),
-        )));
+            fn (mixed $column) => is_string($column),
+        );
+
+        return array_values(array_filter(
+            $allowed,
+            fn (string $column) => in_array($column, $requested, true),
+        ));
+    }
+
+    /**
+     * @param  array<int, Column>  $columns
+     * @return array{left: array<int, string>, right: array<int, string>}
+     */
+    private function defaultPinnedColumns(array $columns): array
+    {
+        $lastIndex = max(count($columns) - 1, 0);
+        $left = [];
+        $right = [];
+
+        foreach ($columns as $index => $column) {
+            if (! $column->isSticky()) {
+                continue;
+            }
+
+            if ($index <= $lastIndex / 2) {
+                $left[] = $column->attribute;
+            } else {
+                $right[] = $column->attribute;
+            }
+        }
+
+        return ['left' => $left, 'right' => $right];
+    }
+
+    /** @param array<int, Column> $columns */
+    private function normalizePinnedState(array $columns, TableState $state): TableState
+    {
+        $allowed = collect($columns)
+            ->filter(fn (Column $column) => $column->isStickable())
+            ->pluck('attribute')
+            ->all();
+        $permanent = $this->defaultPinnedColumns($columns);
+        $permanentColumns = [...$permanent['left'], ...$permanent['right']];
+        $left = array_values(array_diff(
+            $this->normalizePinnedColumns($state->pinnedColumns['left'], $allowed),
+            $permanentColumns,
+        ));
+        $right = array_values(array_diff(
+            $this->normalizePinnedColumns($state->pinnedColumns['right'], $allowed),
+            $permanentColumns,
+            $left,
+        ));
+
+        return $state->withPinnedColumns([
+            'left' => array_values(array_unique([...$permanent['left'], ...$left])),
+            'right' => array_values(array_unique([...$right, ...$permanent['right']])),
+        ]);
     }
 }

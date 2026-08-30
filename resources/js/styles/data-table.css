@@ -25,6 +25,57 @@
     -webkit-line-clamp: var(--tb-line-clamp);
 }
 
+.tb-sticky-cell,
+.tb-sticky-header-cell {
+    position: sticky;
+    background-color: var(--color-background, Canvas);
+}
+
+.tb-sticky-header-container {
+    max-height: var(--tb-sticky-header-max-height, 70vh);
+}
+
+.tb-sticky-cell {
+    z-index: 10;
+}
+
+.tb-sticky-header-cell {
+    top: 0;
+    z-index: 20;
+}
+
+.tb-sticky-cell.tb-sticky-header-cell {
+    z-index: 30;
+}
+
+.tb-sticky-cell[data-sticky-edge="start"] {
+    box-shadow: 6px 0 6px -6px rgb(0 0 0 / 28%);
+}
+
+.tb-sticky-cell[data-sticky-edge="end"] {
+    box-shadow: -6px 0 6px -6px rgb(0 0 0 / 28%);
+}
+
+:dir(rtl) .tb-sticky-cell[data-sticky-edge="start"] {
+    box-shadow: -6px 0 6px -6px rgb(0 0 0 / 28%);
+}
+
+:dir(rtl) .tb-sticky-cell[data-sticky-edge="end"] {
+    box-shadow: 6px 0 6px -6px rgb(0 0 0 / 28%);
+}
+
+[data-slot="table-row"]:hover > .tb-sticky-cell {
+    background-color: color-mix(
+        in srgb,
+        var(--color-muted, Canvas) 50%,
+        var(--color-background, Canvas)
+    );
+}
+
+[data-slot="table-row"][data-selected] > .tb-sticky-cell {
+    background-color: var(--color-muted, Canvas);
+}
+
 @keyframes slideUp {
     from {
         opacity: 0;

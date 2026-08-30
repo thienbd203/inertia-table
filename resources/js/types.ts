@@ -28,6 +28,8 @@ export type TableColumn = {
     sortable: boolean;
     toggleable: boolean;
     visibleByDefault: boolean;
+    stickable?: boolean;
+    sticky?: boolean;
     alignment: "left" | "center" | "right";
     wrap?: boolean;
     truncate?: number | null;
@@ -100,6 +102,7 @@ export type TableState = {
     page: number;
     perPage: number;
     view?: TableKey | null;
+    pinnedColumns?: { left: string[]; right: string[] };
 };
 
 export type TableViewState = {
@@ -204,6 +207,7 @@ export type TableResource<T extends TableItem = TableItem> = {
         hasActions?: boolean;
         hasBulkActions?: boolean;
         hasToggleableColumns?: boolean;
+        hasStickableColumns?: boolean;
         hasExports?: boolean;
     };
     state: TableState;
@@ -212,6 +216,7 @@ export type TableResource<T extends TableItem = TableItem> = {
         debounceTime: number;
         perPage: number[];
         reloadProps: string[];
+        stickyHeader?: boolean;
     };
     views?: TableViewsResource | null;
     exports?: TableExport[];

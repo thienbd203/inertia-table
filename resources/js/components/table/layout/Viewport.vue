@@ -23,7 +23,12 @@ const canSelect = computed(
 
 <template>
     <SlotOutlet name="table">
-        <UiTable class="tb-table">
+        <UiTable
+            class="tb-table"
+            :container-class="{
+                'tb-sticky-header-container': resource.options.stickyHeader,
+            }"
+        >
             <SlotOutlet name="thead">
                 <Header :can-select="canSelect" />
             </SlotOutlet>

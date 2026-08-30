@@ -26,6 +26,10 @@ class Column implements Arrayable
 
     protected bool $visibleByDefault = true;
 
+    protected bool $stickable = false;
+
+    protected bool $sticky = false;
+
     protected ColumnAlignment $alignment = ColumnAlignment::Left;
 
     protected bool $wrap = false;
@@ -88,6 +92,7 @@ class Column implements Arrayable
         string|array|null $headerClass = null,
         string|array|null $cellClass = null,
         ?Closure $url = null,
+        bool $stickable = false,
     ): static {
         $column = new static($attribute, $label ?? str($attribute)->headline()->toString());
         $column->sortable($sortable)
@@ -98,7 +103,8 @@ class Column implements Arrayable
             ->wrap($wrap)
             ->tooltip($tooltip)
             ->headerClass($headerClass)
-            ->cellClass($cellClass);
+            ->cellClass($cellClass)
+            ->stickable($stickable);
 
         if ($truncate !== null) {
             $column->truncate($truncate);
@@ -159,6 +165,28 @@ class Column implements Arrayable
     public function visible(bool $visible = true): static
     {
         $this->visibleByDefault = $visible;
+
+        return $this;
+    }
+
+    public function stickable(bool $stickable = true): static
+    {
+        $this->stickable = $stickable;
+
+        if (! $stickable) {
+            $this->sticky = false;
+        }
+
+        return $this;
+    }
+
+    public function sticky(bool $sticky = true): static
+    {
+        $this->sticky = $sticky;
+
+        if ($sticky) {
+            $this->stickable = true;
+        }
 
         return $this;
     }
@@ -432,6 +460,16 @@ class Column implements Arrayable
         return $this->visibleByDefault;
     }
 
+    public function isStickable(): bool
+    {
+        return $this->stickable;
+    }
+
+    public function isSticky(): bool
+    {
+        return $this->sticky;
+    }
+
     public function applySearch(Builder $query, string $search, string $boolean = 'or'): void
     {
         RelationshipPath::where(
@@ -556,6 +594,8 @@ class Column implements Arrayable
             'sortable' => $this->sortable,
             'toggleable' => $this->toggleable,
             'visibleByDefault' => $this->visibleByDefault,
+            'stickable' => $this->stickable,
+            'sticky' => $this->sticky,
             'alignment' => $this->alignment->value,
             'wrap' => $this->wrap,
             'truncate' => $this->truncate,

@@ -184,6 +184,54 @@ export function useTable<T extends TableItem>(
         });
     }
 
+    function columnPinSide(attribute: string): "left" | "right" | null {
+        const pinned = toValue(resource).state.pinnedColumns;
+
+        if (pinned?.left.includes(attribute)) return "left";
+        if (pinned?.right.includes(attribute)) return "right";
+
+        return null;
+    }
+
+    function togglePinnedColumn(attribute: string) {
+        const current = toValue(resource);
+        const definition = current.columns.find(
+            (column) => column.attribute === attribute,
+        );
+
+        if (!definition?.stickable || definition.sticky) return;
+
+        const visible = current.columns.filter(
+            (column) => current.state.columns[column.attribute] !== false,
+        );
+        const index = visible.findIndex(
+            (column) => column.attribute === attribute,
+        );
+        if (index < 0) return;
+
+        const existing = current.state.pinnedColumns ?? {
+            left: [],
+            right: [],
+        };
+        const wasPinned = columnPinSide(attribute) !== null;
+        const side = index <= (visible.length - 1) / 2 ? "left" : "right";
+        const next = {
+            left: existing.left.filter((column) => column !== attribute),
+            right: existing.right.filter((column) => column !== attribute),
+        };
+
+        if (!wasPinned) next[side].push(attribute);
+
+        for (const candidate of ["left", "right"] as const) {
+            const selected = new Set(next[candidate]);
+            next[candidate] = current.columns
+                .filter((column) => selected.has(column.attribute))
+                .map((column) => column.attribute);
+        }
+
+        patchState({ pinnedColumns: next });
+    }
+
     function setPage(page: number) {
         if (page < 1 || page > toValue(resource).results.lastPage) return;
         patchState({ page });
@@ -219,6 +267,7 @@ export function useTable<T extends TableItem>(
     return {
         clearAll,
         clearFilters,
+        columnPinSide,
         hasActiveState,
         hasFilters,
         isNavigating,
@@ -233,6 +282,7 @@ export function useTable<T extends TableItem>(
         setSort,
         state,
         toggleColumn,
+        togglePinnedColumn,
         visibleColumns,
         visit,
     };

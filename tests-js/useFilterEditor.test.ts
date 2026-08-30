@@ -17,6 +17,7 @@ import { provideTableContext } from "../resources/js/context/tableContext";
 import { useActions } from "../resources/js/useActions";
 import { useExports } from "../resources/js/useExports";
 import { useTable } from "../resources/js/useTable";
+import { useStickyColumns } from "../resources/js/useStickyColumns";
 import { useViews } from "../resources/js/useViews";
 import type { TableFilter } from "../resources/js/types";
 import { useTableI18n } from "../resources/js/i18n";
@@ -78,6 +79,7 @@ function mountEditor(filter: TableFilter, filters: TableFilter[]) {
         defineComponent({
             setup() {
                 table = useTable(resource);
+                const sticky = useStickyColumns(table);
                 actions = useActions(table);
                 const tableExports = useExports(table, actions);
                 const views = useViews(table);
@@ -85,6 +87,7 @@ function mountEditor(filter: TableFilter, filters: TableFilter[]) {
                 provideTableContext({
                     resource,
                     table,
+                    sticky,
                     actions,
                     exports: tableExports,
                     views,
@@ -98,7 +101,13 @@ function mountEditor(filter: TableFilter, filters: TableFilter[]) {
                     consumePendingFilterPopover: () => {},
                     removeFilter: () => {},
                     clearFilters: () => {},
-                    scope: { table, actions, exports: tableExports, views },
+                    scope: {
+                        table,
+                        sticky,
+                        actions,
+                        exports: tableExports,
+                        views,
+                    },
                 });
 
                 return () => h(FilterEditorHost);

@@ -81,5 +81,18 @@ export function tableUrl<T extends TableItem>(
         params.set(nestedKey(table, "columns", attribute), visible ? "1" : "0");
     }
 
+    const pinnedColumns = state.pinnedColumns ?? { left: [], right: [] };
+    for (const side of ["left", "right"] as const) {
+        const key = `${stateKey(table, "pinnedColumns")}[${side}][]`;
+
+        if (pinnedColumns[side].length === 0 && state.view != null) {
+            params.append(key, "");
+        } else {
+            for (const attribute of pinnedColumns[side]) {
+                params.append(key, attribute);
+            }
+        }
+    }
+
     return `${url.pathname}${url.search}${url.hash}`;
 }

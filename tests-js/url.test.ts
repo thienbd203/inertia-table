@@ -19,6 +19,10 @@ describe("tableUrl", () => {
                     },
                 },
                 columns: { name: true, is_featured: false, __actions: true },
+                pinnedColumns: {
+                    left: ["name"],
+                    right: ["__actions"],
+                },
                 page: 2,
                 perPage: 50,
             },
@@ -43,6 +47,12 @@ describe("tableUrl", () => {
         ).toBe("0");
         expect(parsed.searchParams.get("table[topics][page]")).toBe("2");
         expect(parsed.searchParams.get("table[topics][perPage]")).toBe("50");
+        expect(
+            parsed.searchParams.getAll("table[topics][pinnedColumns][left][]"),
+        ).toEqual(["name"]);
+        expect(
+            parsed.searchParams.getAll("table[topics][pinnedColumns][right][]"),
+        ).toEqual(["__actions"]);
     });
 
     it("omits empty and first-page values", () => {
@@ -112,5 +122,11 @@ describe("tableUrl", () => {
         expect(
             parsed.searchParams.get("table[topics][filters][status][enabled]"),
         ).toBe("0");
+        expect(
+            parsed.searchParams.getAll("table[topics][pinnedColumns][left][]"),
+        ).toEqual([""]);
+        expect(
+            parsed.searchParams.getAll("table[topics][pinnedColumns][right][]"),
+        ).toEqual([""]);
     });
 });

@@ -13,7 +13,7 @@ defineProps<{ canSelect: boolean }>();
 const emit = defineEmits<{
     rowClick: [item: TableItem, column: TableColumn | null];
 }>();
-const { resource, table, actions, i18n } = useTableContext();
+const { resource, table, actions, sticky, i18n } = useTableContext();
 
 function alignmentClass(alignment: "left" | "center" | "right"): string {
     return {
@@ -109,7 +109,15 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
             "
             @click="handleRowClick($event, item)"
         >
-            <UiTableCell v-if="canSelect" class="tb-selection-cell">
+            <UiTableCell
+                v-if="canSelect"
+                class="tb-selection-cell"
+                :class="{ 'tb-sticky-cell': sticky.selectionPinned.value }"
+                :data-sticky-side="
+                    sticky.selectionPinned.value ? 'left' : undefined
+                "
+                :style="sticky.style(sticky.selectionColumn)"
+            >
                 <UiCheckbox
                     :aria-label="i18n.t('selectRow')"
                     :model-value="actions.isItemSelected(item, index)"
@@ -122,19 +130,25 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                 :key="column.attribute"
                 :data-alignment="column.alignment"
                 :data-column="column.attribute"
+                :data-sticky-side="
+                    sticky.pinSide(column.attribute) ?? undefined
+                "
+                :data-sticky-edge="sticky.edge(column.attribute) ?? undefined"
                 :class="[
                     column.cellClass,
                     alignmentClass(column.alignment),
                     {
                         'tb-cell-wrap': column.wrap,
                         'tb-cell-truncate': column.truncate,
+                        'tb-sticky-cell': sticky.pinSide(column.attribute),
                     },
                 ]"
-                :style="
+                :style="[
+                    sticky.style(column.attribute),
                     column.truncate
                         ? { '--tb-line-clamp': column.truncate }
-                        : undefined
-                "
+                        : undefined,
+                ]"
             >
                 <SlotOutlet
                     :name="`cell(${column.attribute})`"

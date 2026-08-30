@@ -20,6 +20,8 @@ export function topicResource(
                 sortable: true,
                 toggleable: true,
                 visibleByDefault: true,
+                stickable: false,
+                sticky: false,
                 alignment: "left",
                 meta: {},
             },
@@ -30,6 +32,8 @@ export function topicResource(
                 sortable: false,
                 toggleable: true,
                 visibleByDefault: true,
+                stickable: false,
+                sticky: false,
                 alignment: "center",
                 meta: {},
             },
@@ -40,6 +44,8 @@ export function topicResource(
                 sortable: false,
                 toggleable: false,
                 visibleByDefault: true,
+                stickable: false,
+                sticky: false,
                 alignment: "right",
                 meta: {},
             },
@@ -97,6 +103,7 @@ export function topicResource(
             columns: { name: true, is_featured: true, __actions: true },
             page: 1,
             perPage: 25,
+            pinnedColumns: { left: [], right: [] },
         },
         results: {
             data: [
@@ -159,6 +166,7 @@ export function topicResource(
             reloadProps: ["featuredCount"],
             debounceTime: 300,
             perPage: [10, 25, 50],
+            stickyHeader: false,
         },
         ...overrides,
     };
