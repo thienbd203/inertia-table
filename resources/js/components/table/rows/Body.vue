@@ -7,6 +7,7 @@ import { cellUrl, cellValue, rowUrl } from "@/helpers/cells";
 import type { TableColumn, TableItem } from "@/types";
 import { ActionButton, RowActionsMenu } from "../actions";
 import { CellContent } from "../cells";
+import { EmptyState as TableEmptyState } from "../empty";
 import { SlotOutlet } from "../shared";
 
 defineProps<{ canSelect: boolean }>();
@@ -86,8 +87,10 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                 class="tb-empty-state"
             >
                 <SlotOutlet name="emptyState">
+                    <TableEmptyState v-if="resource.emptyState" />
                     <p
-                        class="p-8 text-center font-medium text-gray-900 dark:text-zinc-200"
+                        v-else
+                        class="p-8 text-center font-medium text-foreground"
                     >
                         {{ i18n.t("noResults") }}
                     </p>
@@ -97,6 +100,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
         <UiTableRow
             v-for="(item, index) in resource.results.data"
             v-else
+            v-bind="item._table?.dataAttributes ?? {}"
             :key="String(actions.rowKey(item, index))"
             :data-selected="actions.isItemSelected(item, index) || undefined"
             :data-row-clickable="

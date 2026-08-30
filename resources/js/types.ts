@@ -9,6 +9,7 @@ export type TableItem = {
         columns: Record<string, TableUrl | string>;
         cells?: Record<string, Record<string, unknown>>;
         actions: TableAction[];
+        dataAttributes?: Record<string, string | number | boolean | null>;
     };
 };
 
@@ -162,6 +163,25 @@ export type TableExport = {
     meta: Record<string, unknown>;
 };
 
+export type TableEmptyStateAction = {
+    label: string;
+    url: TableUrl;
+    variant: "default" | "danger" | "info" | "success" | "warning";
+    icon: string | null;
+    buttonClass: string | null;
+    dataAttributes: Record<string, string | number | boolean | null>;
+    meta: Record<string, unknown>;
+};
+
+export type TableEmptyState = {
+    title: string;
+    message: string | null;
+    icon: string | false | null;
+    actions: TableEmptyStateAction[];
+    dataAttributes: Record<string, string | number | boolean | null>;
+    meta: Record<string, unknown>;
+};
+
 export type QueuedExportStatus = {
     id: string;
     status: "dispatched" | "processing" | "ready" | "failed" | "expired";
@@ -192,7 +212,7 @@ export type TableResults<T extends TableItem> = {
 };
 
 export type TableResource<T extends TableItem = TableItem> = {
-    schemaVersion: 1;
+    schemaVersion: 2;
     name: string;
     columns: TableColumn[];
     filters: TableFilter[];
@@ -209,6 +229,7 @@ export type TableResource<T extends TableItem = TableItem> = {
         hasToggleableColumns?: boolean;
         hasStickableColumns?: boolean;
         hasExports?: boolean;
+        hasEmptyState?: boolean;
     };
     state: TableState;
     results: TableResults<T>;
@@ -220,6 +241,7 @@ export type TableResource<T extends TableItem = TableItem> = {
     };
     views?: TableViewsResource | null;
     exports?: TableExport[];
+    emptyState?: TableEmptyState | null;
 };
 
 export type TableOptions<T extends TableItem> = {

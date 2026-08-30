@@ -71,11 +71,11 @@ musing/inertia-table                 Laravel/PHP core
 
 For v0.1 the TypeScript core may live inside the Vue package, but its modules must remain free of Vue component and shadcn imports so it can be extracted without changing the resource contract.
 
-## Table resource v1
+## Table resource v2
 
 ```ts
 type TableResource<T> = {
-    schemaVersion: 1;
+    schemaVersion: 2;
     name: string;
     columns: ColumnResource[];
     filters: FilterResource[];
@@ -92,6 +92,7 @@ type TableResource<T> = {
         hasExports: boolean;
         hasToggleableColumns: boolean;
         hasStickableColumns: boolean;
+        hasEmptyState: boolean;
     };
     state: TableState;
     results: PaginatedResults<T>;
@@ -103,6 +104,7 @@ type TableResource<T> = {
     };
     views: TableViewsResource | null;
     exports: ExportResource[];
+    emptyState: EmptyStateResource | null;
 };
 ```
 
@@ -128,6 +130,35 @@ type ColumnResource = {
     asDropdown?: boolean;
 };
 ```
+
+### Empty-state and row metadata
+
+```ts
+type EmptyStateResource = {
+    title: string;
+    message: string | null;
+    icon: string | false | null;
+    actions: EmptyStateActionResource[];
+    dataAttributes: Record<string, string | number | boolean | null>;
+    meta: Record<string, unknown>;
+};
+
+type RowMetadata = {
+    key: string | number;
+    selectable: boolean;
+    url: TableUrl | null;
+    columns: Record<string, TableUrl>;
+    cells: Record<string, Record<string, unknown>>;
+    actions: ActionResource[];
+    dataAttributes: Record<string, string | number | boolean | null>;
+};
+```
+
+The server emits an empty-state resource only after the filtered result is empty
+and the normalized base query has no rows. Filtered no-results therefore cannot
+accidentally show a create-first-record call to action. Row and empty-state data
+attributes are normalized to `data-*`, accept scalar or null values only, and
+cannot replace package-owned row state.
 
 Searchability belongs to table query configuration, not presentation state. A
 column helper may opt an attribute into search, while the Table `$search`

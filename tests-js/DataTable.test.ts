@@ -582,6 +582,73 @@ describe("DataTable shadcn renderer", () => {
         );
     });
 
+    it("renders a server-defined genuine empty state with actions and data attributes", () => {
+        const resource = topicResource();
+        resource.results = {
+            ...resource.results,
+            data: [],
+            from: null,
+            to: null,
+            total: 0,
+            selectableTotal: 0,
+        };
+        resource.capabilities.hasEmptyState = true;
+        resource.emptyState = {
+            title: "No topics yet",
+            message: "Create the first topic.",
+            icon: false,
+            actions: [
+                {
+                    label: "Create topic",
+                    url: {
+                        url: "/topics/create",
+                        preserveScroll: true,
+                        preserveState: true,
+                        newTab: false,
+                        download: false,
+                        disabled: false,
+                    },
+                    variant: "info",
+                    icon: null,
+                    buttonClass: "create-topic",
+                    dataAttributes: { "data-intent": "create" },
+                    meta: { source: "empty-state" },
+                },
+            ],
+            dataAttributes: { "data-kind": "topics" },
+            meta: { surface: "admin" },
+        };
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        const emptyState = wrapper.get('.tb-empty-state[data-kind="topics"]');
+        const action = emptyState.get('a[data-intent="create"]');
+        expect(emptyState.text()).toContain("No topics yet");
+        expect(emptyState.text()).toContain("Create the first topic.");
+        expect(action.attributes("href")).toBe("/topics/create");
+        expect(action.classes()).toContain("create-topic");
+        expect(action.attributes("data-empty-state-variant")).toBe("info");
+    });
+
+    it("forwards normalized server row data attributes to the table row", () => {
+        const resource = topicResource();
+        resource.results.data[0]._table!.dataAttributes = {
+            "data-record-id": 1,
+            "data-status": "PUBLISHED",
+        };
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+        const row = wrapper.get('tbody tr[data-record-id="1"]');
+
+        expect(row.attributes("data-status")).toBe("PUBLISHED");
+    });
+
     it("renders sticky headers and measured column offsets with logical RTL-safe properties", async () => {
         const originalRect = HTMLElement.prototype.getBoundingClientRect;
         let nameWidth = 120;

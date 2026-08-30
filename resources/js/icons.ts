@@ -1,8 +1,17 @@
 import type { Component } from "vue";
-import type { TableAction, TableColumn, TableItem } from "./types";
+import type {
+    TableAction,
+    TableColumn,
+    TableEmptyState,
+    TableEmptyStateAction,
+    TableItem,
+} from "./types";
 
 export type IconContext =
-    TableAction | { column: TableColumn; item: TableItem; value: unknown };
+    | TableAction
+    | TableEmptyState
+    | TableEmptyStateAction
+    | { column: TableColumn; item: TableItem; value: unknown };
 
 export type IconResolver = (
     icon: string,

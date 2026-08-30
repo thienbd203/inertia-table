@@ -226,7 +226,7 @@ it('serializes a versioned table resource', function () {
     $resource = (new TopicsTable)->resolve(tableRequest())->toArray();
 
     expect($resource)
-        ->schemaVersion->toBe(1)
+        ->schemaVersion->toBe(2)
         ->name->toBe('topics')
         ->columns->toHaveCount(5)
         ->filters->toHaveCount(3)
@@ -242,6 +242,7 @@ it('serializes a versioned table resource', function () {
             'hasExports' => false,
             'hasToggleableColumns' => true,
             'hasStickableColumns' => false,
+            'hasEmptyState' => false,
         ])
         ->search->toBe(['name'])
         ->options->toBe([
@@ -730,7 +731,7 @@ it('can be passed directly as an inertia prop', function () {
         ->get('/topic-table')
         ->assertOk()
         ->assertJsonPath('component', 'Topics')
-        ->assertJsonPath('props.topics.schemaVersion', 1)
+        ->assertJsonPath('props.topics.schemaVersion', 2)
         ->assertJsonPath('props.topics.name', 'topics')
         ->assertJsonCount(3, 'props.topics.results.data');
 });

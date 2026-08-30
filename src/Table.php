@@ -13,6 +13,7 @@ use Musing\InertiaTable\Columns\Column;
 use Musing\InertiaTable\Exports\Export;
 use Musing\InertiaTable\Exports\ExportScope;
 use Musing\InertiaTable\Filters\Filter;
+use Musing\InertiaTable\Support\DataAttributes;
 use Musing\InertiaTable\Support\TableReference;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -70,6 +71,11 @@ abstract class Table implements Arrayable
     }
 
     public function views(): ?Views
+    {
+        return null;
+    }
+
+    public function emptyState(): ?EmptyState
     {
         return null;
     }
@@ -144,6 +150,19 @@ abstract class Table implements Arrayable
         $selectableTotal = ! $selectable
             ? 0
             : $this->selectableQuery(clone $query->getEloquentBuilder())->count();
+        $results = $this->paginate(
+            $query,
+            $state,
+            $columns,
+            $actions,
+            $selectableTotal,
+        );
+        $emptyState = $this->emptyState();
+        $resolvedEmptyState = $emptyState !== null
+            && $results['data'] === []
+            && ! $this->queryForAll()->exists()
+                ? $emptyState->toArray()
+                : null;
 
         return new TableResource(
             name: $this->name(),
@@ -162,15 +181,10 @@ abstract class Table implements Arrayable
                 'hasExports' => $resolvedExports !== [],
                 'hasToggleableColumns' => collect($columns)->contains(fn (Column $column) => $column->isToggleable()),
                 'hasStickableColumns' => collect($columns)->contains(fn (Column $column) => $column->isStickable()),
+                'hasEmptyState' => $emptyState !== null,
             ],
             state: $state,
-            results: $this->paginate(
-                $query,
-                $state,
-                $columns,
-                $actions,
-                $selectableTotal,
-            ),
+            results: $results,
             options: [
                 'debounceTime' => (int) config('inertia-table.debounce', 300),
                 'perPage' => $perPageOptions,
@@ -179,6 +193,7 @@ abstract class Table implements Arrayable
             ],
             views: $resolvedViews['resource'] ?? null,
             exports: $resolvedExports,
+            emptyState: $resolvedEmptyState,
         );
     }
 
@@ -684,6 +699,15 @@ abstract class Table implements Arrayable
     }
 
     /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function dataAttributesForModel(Model $model, array $data): array
+    {
+        return [];
+    }
+
+    /**
      * @param  array<int, Column>  $columns
      * @param  array<int, Action>  $actions
      * @return array<string, mixed>
@@ -691,6 +715,10 @@ abstract class Table implements Arrayable
     protected function serializeRow(Model $model, array $columns, array $actions): array
     {
         $data = $this->transform($model);
+        $dataAttributes = DataAttributes::normalize(
+            $this->dataAttributesForModel($model, $data),
+            ['row-clickable', 'selected'],
+        );
 
         foreach ($columns as $column) {
             if ($column->attribute !== '__actions') {
@@ -726,6 +754,7 @@ abstract class Table implements Arrayable
                 'columns' => $columnUrls,
                 'cells' => $cellMeta,
                 'actions' => $rowActions,
+                'dataAttributes' => $dataAttributes,
             ],
         ];
     }

@@ -14,4 +14,7 @@ return [
     'columns' => [
         'actions' => 'Thao tác',
     ],
+    'empty_state' => [
+        'title' => 'Không tìm thấy kết quả.',
+    ],
 ];

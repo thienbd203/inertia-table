@@ -14,4 +14,7 @@ return [
     'columns' => [
         'actions' => 'Actions',
     ],
+    'empty_state' => [
+        'title' => 'No results found.',
+    ],
 ];

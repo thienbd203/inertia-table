@@ -17,6 +17,7 @@ final readonly class TableResource implements Arrayable
      * @param  array<string, mixed>  $options
      * @param  array<string, mixed>|null  $views
      * @param  array<int, array<string, mixed>>  $exports
+     * @param  array<string, mixed>|null  $emptyState
      */
     public function __construct(
         public string $name,
@@ -30,12 +31,13 @@ final readonly class TableResource implements Arrayable
         public array $options,
         public ?array $views = null,
         public array $exports = [],
+        public ?array $emptyState = null,
     ) {}
 
     public function toArray(): array
     {
         return [
-            'schemaVersion' => 1,
+            'schemaVersion' => 2,
             'name' => $this->name,
             'columns' => $this->columns,
             'filters' => $this->filters,
@@ -47,6 +49,7 @@ final readonly class TableResource implements Arrayable
             'options' => $this->options,
             'views' => $this->views,
             'exports' => $this->exports,
+            'emptyState' => $this->emptyState,
         ];
     }
 }

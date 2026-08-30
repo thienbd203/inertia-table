@@ -10,7 +10,7 @@ export function topicResource(
     overrides: Partial<TableResource<Topic>> = {},
 ): TableResource<Topic> {
     return {
-        schemaVersion: 1,
+        schemaVersion: 2,
         name: "topics",
         columns: [
             {
@@ -89,6 +89,7 @@ export function topicResource(
             hasActions: true,
             hasBulkActions: true,
             hasToggleableColumns: true,
+            hasEmptyState: false,
         },
         state: {
             search: "",

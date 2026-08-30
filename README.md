@@ -361,6 +361,52 @@ Tables deliberately do not make rows clickable by default. Handle the optional `
 />
 ```
 
+### Empty states and row data attributes
+
+Return an `EmptyState` when a genuinely empty base table should offer more than
+the generic no-results message. It supports a title, message, optional icon,
+metadata, normalized `data-*` attributes and URL actions:
+
+```php
+use Musing\InertiaTable\EmptyState;
+use Musing\InertiaTable\Url;
+use Musing\InertiaTable\Variant;
+
+public function emptyState(): ?EmptyState
+{
+    return EmptyState::make('No topics yet', 'Create the first topic.')
+        ->dataAttributes(['kind' => 'topics'])
+        ->action(
+            label: 'Create topic',
+            url: fn (Url $url) => $url->route('topics.create'),
+            variant: Variant::Info,
+            icon: 'Plus',
+        );
+}
+```
+
+The server only serializes this definition when the unfiltered base query is
+empty. A search or filter that happens to match no rows keeps the ordinary
+`No results found` UI. The `emptyState` slot remains available to replace the
+default renderer.
+
+Add safe per-row DOM hooks without leaking arbitrary HTML attributes by
+returning keys without the `data-` prefix. The callback receives both the model
+and the transformed row data:
+
+```php
+public function dataAttributesForModel(Model $model, array $data): array
+{
+    return [
+        'record-id' => $model->getKey(),
+        'status' => $data['status_label'],
+    ];
+}
+```
+
+Only scalar or null values are accepted. Package-owned `data-selected` and
+`data-row-clickable` state cannot be overwritten.
+
 ## Search and filters
 
 Mark columns as `searchable()` for global search. Override the resolved list on the table when necessary:

@@ -45,6 +45,8 @@ export type {
     QueuedExportStatus,
     TableColumn,
     TableExport,
+    TableEmptyState,
+    TableEmptyStateAction,
     TableAction,
     TableFilter,
     TableFilterState,
