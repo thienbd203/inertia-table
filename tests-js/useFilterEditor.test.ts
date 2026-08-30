@@ -15,6 +15,7 @@ vi.mock("@inertiajs/vue3", () => ({
 import { useFilterEditor } from "../resources/js/components/table/filters/useFilterEditor";
 import { provideTableContext } from "../resources/js/context/tableContext";
 import { useActions } from "../resources/js/useActions";
+import { useExports } from "../resources/js/useExports";
 import { useTable } from "../resources/js/useTable";
 import { useViews } from "../resources/js/useViews";
 import type { TableFilter } from "../resources/js/types";
@@ -78,12 +79,14 @@ function mountEditor(filter: TableFilter, filters: TableFilter[]) {
             setup() {
                 table = useTable(resource);
                 actions = useActions(table);
+                const tableExports = useExports(table, actions);
                 const views = useViews(table);
                 const i18n = useTableI18n();
                 provideTableContext({
                     resource,
                     table,
                     actions,
+                    exports: tableExports,
                     views,
                     iconResolver: undefined,
                     i18n,
@@ -95,7 +98,7 @@ function mountEditor(filter: TableFilter, filters: TableFilter[]) {
                     consumePendingFilterPopover: () => {},
                     removeFilter: () => {},
                     clearFilters: () => {},
-                    scope: { table, actions, views },
+                    scope: { table, actions, exports: tableExports, views },
                 });
 
                 return () => h(FilterEditorHost);

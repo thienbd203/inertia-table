@@ -52,6 +52,15 @@ class Column implements Arrayable
 
     protected ?Closure $imageConfigurator = null;
 
+    protected bool $exportable = true;
+
+    protected ?Closure $exportMapper = null;
+
+    protected string|Closure|null $exportFormatter = null;
+
+    /** @var array<string, mixed> */
+    protected array $exportMeta = [];
+
     final public function __construct(
         public readonly string $attribute,
         public string $label,
@@ -260,6 +269,43 @@ class Column implements Arrayable
         return $this;
     }
 
+    /** @param Closure(mixed, Model): mixed $mapper */
+    public function exportAs(Closure $mapper): static
+    {
+        $this->exportMapper = $mapper;
+        $this->exportable = true;
+
+        return $this;
+    }
+
+    public function exportable(bool $exportable = true): static
+    {
+        $this->exportable = $exportable;
+
+        return $this;
+    }
+
+    public function dontExport(): static
+    {
+        return $this->exportable(false);
+    }
+
+    /** @param string|Closure(self): string|null $format */
+    public function exportFormat(string|Closure|null $format): static
+    {
+        $this->exportFormatter = $format;
+
+        return $this;
+    }
+
+    /** @param array<string, mixed> $meta */
+    public function exportMeta(array $meta): static
+    {
+        $this->exportMeta = $meta;
+
+        return $this;
+    }
+
     /** @return array<string, bool|string>|null */
     public function resolveUrl(Model $model): ?array
     {
@@ -291,6 +337,35 @@ class Column implements Arrayable
         }
 
         return $value;
+    }
+
+    public function resolveExportValue(Model $model): mixed
+    {
+        $value = $this->resolveValue($model);
+
+        return $this->exportMapper instanceof Closure
+            ? ($this->exportMapper)($value, $model)
+            : $value;
+    }
+
+    public function isExportable(): bool
+    {
+        return $this->exportable;
+    }
+
+    public function resolvedExportFormat(): ?string
+    {
+        $format = $this->exportFormatter instanceof Closure
+            ? ($this->exportFormatter)($this)
+            : $this->exportFormatter;
+
+        return is_string($format) && $format !== '' ? $format : null;
+    }
+
+    /** @return array<string, mixed> */
+    public function exportMetadata(): array
+    {
+        return $this->exportMeta;
     }
 
     /** @return array<string, mixed> */

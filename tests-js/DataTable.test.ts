@@ -148,6 +148,40 @@ describe("DataTable shadcn renderer", () => {
         );
     });
 
+    it("renders exports and keeps selection available for selected exports without bulk actions", async () => {
+        const resource = topicResource();
+        resource.actions = [];
+        resource.capabilities.hasBulkActions = false;
+        resource.exports = [
+            {
+                key: "selected",
+                label: "Selected CSV",
+                filename: "topics.csv",
+                type: "csv",
+                scope: "selected",
+                requiresSelection: true,
+                endpoint: "/exports/selected?signature=valid",
+                meta: {},
+            },
+        ];
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        expect(wrapper.find('thead [data-slot="checkbox"]').exists()).toBe(
+            true,
+        );
+        await openDropdown(wrapper, "Export");
+        expect(document.body.textContent).toContain("Selected CSV");
+        const exportItem = Array.from(
+            document.body.querySelectorAll<HTMLElement>(
+                '[data-slot="dropdown-menu-item"]',
+            ),
+        ).find((item) => item.textContent?.includes("Selected CSV"));
+        expect(exportItem?.getAttribute("data-disabled")).not.toBeNull();
+    });
+
     it("shows a dirty view indicator and exposes reset/update actions", async () => {
         const resource = topicResource();
         attachViews(resource);

@@ -89,6 +89,7 @@ type TableResource<T> = {
         hasFilters: boolean;
         hasActions: boolean;
         hasBulkActions: boolean;
+        hasExports: boolean;
         hasToggleableColumns: boolean;
     };
     state: TableState;
@@ -99,6 +100,7 @@ type TableResource<T> = {
         reloadProps: string[];
     };
     views: TableViewsResource | null;
+    exports: ExportResource[];
 };
 ```
 
@@ -224,6 +226,33 @@ The frontend selection descriptor is resolved to a typed PHP `Selection`. Explic
 
 `Action::handle()` iterates the resolved query by primary key in chunks and invokes the handler for each model. `Action::handleSelection()` invokes a handler once with the `Selection`, allowing set-based queries without loading every selected key or model into memory.
 
+### Export contract
+
+Exports are server-declared capabilities with a stable key, label, filename,
+format, row scope, metadata and request-level authorization. Only authorized
+definitions are serialized, and every download runs through a signed,
+CSRF-protected POST endpoint that resolves the table class and authorization
+again.
+
+The three synchronous row scopes deliberately reuse existing query boundaries:
+
+- `all` uses the table base query;
+- `filtered` rebuilds normalized search, filters and sort without pagination;
+- `selected` uses the typed `Selection`, including all-matching exclusions and
+  selectable scopes.
+
+Columns resolve exported values server-side. `exportAs()` receives the rendered
+value and Eloquent model, `dontExport()` removes a column, and adapter-only format
+and metadata stay out of the frontend resource. Action columns are excluded by
+default. Column visibility affects an export only when the definition opts into
+`visibleColumnsOnly()`.
+
+The native CSV adapter streams an Eloquent cursor to `php://output`, keeping PHP
+memory bounded. It owns UTF-8 encoding, CSV escaping, scalar normalization and
+spreadsheet-formula protection. Other formats implement the `Exporter` contract.
+The Laravel Excel adapter is optional and is loaded only after its dependency is
+detected, so installing the base package does not pull spreadsheet or PDF code.
+
 ## URL contract
 
 Each table owns one namespace:
@@ -259,9 +288,10 @@ Spatie Query Builder does not own column visibility, table naming, action execut
 const table = useTable(resource);
 const actions = useActions(table);
 const views = useViews(table);
+const exports = useExports(table, actions);
 ```
 
-`useTable()` owns resolved state and navigation operations. `useActions()` owns explicit keys, all-results selection with exclusions, current-page Shift-click ranges, row/bulk action availability, confirmation, execution, and pending state. `useViews()` owns view switching, normalized persistence payloads, dirty comparison and authorized mutations. The header checkbox selects every selectable row matching the normalized search/filter state across pagination immediately; it never stops at the current page. Its three states use `selectableTotal`, and ranges skip unselectable rows.
+`useTable()` owns resolved state and navigation operations. `useActions()` owns explicit keys, all-results selection with exclusions, current-page Shift-click ranges, row/bulk action availability, confirmation, execution, and pending state. `useViews()` owns view switching, normalized persistence payloads, dirty comparison and authorized mutations. `useExports()` owns signed download requests, pending/error state and browser downloads while preserving selection. The header checkbox selects every selectable row matching the normalized search/filter state across pagination immediately; it never stops at the current page. Its three states use `selectableTotal`, and ranges skip unselectable rows.
 
 The default `<DataTable>` exposes these scopes through documented slots:
 
@@ -295,6 +325,7 @@ Included:
 - explicit row selection and all-results selection across pagination;
 - server-declared row and bulk actions;
 - typed server-side selection resolution and managed action handlers;
+- synchronous CSV exports and optional exporter adapters;
 - multiple named tables and partial reloads;
 - headless Vue composables and one shadcn-vue renderer;
 - localization-ready labels;
@@ -302,7 +333,7 @@ Included:
 
 Deferred:
 
-- exports and queued exports;
+- queued exports;
 - relationship sorting helpers beyond custom Spatie sorts;
 - cursor pagination;
 - React renderer;

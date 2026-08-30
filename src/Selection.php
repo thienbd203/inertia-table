@@ -14,7 +14,7 @@ final readonly class Selection implements Arrayable
     /**
      * @param  array<int, int|string>  $keys
      * @param  array<int, int|string>  $except
-     * @param  array{search: string, filters: array<string, array{enabled: bool, clause: string, value: mixed}>}  $state
+     * @param  array{search: string, sort: string|null, filters: array<string, array{enabled: bool, clause: string, value: mixed}>}  $state
      */
     public function __construct(
         private Table $tableInstance,

@@ -3,6 +3,7 @@ import type { IconResolver } from "@/icons";
 import type { TableI18n } from "@/i18n";
 import type { TableItem, TableResource } from "@/types";
 import type { UseActions } from "@/useActions";
+import type { UseExports } from "@/useExports";
 import type { UseTable } from "@/useTable";
 import type { UseViews } from "@/useViews";
 
@@ -10,6 +11,7 @@ export type TableContext<T extends TableItem = TableItem> = {
     resource: Ref<TableResource<T>>;
     table: UseTable<T>;
     actions: UseActions<T>;
+    exports: UseExports<T>;
     views: UseViews<T>;
     iconResolver?: IconResolver;
     i18n: TableI18n;
@@ -24,6 +26,7 @@ export type TableContext<T extends TableItem = TableItem> = {
     scope: {
         table: UseTable<T>;
         actions: UseActions<T>;
+        exports: UseExports<T>;
         views: UseViews<T>;
     };
 };

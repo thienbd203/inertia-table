@@ -14,7 +14,10 @@ const emit = defineEmits<{
 const canSelect = computed(
     () =>
         resource.value.capabilities.selectable &&
-        actions.bulkActions.value.length > 0,
+        (actions.bulkActions.value.length > 0 ||
+            resource.value.exports?.some(
+                (definition) => definition.requiresSelection,
+            ) === true),
 );
 </script>
 

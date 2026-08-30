@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Musing\InertiaTable\Http\Controllers\ActionController;
+use Musing\InertiaTable\Http\Controllers\ExportController;
 use Musing\InertiaTable\Http\Controllers\ViewController;
 
 Route::middleware(['web', 'signed:relative'])
@@ -12,6 +13,15 @@ Route::middleware(['web', 'signed:relative'])
     )
     ->where('table', '[A-Za-z0-9_-]+')
     ->name('inertia-table.actions');
+
+Route::middleware(['web', 'signed:relative'])
+    ->post(
+        trim((string) config('inertia-table.export_path', '_inertia-table/exports'), '/')
+            .'/{table}/{export}',
+        ExportController::class,
+    )
+    ->where(['table' => '[A-Za-z0-9_-]+', 'export' => '[A-Za-z0-9_-]+'])
+    ->name('inertia-table.exports');
 
 Route::middleware(['web', 'signed:relative'])
     ->prefix(trim((string) config('inertia-table.view_path', '_inertia-table/views'), '/'))

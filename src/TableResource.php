@@ -16,6 +16,7 @@ final readonly class TableResource implements Arrayable
      * @param  array<string, mixed>  $results
      * @param  array<string, mixed>  $options
      * @param  array<string, mixed>|null  $views
+     * @param  array<int, array<string, mixed>>  $exports
      */
     public function __construct(
         public string $name,
@@ -28,6 +29,7 @@ final readonly class TableResource implements Arrayable
         public array $results,
         public array $options,
         public ?array $views = null,
+        public array $exports = [],
     ) {}
 
     public function toArray(): array
@@ -44,6 +46,7 @@ final readonly class TableResource implements Arrayable
             'results' => $this->results,
             'options' => $this->options,
             'views' => $this->views,
+            'exports' => $this->exports,
         ];
     }
 }

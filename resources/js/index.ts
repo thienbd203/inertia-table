@@ -1,5 +1,6 @@
 export { default as DataTable } from "./DataTable.vue";
 export { useActions } from "./useActions";
+export { useExports } from "./useExports";
 export { useTable } from "./useTable";
 export { useViews } from "./useViews";
 export { tableUrl } from "./url";
@@ -40,6 +41,7 @@ export type {
     DataTableOptions,
     PaginationLink,
     TableColumn,
+    TableExport,
     TableAction,
     TableFilter,
     TableFilterState,

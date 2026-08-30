@@ -144,7 +144,18 @@ export type TableSelection = {
     keys: TableKey[];
     except: TableKey[];
     table: string;
-    state: Pick<TableState, "search" | "filters">;
+    state: Pick<TableState, "search" | "sort" | "filters">;
+};
+
+export type TableExport = {
+    key: string;
+    label: string;
+    filename: string;
+    type: string;
+    scope: "all" | "filtered" | "selected";
+    requiresSelection: boolean;
+    endpoint: string;
+    meta: Record<string, unknown>;
 };
 
 export type PaginationLink = {
@@ -181,6 +192,7 @@ export type TableResource<T extends TableItem = TableItem> = {
         hasActions?: boolean;
         hasBulkActions?: boolean;
         hasToggleableColumns?: boolean;
+        hasExports?: boolean;
     };
     state: TableState;
     results: TableResults<T>;
@@ -190,6 +202,7 @@ export type TableResource<T extends TableItem = TableItem> = {
         reloadProps: string[];
     };
     views?: TableViewsResource | null;
+    exports?: TableExport[];
 };
 
 export type TableOptions<T extends TableItem> = {

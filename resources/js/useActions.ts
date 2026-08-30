@@ -107,6 +107,7 @@ export function useActions<T extends TableItem>(
         table: table.resource.value.name,
         state: {
             search: table.resource.value.state.search,
+            sort: table.resource.value.state.sort,
             filters: table.resource.value.state.filters,
         },
     }));
@@ -298,6 +299,7 @@ export function useActions<T extends TableItem>(
                   table: table.resource.value.name,
                   state: {
                       search: table.resource.value.state.search,
+                      sort: table.resource.value.state.sort,
                       filters: table.resource.value.state.filters,
                   },
               }

@@ -1,14 +1,20 @@
 <?php
 
+use Musing\InertiaTable\Exporters\NativeCsvExporter;
+
 it('merges the package default configuration without a published config file', function () {
     expect(config('inertia-table.per_page'))->toBe(25)
         ->and(config('inertia-table.per_page_options'))->toBe([10, 25, 50, 100])
         ->and(config('inertia-table.debounce'))->toBe(300)
         ->and(config('inertia-table.action_path'))->toBe('_inertia-table/actions')
+        ->and(config('inertia-table.export_path'))->toBe('_inertia-table/exports')
+        ->and(config('inertia-table.exporters.csv'))->toBe(NativeCsvExporter::class)
         ->and(config('inertia-table.view_path'))->toBe('_inertia-table/views')
         ->and(config('inertia-table.views.table'))->toBe('table_views')
         ->and(route('inertia-table.actions', ['table' => 'table', 'action' => 'action'], false))
         ->toStartWith('/_inertia-table/actions/table/action')
+        ->and(route('inertia-table.exports', ['table' => 'table', 'export' => 'csv'], false))
+        ->toStartWith('/_inertia-table/exports/table/csv')
         ->and(route('inertia-table.views.store', ['table' => 'table'], false))
         ->toStartWith('/_inertia-table/views/table');
 });

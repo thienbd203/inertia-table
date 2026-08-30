@@ -10,6 +10,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use LogicException;
 use Musing\InertiaTable\Actions\Action;
 use Musing\InertiaTable\Columns\Column;
+use Musing\InertiaTable\Exports\Export;
+use Musing\InertiaTable\Exports\ExportScope;
 use Musing\InertiaTable\Filters\Filter;
 use Musing\InertiaTable\Support\TableReference;
 use Spatie\QueryBuilder\AllowedFilter;
@@ -59,6 +61,12 @@ abstract class Table implements Arrayable
         return [];
     }
 
+    /** @return array<int, mixed> */
+    public function exports(): array
+    {
+        return [];
+    }
+
     public function views(): ?Views
     {
         return null;
@@ -91,6 +99,7 @@ abstract class Table implements Arrayable
         $columns = $this->validatedColumns();
         $filters = $this->validatedFilters();
         $actions = $this->validatedActions();
+        $exports = $this->validatedExports();
         $views = $this->views();
         $resolvedViews = $views?->resolve($this, $request);
         $searchable = $this->searchableColumns($columns);
@@ -113,7 +122,17 @@ abstract class Table implements Arrayable
             ->filter(fn (array $action) => $action['authorized'] && ! $action['hidden'])
             ->values()
             ->all();
-        $selectableTotal = $bulkActions === []
+        $authorizedExports = collect($exports)
+            ->filter(fn (Export $export) => $export->isAuthorized($request, $this));
+        $resolvedExports = $authorizedExports
+            ->map(fn (Export $export) => $this->resolveExport($export, $request))
+            ->values()
+            ->all();
+        $hasSelectionExport = $authorizedExports->contains(
+            fn (Export $export) => $export->scope() === ExportScope::Selected,
+        );
+        $selectable = $bulkActions !== [] || $hasSelectionExport;
+        $selectableTotal = ! $selectable
             ? 0
             : $this->selectableQuery(clone $query->getEloquentBuilder())->count();
 
@@ -125,12 +144,13 @@ abstract class Table implements Arrayable
             search: array_map(fn (Column $column) => $column->attribute, $searchable),
             capabilities: [
                 'searchable' => $searchable !== [],
-                'selectable' => $bulkActions !== [],
+                'selectable' => $selectable,
                 'paginated' => true,
                 'hasSearch' => $searchable !== [],
                 'hasFilters' => $filters !== [],
                 'hasActions' => $actions !== [],
                 'hasBulkActions' => $bulkActions !== [],
+                'hasExports' => $resolvedExports !== [],
                 'hasToggleableColumns' => collect($columns)->contains(fn (Column $column) => $column->isToggleable()),
             ],
             state: $state,
@@ -147,6 +167,7 @@ abstract class Table implements Arrayable
                 'reloadProps' => $this->reloadProps,
             ],
             views: $resolvedViews['resource'] ?? null,
+            exports: $resolvedExports,
         );
     }
 
@@ -159,6 +180,17 @@ abstract class Table implements Arrayable
     public function selection(array $payload): Selection
     {
         return Selection::fromArray($this, $payload);
+    }
+
+    public function export(string $key): ?Export
+    {
+        foreach ($this->validatedExports() as $export) {
+            if ($export->key === $key) {
+                return $export;
+            }
+        }
+
+        return null;
     }
 
     /** @return Builder<Model> */
@@ -232,7 +264,7 @@ abstract class Table implements Arrayable
      * Normalize untrusted client state through this table's declared search and filters.
      *
      * @param  array<string, mixed>  $state
-     * @return array{search: string, filters: array<string, array{enabled: bool, clause: string, value: mixed}>}
+     * @return array{search: string, sort: string|null, filters: array<string, array{enabled: bool, clause: string, value: mixed}>}
      */
     public function normalizeSelectionState(array $state): array
     {
@@ -240,6 +272,7 @@ abstract class Table implements Arrayable
             'table' => [
                 $this->name() => [
                     'search' => $state['search'] ?? '',
+                    'sort' => $state['sort'] ?? null,
                     'filters' => is_array($state['filters'] ?? null) ? $state['filters'] : [],
                 ],
             ],
@@ -252,8 +285,51 @@ abstract class Table implements Arrayable
 
         return [
             'search' => $resolved->search,
+            'sort' => $resolved->sort,
             'filters' => $resolved->filters,
         ];
+    }
+
+    /**
+     * Build an unpaginated query from normalized table state.
+     *
+     * @param  array<string, mixed>  $state
+     * @return Builder<Model>
+     */
+    public function queryForState(array $state): Builder
+    {
+        $columns = $this->validatedColumns();
+        $filters = $this->validatedFilters();
+        $request = Request::create('/', 'GET', [
+            'table' => [$this->name() => $state],
+        ]);
+        $resolved = $this->resolveState($request, $columns, $filters);
+
+        return $this->buildQuery($request, $resolved, $columns, $filters)
+            ->getEloquentBuilder();
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     * @return array<int, Column>
+     */
+    public function columnsForExport(Export $export, array $state): array
+    {
+        $columns = array_values(array_filter(
+            $this->validatedColumns(),
+            fn (Column $column) => $column->isExportable(),
+        ));
+
+        if (! $export->usesVisibleColumns()) {
+            return $columns;
+        }
+
+        $visibility = $this->normalizeViewState($state)['columns'];
+
+        return array_values(array_filter(
+            $columns,
+            fn (Column $column) => $visibility[$column->attribute] ?? false,
+        ));
     }
 
     /** @return Builder<Model> */
@@ -265,20 +341,16 @@ abstract class Table implements Arrayable
 
         if (! $selection->all) {
             $query = $this->query()->whereKey($selection->keys);
+            $sort = $selection->state['sort'];
+
+            if ($sort !== null) {
+                $attribute = ltrim($sort, '-');
+                $column = collect($this->validatedColumns())
+                    ->first(fn (Column $column) => $column->attribute === $attribute && $column->isSortable());
+                $column?->applySort($query, str_starts_with($sort, '-') ? 'desc' : 'asc');
+            }
         } else {
-            $columns = $this->validatedColumns();
-            $filters = $this->validatedFilters();
-            $request = Request::create('/');
-            $state = new TableState(
-                search: $selection->state['search'],
-                sort: null,
-                filters: $selection->state['filters'],
-                columns: [],
-                page: 1,
-                perPage: $this->defaultPerPage(),
-            );
-            $query = $this->buildQuery($request, $state, $columns, $filters)
-                ->getEloquentBuilder();
+            $query = $this->queryForState($selection->state);
         }
 
         if ($selection->appliesSelectableScope()) {
@@ -648,6 +720,21 @@ abstract class Table implements Arrayable
         return $action->resolve($model, $handlerUrl);
     }
 
+    /** @return array<string, mixed> */
+    private function resolveExport(Export $export, Request $request): array
+    {
+        $endpoint = url()->signedRoute(
+            'inertia-table.exports',
+            [
+                'table' => TableReference::encode(static::class),
+                'export' => $export->key,
+            ],
+            absolute: false,
+        );
+
+        return $export->resolve($request, $this, $endpoint);
+    }
+
     /**
      * @return array<int, array{url: string|null, label: string, active: bool}>
      */
@@ -713,6 +800,27 @@ abstract class Table implements Arrayable
         }
 
         return array_values($actions);
+    }
+
+    /** @return array<int, Export> */
+    private function validatedExports(): array
+    {
+        $exports = $this->exports();
+        $keys = [];
+
+        foreach ($exports as $export) {
+            if (! $export instanceof Export) {
+                throw new LogicException('Every table export must be an instance of '.Export::class.'.');
+            }
+
+            if (in_array($export->key, $keys, true)) {
+                throw new LogicException("Table export keys must be unique; duplicate [{$export->key}] found.");
+            }
+
+            $keys[] = $export->key;
+        }
+
+        return array_values($exports);
     }
 
     /**

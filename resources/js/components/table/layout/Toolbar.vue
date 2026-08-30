@@ -3,6 +3,7 @@ import { UiInput } from "@/components/ui/input";
 import { useTableContext } from "@/context/tableContext";
 import { ActionsMenu } from "../actions";
 import { ColumnVisibilityMenu } from "../columns";
+import { ExportsMenu } from "../exports";
 import { AddFilterMenu } from "../filters";
 import { SlotOutlet } from "../shared";
 import { ViewsMenu } from "../views";
@@ -35,6 +36,7 @@ const {
         <div class="tb-action-group flex gap-2">
             <SlotOutlet name="beforeActions" />
             <ViewsMenu />
+            <ExportsMenu />
             <ActionsMenu />
             <AddFilterMenu
                 :filters="resource.filters"

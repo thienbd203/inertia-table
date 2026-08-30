@@ -3,6 +3,7 @@ import { defineComponent, h, ref, type Component } from "vue";
 import { provideTableContext } from "../resources/js/context/tableContext";
 import type { TableResource } from "../resources/js/types";
 import { useActions } from "../resources/js/useActions";
+import { useExports } from "../resources/js/useExports";
 import { useTable } from "../resources/js/useTable";
 import { useViews } from "../resources/js/useViews";
 import { useTableI18n } from "../resources/js/i18n";
@@ -22,6 +23,7 @@ export function mountWithTableContext(
     const resource = ref(topicResource(resourceOverrides));
     let table!: ReturnType<typeof useTable<Topic>>;
     let actions!: ReturnType<typeof useActions<Topic>>;
+    let tableExports!: ReturnType<typeof useExports<Topic>>;
     let views!: ReturnType<typeof useViews<Topic>>;
 
     const wrapper = mount(
@@ -29,6 +31,7 @@ export function mountWithTableContext(
             setup() {
                 table = useTable(resource);
                 actions = useActions(table);
+                tableExports = useExports(table, actions);
                 views = useViews(table);
                 const i18n = useTableI18n();
 
@@ -36,6 +39,7 @@ export function mountWithTableContext(
                     resource,
                     table,
                     actions,
+                    exports: tableExports,
                     views,
                     iconResolver: undefined,
                     i18n,
@@ -47,7 +51,7 @@ export function mountWithTableContext(
                     consumePendingFilterPopover: () => {},
                     removeFilter: () => {},
                     clearFilters: () => {},
-                    scope: { table, actions, views },
+                    scope: { table, actions, exports: tableExports, views },
                 });
 
                 return () => h(component);
@@ -58,6 +62,7 @@ export function mountWithTableContext(
 
     return {
         actions: actions!,
+        exports: tableExports!,
         resource,
         table: table!,
         views: views!,

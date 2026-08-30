@@ -16,12 +16,14 @@ import "@/styles/data-table.css";
 import type {
     TableAction,
     TableColumn,
+    TableExport,
     TableItem,
     TableKey,
     TableResource,
     TableSelection,
 } from "@/types";
 import { useActions } from "@/useActions";
+import { useExports } from "@/useExports";
 import { useTable } from "@/useTable";
 import { useViews } from "@/useViews";
 
@@ -54,6 +56,8 @@ const emit = defineEmits<{
         error: unknown,
         selection: TableSelection,
     ];
+    exportSuccess: [definition: TableExport];
+    exportError: [definition: TableExport, error: Error];
     rowClick: [item: T, column: TableColumn | null];
 }>();
 defineSlots<{
@@ -82,6 +86,10 @@ const actions = useActions(
             emit("actionError", action, keys, error, selection),
     },
 );
+const tableExports = useExports(table, actions, {
+    onSuccess: (definition) => emit("exportSuccess", definition),
+    onError: (definition, error) => emit("exportError", definition, error),
+});
 function enabledFilterAttributes(resource: TableResource<T>) {
     return Object.entries(resource.state.filters)
         .filter(([, state]) => state.enabled)
@@ -147,6 +155,7 @@ provideTableContext({
     resource,
     table,
     actions,
+    exports: tableExports,
     views,
     iconResolver: props.iconResolver,
     i18n,
@@ -160,7 +169,7 @@ provideTableContext({
     consumePendingFilterPopover,
     removeFilter,
     clearFilters,
-    scope: { table, actions, views },
+    scope: { table, actions, exports: tableExports, views },
 });
 </script>
 

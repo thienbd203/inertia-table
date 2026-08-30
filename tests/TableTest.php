@@ -221,6 +221,7 @@ it('serializes a versioned table resource', function () {
             'hasFilters' => true,
             'hasActions' => true,
             'hasBulkActions' => true,
+            'hasExports' => false,
             'hasToggleableColumns' => true,
         ])
         ->search->toBe(['name'])

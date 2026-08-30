@@ -20,6 +20,7 @@ Toolbelt keeps the server authoritative. The browser can only request capabiliti
 - Text, numeric, set, boolean and date filters, including single-date and date-range calendars.
 - Per-table query-string state, Inertia partial reloads, pagination, column visibility and all-results selection across pages.
 - Scoped saved views with defaults, sharing, optimistic locking and live dirty-state feedback.
+- Signed synchronous CSV exports for all, filtered or selected rows, plus optional XLSX/PDF adapters.
 - Presentation helpers for badges, dates, images, links, tooltips, alignment and Tailwind classes.
 - Slots and headless composables when the default renderer needs an escape hatch.
 - Built-in English and Vietnamese interface messages with per-app and per-table overrides.
@@ -70,6 +71,7 @@ return [
     'per_page_options' => [10, 25, 50, 100],
     'debounce' => 300,
     'action_path' => '_inertia-table/actions',
+    'export_path' => '_inertia-table/exports',
     'view_path' => '_inertia-table/views',
     'views' => ['table' => 'table_views'],
 ];
@@ -489,6 +491,79 @@ import { Pencil, Trash2 } from "@lucide/vue";
 import { setIconResolver } from "@musing/inertia-table-vue";
 
 setIconResolver((name) => ({ Pencil, Trash2 })[name]);
+```
+
+## Exports
+
+Declare one or more authorized export options on the table. Native CSV has no
+additional dependency and defaults to the full base query:
+
+```php
+use Illuminate\Http\Request;
+use Musing\InertiaTable\Exports\Export;
+
+public function exports(): array
+{
+    return [
+        Export::make('all', 'All topics'),
+        Export::make('filtered', 'Filtered topics')->filtered(),
+        Export::make('selected', 'Selected topics')->selected(),
+        Export::make('excel', 'Excel', type: 'xlsx')
+            ->filtered()
+            ->authorize(fn (Request $request) => $request->user()->can('export')),
+    ];
+}
+```
+
+`allRows()` uses `Table::query()` without applying the browser state.
+`filtered()` runs the current search, filters and sort through the same server
+normalization as the visible table. `selected()` reuses the typed `Selection`,
+including all-matching selections and exclusions. A selected export enables row
+checkboxes even when the table has no bulk actions, and starting a download never
+clears the current selection.
+
+Columns are exportable by default except `ActionColumn`. Customize the resolved
+value or exclude a column without changing its onscreen renderer:
+
+```php
+TextColumn::make('reference')
+    ->exportAs(fn (string $value, Topic $topic) => "#{$value}");
+
+TextColumn::make('internal_notes')->dontExport();
+
+NumberColumn::make('amount')
+    ->exportFormat('#,##0.00')
+    ->exportMeta(['style' => ['font' => ['bold' => true]]]);
+```
+
+Declared exportable columns are used by default. Call `visibleColumnsOnly()` on
+an export when it should follow the normalized column visibility state. Native
+CSV streams the Eloquent cursor, emits UTF-8 with a BOM by default, and protects
+spreadsheet formula prefixes. Use `meta(['delimiter' => ';', 'bom' => false])`
+to customize CSV output.
+
+XLSX and PDF use the optional Laravel Excel adapter:
+
+```bash
+composer require maatwebsite/excel
+```
+
+The base package does not require Laravel Excel. Requesting one of those formats
+without it returns a clear validation error. Custom formats implement
+`Musing\InertiaTable\Contracts\Exporter` and are registered under
+`inertia-table.exporters.<type>`.
+
+The Vue renderer submits signed POST requests and reads Laravel's CSRF token from
+either `<meta name="csrf-token">` or the `XSRF-TOKEN` cookie. It exposes
+`export-success` and `export-error` events; custom renderers can use the same
+controller directly:
+
+```ts
+import { useActions, useExports, useTable } from "@musing/inertia-table-vue";
+
+const table = useTable(() => props.topics);
+const actions = useActions(table);
+const exports = useExports(table, actions);
 ```
 
 ## Slots and headless API

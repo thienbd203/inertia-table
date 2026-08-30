@@ -7,3 +7,5 @@ parameters:
         - src
         - config
     tmpDir: build/phpstan
+    scanFiles:
+        - stubs/laravel-excel.php

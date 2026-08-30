@@ -13,6 +13,7 @@ final class ActionColumn extends Column
             $header ?? (string) trans('inertia-table::messages.columns.actions'),
         )
             ->toggleable(false)
+            ->dontExport()
             ->rightAligned();
     }
 
