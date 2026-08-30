@@ -64,20 +64,20 @@ class SetFilter extends Filter
             : $normalized[0];
     }
 
-    protected function apply(Builder $query, string $clause, mixed $value): void
+    protected function apply(Builder $query, string $clause, mixed $value, string $attribute): void
     {
         if ($this->applyUsing) {
-            ($this->applyUsing)($query, $value, $clause);
+            ($this->applyUsing)($query, $value, $clause, $attribute);
 
             return;
         }
 
         $values = is_array($value) ? $value : [$value];
         match ($clause) {
-            'in' => $query->whereIn($this->attribute, $values),
-            'not_in' => $query->whereNotIn($this->attribute, $values),
-            'equals' => $query->where($this->attribute, $values[0]),
-            'not_equals' => $query->where($this->attribute, '!=', $values[0]),
+            'in' => $query->whereIn($attribute, $values),
+            'not_in' => $query->whereNotIn($attribute, $values),
+            'equals' => $query->where($attribute, $values[0]),
+            'not_equals' => $query->where($attribute, '!=', $values[0]),
             default => null,
         };
     }

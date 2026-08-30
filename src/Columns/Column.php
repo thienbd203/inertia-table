@@ -6,8 +6,12 @@ use Closure;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use LogicException;
+use Musing\InertiaTable\Contracts\RelationshipSorter;
 use Musing\InertiaTable\Image;
 use Musing\InertiaTable\SortDirection;
+use Musing\InertiaTable\Sorters\PowerJoinsRelationshipSorter;
+use Musing\InertiaTable\Support\RelationshipPath;
 use Musing\InertiaTable\Url;
 use Spatie\QueryBuilder\AllowedSort;
 
@@ -42,6 +46,9 @@ class Column implements Arrayable
 
     /** @var array<string|int, mixed>|null */
     protected ?array $sortMap = null;
+
+    /** @var array<int, string|int|float|bool> */
+    protected array $sortPriority = [];
 
     /** @var array<string, mixed> */
     protected array $meta = [];
@@ -238,10 +245,22 @@ class Column implements Arrayable
         $map ??= is_array($this->valueMapper) ? $this->valueMapper : null;
 
         if ($map === null) {
-            throw new \LogicException('sortUsingMap() requires an array passed to mapAs(), or an explicit map.');
+            throw new LogicException('sortUsingMap() requires an array passed to mapAs(), or an explicit map.');
         }
 
         $this->sortMap = $map;
+
+        return $this;
+    }
+
+    /** @param array<int, string|int|float|bool> $values */
+    public function sortUsingPriority(array $values): static
+    {
+        $this->sortPriority = array_values(array_unique($values, SORT_REGULAR));
+
+        if ($this->sortPriority === []) {
+            throw new LogicException('sortUsingPriority() requires at least one value.');
+        }
 
         return $this;
     }
@@ -415,7 +434,14 @@ class Column implements Arrayable
 
     public function applySearch(Builder $query, string $search, string $boolean = 'or'): void
     {
-        $query->where($this->attribute, 'like', "%{$search}%", $boolean);
+        RelationshipPath::where(
+            $query,
+            $this->attribute,
+            function (Builder $target, string $attribute) use ($search): void {
+                $target->where($attribute, 'like', "%{$search}%");
+            },
+            $boolean,
+        );
     }
 
     public function applySort(Builder $query, string $direction): void
@@ -434,7 +460,28 @@ class Column implements Arrayable
             return;
         }
 
-        $query->orderBy($this->attribute, $sortDirection->value);
+        if ($this->sortPriority !== []) {
+            $this->applyPrioritySort($query, $sortDirection);
+
+            return;
+        }
+
+        if (RelationshipPath::split($this->attribute) !== null) {
+            $sorter = app(config(
+                'inertia-table.relationship_sorter',
+                PowerJoinsRelationshipSorter::class,
+            ));
+
+            if (! $sorter instanceof RelationshipSorter) {
+                throw new LogicException('The configured relationship sorter must implement '.RelationshipSorter::class.'.');
+            }
+
+            $sorter->sort($query, $this->attribute, $sortDirection);
+
+            return;
+        }
+
+        $query->orderBy($query->qualifyColumn($this->attribute), $sortDirection->value);
     }
 
     public function allowedSort(): AllowedSort
@@ -450,8 +497,12 @@ class Column implements Arrayable
 
     private function applyMappedSort(Builder $query, SortDirection $direction): void
     {
+        if (RelationshipPath::split($this->attribute) !== null) {
+            throw new LogicException('Mapped relationship sorts require an explicit sortUsing() resolver.');
+        }
+
         $grammar = $query->getQuery()->getGrammar();
-        $attribute = $grammar->wrap($this->attribute);
+        $attribute = $grammar->wrap($query->qualifyColumn($this->attribute));
         $cases = [];
         $bindings = [];
 
@@ -464,6 +515,32 @@ class Column implements Arrayable
         $query->orderByRaw(
             "case {$attribute} ".implode(' ', $cases)." else ? end {$direction->value}",
             [...$bindings, $this->attribute],
+        );
+    }
+
+    private function applyPrioritySort(Builder $query, SortDirection $direction): void
+    {
+        if (RelationshipPath::split($this->attribute) !== null) {
+            throw new LogicException('Priority relationship sorts require an explicit sortUsing() resolver.');
+        }
+
+        $grammar = $query->getQuery()->getGrammar();
+        $attribute = $grammar->wrap($query->qualifyColumn($this->attribute));
+        $cases = [];
+        $bindings = [];
+
+        foreach ($this->sortPriority as $priority => $value) {
+            $cases[] = 'when ? then ?';
+            $bindings[] = $value;
+            $bindings[] = $priority;
+        }
+
+        $fallback = $direction === SortDirection::Ascending
+            ? count($this->sortPriority)
+            : -1;
+        $query->orderByRaw(
+            "case {$attribute} ".implode(' ', $cases)." else ? end {$direction->value}",
+            [...$bindings, $fallback],
         );
     }
 

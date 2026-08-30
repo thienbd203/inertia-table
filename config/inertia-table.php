@@ -2,6 +2,7 @@
 
 use Musing\InertiaTable\Exporters\LaravelExcelExporter;
 use Musing\InertiaTable\Exporters\NativeCsvExporter;
+use Musing\InertiaTable\Sorters\PowerJoinsRelationshipSorter;
 
 return [
     'per_page' => 25,
@@ -14,6 +15,7 @@ return [
         'xlsx' => LaravelExcelExporter::class,
         'pdf' => LaravelExcelExporter::class,
     ],
+    'relationship_sorter' => PowerJoinsRelationshipSorter::class,
     'queue' => [
         'connection' => null,
         'queue' => null,

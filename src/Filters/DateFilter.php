@@ -24,17 +24,17 @@ class DateFilter extends Filter
         return is_string($value) && $value !== '' ? $value : null;
     }
 
-    protected function apply(Builder $query, string $clause, mixed $value): void
+    protected function apply(Builder $query, string $clause, mixed $value, string $attribute): void
     {
         match ($clause) {
-            'before' => $query->whereDate($this->attribute, '<', $value),
-            'after' => $query->whereDate($this->attribute, '>', $value),
-            'equal_or_before' => $query->whereDate($this->attribute, '<=', $value),
-            'equal_or_after' => $query->whereDate($this->attribute, '>=', $value),
-            'equals' => $query->whereDate($this->attribute, $value),
-            'not_equals' => $query->whereDate($this->attribute, '!=', $value),
-            'between' => $query->whereBetween($this->attribute, $value),
-            'not_between' => $query->whereNotBetween($this->attribute, $value),
+            'before' => $query->whereDate($attribute, '<', $value),
+            'after' => $query->whereDate($attribute, '>', $value),
+            'equal_or_before' => $query->whereDate($attribute, '<=', $value),
+            'equal_or_after' => $query->whereDate($attribute, '>=', $value),
+            'equals' => $query->whereDate($attribute, $value),
+            'not_equals' => $query->whereDate($attribute, '!=', $value),
+            'between' => $query->whereBetween($attribute, $value),
+            'not_between' => $query->whereNotBetween($attribute, $value),
             default => null,
         };
     }

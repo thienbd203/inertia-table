@@ -152,7 +152,10 @@ type FilterState = {
 Every declared filter has a state entry. Inactive filters serialize with
 `enabled: false`; enabled filters are the only entries compiled into Spatie
 Query Builder callbacks. Each filter type owns validation and clause-specific
-query behavior.
+query behavior. A declared dot path is split into an Eloquent relationship path
+and related attribute, then applied through nested `whereHas`; the client cannot
+introduce a relationship path that is absent from the table definition. Direct
+attributes are qualified against their model table.
 
 ### Action resource
 
@@ -299,6 +302,20 @@ Unknown attributes, clauses, sorts, columns, actions, and per-page values are ig
 - the application's global request query is not mutated;
 - pagination parameters are validated by Toolbelt before reaching the query.
 
+Relationship search and filters use existence subqueries, avoiding duplicate base
+models for to-many matches. Sortable to-one paths delegate to the optional Power
+Joins adapter with a left join. Sortable to-many paths use correlated `MIN`/`MAX`
+aggregates to give one deterministic sort value per model. `sortUsing()` remains
+the dependency-free escape hatch, while `sortUsingMap()` and
+`sortUsingPriority()` provide allowlisted display and priority ordering.
+
+`Table::withQueryBuilder()` receives the isolated package `QueryBuilder` for both
+stateful and all-row queries. Consequently results, explicit/all-matching
+selections, selectable totals, and synchronous/queued exports share the same
+application customization. If the base query or hook introduces joins, Toolbelt
+selects base-model columns and applies a distinct qualified primary key before
+pagination or iteration to stabilize model identity and counts.
+
 Spatie Query Builder does not own column visibility, table naming, action execution, selection, Inertia partial reloads, or the public resource schema.
 
 ## Vue public API
@@ -345,6 +362,8 @@ Included:
 - server-declared row and bulk actions;
 - typed server-side selection resolution and managed action handlers;
 - synchronous and queued CSV exports with optional exporter adapters;
+- allowlisted nested relationship search, filtering and sorting;
+- shared Spatie query customization across results, selections and exports;
 - multiple named tables and partial reloads;
 - headless Vue composables and one shadcn-vue renderer;
 - localization-ready labels;
@@ -352,7 +371,6 @@ Included:
 
 Deferred:
 
-- relationship sorting helpers beyond custom Spatie sorts;
 - cursor pagination;
 - React renderer;
 - sticky columns and virtualized rows;

@@ -4,6 +4,7 @@ namespace Musing\InertiaTable\Filters;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
+use Musing\InertiaTable\Support\RelationshipPath;
 use Spatie\QueryBuilder\AllowedFilter;
 
 /** @implements Arrayable<string, mixed> */
@@ -40,7 +41,7 @@ abstract class Filter implements Arrayable
     /** @return array<int, Clause> */
     abstract protected function defaultClauses(): array;
 
-    abstract protected function apply(Builder $query, string $clause, mixed $value): void;
+    abstract protected function apply(Builder $query, string $clause, mixed $value, string $attribute): void;
 
     public function defaultClause(): string
     {
@@ -140,18 +141,33 @@ abstract class Filter implements Arrayable
             }
 
             if ($clause === Clause::IsSet->value) {
-                $query->whereNotNull($this->attribute);
+                RelationshipPath::where(
+                    $query,
+                    $this->attribute,
+                    function (Builder $target, string $attribute): void {
+                        $target->whereNotNull($attribute);
+                    },
+                );
 
                 return;
             }
 
             if ($clause === Clause::IsNotSet->value) {
-                $query->whereNull($this->attribute);
+                RelationshipPath::whereMissing($query, $this->attribute);
 
                 return;
             }
 
-            $this->apply($query, $clause, $state['value'] ?? null);
+            RelationshipPath::where(
+                $query,
+                $this->attribute,
+                fn (Builder $target, string $attribute) => $this->apply(
+                    $target,
+                    $clause,
+                    $state['value'] ?? null,
+                    $attribute,
+                ),
+            );
         });
     }
 

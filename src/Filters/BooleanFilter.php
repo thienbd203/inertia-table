@@ -16,9 +16,9 @@ class BooleanFilter extends Filter
         return null;
     }
 
-    protected function apply(Builder $query, string $clause, mixed $value): void
+    protected function apply(Builder $query, string $clause, mixed $value, string $attribute): void
     {
-        $query->where($this->attribute, $clause === Clause::IsTrue->value);
+        $query->where($attribute, $clause === Clause::IsTrue->value);
     }
 
     public function toArray(): array

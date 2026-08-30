@@ -1,6 +1,7 @@
 <?php
 
 use Musing\InertiaTable\Exporters\NativeCsvExporter;
+use Musing\InertiaTable\Sorters\PowerJoinsRelationshipSorter;
 
 it('merges the package default configuration without a published config file', function () {
     expect(config('inertia-table.per_page'))->toBe(25)
@@ -9,6 +10,7 @@ it('merges the package default configuration without a published config file', f
         ->and(config('inertia-table.action_path'))->toBe('_inertia-table/actions')
         ->and(config('inertia-table.export_path'))->toBe('_inertia-table/exports')
         ->and(config('inertia-table.exporters.csv'))->toBe(NativeCsvExporter::class)
+        ->and(config('inertia-table.relationship_sorter'))->toBe(PowerJoinsRelationshipSorter::class)
         ->and(config('inertia-table.queue.connection'))->toBeNull()
         ->and(config('inertia-table.queue.queue'))->toBeNull()
         ->and(config('inertia-table.queue.delay'))->toBe(0)

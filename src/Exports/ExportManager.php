@@ -73,7 +73,7 @@ final class ExportManager
         ?array $selection,
     ): array {
         $query = match ($export->scope()) {
-            ExportScope::All => $table->query(),
+            ExportScope::All => $table->queryForAll(),
             ExportScope::Filtered => $table->queryForState($state),
             ExportScope::Selected => $this->selectedQuery($table, $selection),
         };

@@ -309,6 +309,15 @@ abstract class Table implements Arrayable
             ->getEloquentBuilder();
     }
 
+    /** @return Builder<Model> */
+    public function queryForAll(): Builder
+    {
+        $request = Request::create('/', 'GET');
+        $query = $this->withQueryBuilder(QueryBuilder::for($this->query(), $request));
+
+        return $this->stabilizeJoinedQuery($query, $this->hasJoins($query))->getEloquentBuilder();
+    }
+
     /**
      * @param  array<string, mixed>  $state
      * @return array<int, Column>
@@ -340,7 +349,7 @@ abstract class Table implements Arrayable
         }
 
         if (! $selection->all) {
-            $query = $this->query()->whereKey($selection->keys);
+            $query = $this->queryForAll()->whereKey($selection->keys);
             $sort = $selection->state['sort'];
 
             if ($sort !== null) {
@@ -487,6 +496,11 @@ abstract class Table implements Arrayable
         return $queryBuilderRequest;
     }
 
+    protected function withQueryBuilder(QueryBuilder $query): QueryBuilder
+    {
+        return $query;
+    }
+
     /**
      * @param  array<int, Column>  $columns
      * @param  array<int, Filter>  $filters
@@ -558,11 +572,12 @@ abstract class Table implements Arrayable
         array $columns,
         array $filters,
     ): QueryBuilder {
-        return QueryBuilder::for(
+        $query = $this->withQueryBuilder(QueryBuilder::for(
             $this->query(),
             $this->queryBuilderRequest($request, $state),
-        )
-            ->allowedFilters(...$this->allowedFilters($columns, $filters))
+        ));
+        $deduplicate = $this->hasJoins($query);
+        $query->allowedFilters(...$this->allowedFilters($columns, $filters))
             ->allowedSorts(...array_map(
                 fn (Column $column) => $column->allowedSort(),
                 array_values(array_filter(
@@ -570,6 +585,30 @@ abstract class Table implements Arrayable
                     fn (Column $column) => $column->isSortable(),
                 )),
             ));
+
+        return $this->stabilizeJoinedQuery($query, $deduplicate);
+    }
+
+    private function stabilizeJoinedQuery(QueryBuilder $query, bool $deduplicate): QueryBuilder
+    {
+        $eloquent = $query->getEloquentBuilder();
+
+        if (! $deduplicate) {
+            return $query;
+        }
+
+        if ($eloquent->getQuery()->columns === null) {
+            $eloquent->select($eloquent->getModel()->qualifyColumn('*'));
+        }
+
+        $eloquent->distinct($eloquent->getModel()->getQualifiedKeyName());
+
+        return $query;
+    }
+
+    private function hasJoins(QueryBuilder $query): bool
+    {
+        return $query->getEloquentBuilder()->getQuery()->joins !== null;
     }
 
     /** @return array<int, int> */

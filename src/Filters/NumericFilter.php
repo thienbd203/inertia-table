@@ -24,17 +24,17 @@ class NumericFilter extends Filter
         return is_numeric($value) ? 0 + $value : null;
     }
 
-    protected function apply(Builder $query, string $clause, mixed $value): void
+    protected function apply(Builder $query, string $clause, mixed $value, string $attribute): void
     {
         match ($clause) {
-            'equals' => $query->where($this->attribute, $value),
-            'not_equals' => $query->where($this->attribute, '!=', $value),
-            'greater_than' => $query->where($this->attribute, '>', $value),
-            'greater_than_or_equal' => $query->where($this->attribute, '>=', $value),
-            'less_than' => $query->where($this->attribute, '<', $value),
-            'less_than_or_equal' => $query->where($this->attribute, '<=', $value),
-            'between' => $query->whereBetween($this->attribute, $value),
-            'not_between' => $query->whereNotBetween($this->attribute, $value),
+            'equals' => $query->where($attribute, $value),
+            'not_equals' => $query->where($attribute, '!=', $value),
+            'greater_than' => $query->where($attribute, '>', $value),
+            'greater_than_or_equal' => $query->where($attribute, '>=', $value),
+            'less_than' => $query->where($attribute, '<', $value),
+            'less_than_or_equal' => $query->where($attribute, '<=', $value),
+            'between' => $query->whereBetween($attribute, $value),
+            'not_between' => $query->whereNotBetween($attribute, $value),
             default => null,
         };
     }

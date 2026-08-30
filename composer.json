@@ -23,9 +23,10 @@
         "spatie/laravel-query-builder": "^7.0"
     },
     "require-dev": {
+        "kirschbaum-development/eloquent-power-joins": "^4.3",
+        "larastan/larastan": "^3.0",
         "laravel/pint": "^1.14",
         "nunomaduro/collision": "^8.8",
-        "larastan/larastan": "^3.0",
         "orchestra/testbench": "^11.0.0||^10.0.0",
         "pestphp/pest": "^4.0",
         "pestphp/pest-plugin-arch": "^4.0",
@@ -35,6 +36,7 @@
         "phpstan/phpstan-phpunit": "^2.0"
     },
     "suggest": {
+        "kirschbaum-development/eloquent-power-joins": "Required for automatic relationship column sorting.",
         "maatwebsite/excel": "Required for optional XLSX and PDF table exports."
     },
     "autoload": {

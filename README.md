@@ -72,6 +72,7 @@ return [
     'debounce' => 300,
     'action_path' => '_inertia-table/actions',
     'export_path' => '_inertia-table/exports',
+    'relationship_sorter' => \Musing\InertiaTable\Sorters\PowerJoinsRelationshipSorter::class,
     'queue' => [
         'connection' => null,
         'queue' => null,
@@ -256,6 +257,10 @@ TextColumn::make('status')
     ->mapAs(['pending' => 'Pending', 'approved' => 'Approved'])
     ->sortUsingMap();
 
+TextColumn::make('priority')
+    ->sortable()
+    ->sortUsingPriority(['urgent', 'normal', 'low']);
+
 TextColumn::make('description')
     ->wrap()
     ->truncate(2)
@@ -272,7 +277,7 @@ ActionColumn::new()->asDropdown();
 menu trigger. Dynamic `action(<key>)` slots work in both the inline and dropdown
 renderers.
 
-Use a custom sort for expressions, relationships or application-specific ordering:
+Use a custom sort for expressions or application-specific ordering:
 
 ```php
 TextColumn::make('score')->sortable()->sortUsing(
@@ -367,6 +372,67 @@ SetFilter::make('status')->options([
 ```
 
 `SelectFilter` is available as a deprecated alias for `SetFilter`.
+
+### Relationship queries
+
+Declared columns and filters accept nested Eloquent paths. Dot notation is never
+read directly from client input: only paths present in `columns()` or `filters()`
+can become query constraints.
+
+```php
+public function columns(): array
+{
+    return [
+        TextColumn::make('author.name', 'Author')->searchable()->sortable(),
+        TextColumn::make('author.company.name', 'Company')->searchable(),
+        NumberColumn::make('comments.score', 'Comment score')->sortable(),
+    ];
+}
+
+public function filters(): array
+{
+    return [
+        TextFilter::make('author.company.name', 'Company'),
+        NumericFilter::make('comments.score', 'Comment score'),
+    ];
+}
+```
+
+Search and filters use nested `whereHas` constraints, so has-many matches do not
+duplicate base rows. Direct columns are qualified with the model table to avoid
+ambiguous-column errors. Nullable relationship filters include a missing relation
+when using `is_not_set`.
+
+To-one relationship sorting uses the optional Eloquent Power Joins adapter and a
+left join, preserving rows whose relationship is null:
+
+```bash
+composer require kirschbaum-development/eloquent-power-joins
+```
+
+To-many sorting stays duplicate-safe by ordering on a correlated `MIN` for
+ascending order or `MAX` for descending order. Use `sortUsing()` when a domain
+needs different aggregation or ordering semantics. The global adapter is
+configured at `inertia-table.relationship_sorter`.
+
+Tables can customize the same Spatie query builder used by results, explicit and
+all-matching selections, and every export scope:
+
+```php
+use Spatie\QueryBuilder\QueryBuilder;
+
+protected function withQueryBuilder(QueryBuilder $query): QueryBuilder
+{
+    $query->where('topics.tenant_id', tenant()->id);
+
+    return $query;
+}
+```
+
+When the base query or hook adds joins, the package selects the base model and
+deduplicates by its qualified primary key so pagination totals and exported rows
+remain stable. Application-owned joined projections and custom sort callbacks
+remain responsible for their own SQL portability.
 
 ## Actions
 
