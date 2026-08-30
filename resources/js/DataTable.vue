@@ -21,6 +21,7 @@ import type {
     TableKey,
     TableResource,
     TableSelection,
+    QueuedExportStatus,
 } from "@/types";
 import { useActions } from "@/useActions";
 import { useExports } from "@/useExports";
@@ -57,6 +58,7 @@ const emit = defineEmits<{
         selection: TableSelection,
     ];
     exportSuccess: [definition: TableExport];
+    exportQueued: [definition: TableExport, status: QueuedExportStatus];
     exportError: [definition: TableExport, error: Error];
     rowClick: [item: T, column: TableColumn | null];
 }>();
@@ -88,6 +90,7 @@ const actions = useActions(
 );
 const tableExports = useExports(table, actions, {
     onSuccess: (definition) => emit("exportSuccess", definition),
+    onQueued: (definition, status) => emit("exportQueued", definition, status),
     onError: (definition, error) => emit("exportError", definition, error),
 });
 function enabledFilterAttributes(resource: TableResource<T>) {

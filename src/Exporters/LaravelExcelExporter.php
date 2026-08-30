@@ -53,4 +53,47 @@ final class LaravelExcelExporter implements Exporter
 
         return $response;
     }
+
+    public function store(
+        Request $request,
+        Table $table,
+        Export $export,
+        Builder $query,
+        array $columns,
+        string $disk,
+        string $path,
+    ): void {
+        if (! interface_exists('Maatwebsite\\Excel\\Concerns\\FromQuery')) {
+            throw ValidationException::withMessages([
+                'export' => 'Install maatwebsite/excel before using XLSX or PDF table exports.',
+            ]);
+        }
+
+        $writer = app('excel');
+
+        if (! is_object($writer) || ! is_callable([$writer, 'store'])) {
+            throw ValidationException::withMessages([
+                'export' => 'Laravel Excel is installed but its export service is unavailable.',
+            ]);
+        }
+
+        $writerType = match ($export->typeName()) {
+            'xlsx' => 'Xlsx',
+            'pdf' => 'Dompdf',
+            default => $export->typeName(),
+        };
+        $stored = call_user_func(
+            [$writer, 'store'],
+            new LaravelExcelRows($query, $columns),
+            $path,
+            $disk,
+            $writerType,
+        );
+
+        if ($stored !== true) {
+            throw ValidationException::withMessages([
+                'export' => 'The Laravel Excel adapter could not store the queued export.',
+            ]);
+        }
+    }
 }

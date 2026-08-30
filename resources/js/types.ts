@@ -154,8 +154,20 @@ export type TableExport = {
     type: string;
     scope: "all" | "filtered" | "selected";
     requiresSelection: boolean;
+    queued?: boolean;
     endpoint: string;
     meta: Record<string, unknown>;
+};
+
+export type QueuedExportStatus = {
+    id: string;
+    status: "dispatched" | "processing" | "ready" | "failed" | "expired";
+    filename?: string;
+    url?: string | null;
+    expiresAt?: number;
+    redirect?: string | null;
+    duplicate?: boolean;
+    message?: string;
 };
 
 export type PaginationLink = {

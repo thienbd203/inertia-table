@@ -247,11 +247,30 @@ and metadata stay out of the frontend resource. Action columns are excluded by
 default. Column visibility affects an export only when the definition opts into
 `visibleColumnsOnly()`.
 
-The native CSV adapter streams an Eloquent cursor to `php://output`, keeping PHP
-memory bounded. It owns UTF-8 encoding, CSV escaping, scalar normalization and
+The native CSV adapter streams an Eloquent cursor to `php://output` for downloads
+and writes queued files through a temporary stream, keeping PHP memory bounded in
+both paths. It owns UTF-8 encoding, CSV escaping, scalar normalization and
 spreadsheet-formula protection. Other formats implement the `Exporter` contract.
 The Laravel Excel adapter is optional and is loaded only after its dependency is
 detected, so installing the base package does not pull spreadsheet or PDF code.
+
+Queued exports snapshot only the table class, export key, normalized state,
+normalized selection descriptor, actor identifier, scalar scope attributes and
+storage settings. The queue payload does not serialize the request, table, query
+builder, export definition or callbacks. A worker restores the actor and optional
+application context, resolves the current table definition, rejects missing or
+materially changed definitions, reruns authorization, then reconstructs the same
+query and columns used by synchronous exports.
+
+Dispatch is idempotent per table, export, actor, scope attributes and client
+idempotency key. Status is stored as `dispatched`, `processing`, `ready`, `failed`
+or `expired`; completed files receive an application-defined delivery URL and are
+deleted by a delayed cleanup job. Partial files are deleted on failure. Ready and
+failure callbacks, job chaining and post-dispatch redirects are definition-time
+hooks and are resolved around the serializable snapshot rather than embedded in
+it. The Vue composable exposes queued status but deliberately does not invent a
+polling endpoint; applications feed notification or realtime updates back through
+`updateQueuedExport()`.
 
 ## URL contract
 
@@ -291,7 +310,7 @@ const views = useViews(table);
 const exports = useExports(table, actions);
 ```
 
-`useTable()` owns resolved state and navigation operations. `useActions()` owns explicit keys, all-results selection with exclusions, current-page Shift-click ranges, row/bulk action availability, confirmation, execution, and pending state. `useViews()` owns view switching, normalized persistence payloads, dirty comparison and authorized mutations. `useExports()` owns signed download requests, pending/error state and browser downloads while preserving selection. The header checkbox selects every selectable row matching the normalized search/filter state across pagination immediately; it never stops at the current page. Its three states use `selectableTotal`, and ranges skip unselectable rows.
+`useTable()` owns resolved state and navigation operations. `useActions()` owns explicit keys, all-results selection with exclusions, current-page Shift-click ranges, row/bulk action availability, confirmation, execution, and pending state. `useViews()` owns view switching, normalized persistence payloads, dirty comparison and authorized mutations. `useExports()` owns signed download and queued-dispatch requests, pending/error/queued state and browser downloads while preserving selection. The header checkbox selects every selectable row matching the normalized search/filter state across pagination immediately; it never stops at the current page. Its three states use `selectableTotal`, and ranges skip unselectable rows.
 
 The default `<DataTable>` exposes these scopes through documented slots:
 
@@ -325,7 +344,7 @@ Included:
 - explicit row selection and all-results selection across pagination;
 - server-declared row and bulk actions;
 - typed server-side selection resolution and managed action handlers;
-- synchronous CSV exports and optional exporter adapters;
+- synchronous and queued CSV exports with optional exporter adapters;
 - multiple named tables and partial reloads;
 - headless Vue composables and one shadcn-vue renderer;
 - localization-ready labels;
@@ -333,7 +352,6 @@ Included:
 
 Deferred:
 
-- queued exports;
 - relationship sorting helpers beyond custom Spatie sorts;
 - cursor pagination;
 - React renderer;

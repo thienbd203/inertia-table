@@ -23,4 +23,18 @@ interface Exporter
         Builder $query,
         array $columns,
     ): Response;
+
+    /**
+     * @param  Builder<Model>  $query
+     * @param  array<int, Column>  $columns
+     */
+    public function store(
+        Request $request,
+        Table $table,
+        Export $export,
+        Builder $query,
+        array $columns,
+        string $disk,
+        string $path,
+    ): void;
 }

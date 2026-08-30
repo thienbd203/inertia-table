@@ -59,6 +59,54 @@ const { resource, actions, exports: tableExports, i18n } = useTableContext();
     </UiDropdownMenu>
 
     <Dialog
+        :open="tableExports.queuedExport.value !== null"
+        @update:open="(open) => !open && tableExports.clearQueuedExport()"
+    >
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>
+                    {{
+                        tableExports.queuedExport.value?.status === "ready"
+                            ? i18n.t("exportReady")
+                            : tableExports.queuedExport.value?.status ===
+                                "expired"
+                              ? i18n.t("exportExpired")
+                              : tableExports.queuedExport.value?.status ===
+                                  "failed"
+                                ? i18n.t("exportFailed")
+                                : i18n.t("exportQueued")
+                    }}
+                </DialogTitle>
+                <DialogDescription>
+                    {{
+                        tableExports.queuedExport.value?.message ??
+                        (tableExports.queuedExport.value?.status === "ready"
+                            ? i18n.t("exportReadyMessage")
+                            : tableExports.queuedExport.value?.status ===
+                                "expired"
+                              ? i18n.t("exportExpiredMessage")
+                              : i18n.t("exportQueuedMessage"))
+                    }}
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <UiButton v-if="tableExports.queuedExport.value?.url" as-child>
+                    <a :href="tableExports.queuedExport.value.url">
+                        {{ i18n.t("downloadExport") }}
+                    </a>
+                </UiButton>
+                <UiButton
+                    v-else
+                    variant="outline"
+                    @click="tableExports.clearQueuedExport()"
+                >
+                    {{ i18n.t("close") }}
+                </UiButton>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+    <Dialog
         :open="tableExports.error.value !== null"
         @update:open="(open) => !open && tableExports.clearError()"
     >

@@ -5,7 +5,9 @@ namespace Musing\InertiaTable\Exporters;
 use BackedEnum;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Musing\InertiaTable\Columns\Column;
 use Musing\InertiaTable\Contracts\Exporter;
 use Musing\InertiaTable\Exports\Export;
@@ -35,38 +37,80 @@ final class NativeCsvExporter implements Exporter
                     throw new \RuntimeException('Unable to open the CSV output stream.');
                 }
 
-                if ($includeBom !== false) {
-                    fwrite($stream, "\xEF\xBB\xBF");
-                }
-
-                fputcsv(
-                    $stream,
-                    array_map(fn (Column $column) => $column->label, $columns),
-                    $delimiter,
-                    '"',
-                    '',
-                );
-
-                foreach ($query->cursor() as $model) {
-                    fputcsv(
-                        $stream,
-                        array_map(
-                            fn (Column $column) => $this->normalizeValue(
-                                $column->resolveExportValue($model),
-                            ),
-                            $columns,
-                        ),
-                        $delimiter,
-                        '"',
-                        '',
-                    );
-                }
-
-                fclose($stream);
+                $this->write($stream, $query, $columns, $delimiter, $includeBom !== false);
             },
             $filename,
             ['Content-Type' => 'text/csv; charset=UTF-8'],
         );
+    }
+
+    public function store(
+        Request $request,
+        Table $table,
+        Export $export,
+        Builder $query,
+        array $columns,
+        string $disk,
+        string $path,
+    ): void {
+        $temporary = tmpfile();
+
+        if ($temporary === false) {
+            throw new \RuntimeException('Unable to create a temporary CSV stream.');
+        }
+
+        try {
+            $metadata = $export->metadata();
+            $this->write(
+                $temporary,
+                $query,
+                $columns,
+                $this->delimiter($metadata['delimiter'] ?? ','),
+                ($metadata['bom'] ?? true) !== false,
+            );
+            rewind($temporary);
+
+            if (! Storage::disk($disk)->writeStream($path, $temporary)) {
+                throw new \RuntimeException("Unable to store queued export [{$path}].");
+            }
+        } finally {
+            fclose($temporary);
+        }
+    }
+
+    /**
+     * @param  resource  $stream
+     * @param  Builder<Model>  $query
+     * @param  array<int, Column>  $columns
+     */
+    private function write($stream, Builder $query, array $columns, string $delimiter, bool $includeBom): void
+    {
+        if ($includeBom) {
+            fwrite($stream, "\xEF\xBB\xBF");
+        }
+
+        fputcsv(
+            $stream,
+            array_map(fn (Column $column) => $column->label, $columns),
+            $delimiter,
+            '"',
+            '',
+        );
+
+        foreach ($query->cursor() as $model) {
+            fputcsv(
+                $stream,
+                array_map(
+                    fn (Column $column) => $this->normalizeValue(
+                        $column->resolveExportValue($model),
+                    ),
+                    $columns,
+                ),
+                $delimiter,
+                '"',
+                '',
+            );
+        }
     }
 
     private function delimiter(mixed $delimiter): string

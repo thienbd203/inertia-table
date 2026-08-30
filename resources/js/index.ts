@@ -40,6 +40,7 @@ export {
 export type {
     DataTableOptions,
     PaginationLink,
+    QueuedExportStatus,
     TableColumn,
     TableExport,
     TableAction,

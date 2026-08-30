@@ -1,10 +1,23 @@
 import { ref } from "vue";
-import type { TableExport, TableItem, TableSelection } from "./types";
+import { router } from "@inertiajs/vue3";
+import type {
+    QueuedExportStatus,
+    TableExport,
+    TableItem,
+    TableSelection,
+} from "./types";
 import type { UseActions } from "./useActions";
 import type { UseTable } from "./useTable";
 
+function createIdempotencyKey(): string {
+    if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 type ExportCallbacks = {
     onSuccess?: (definition: TableExport) => void;
+    onQueued?: (definition: TableExport, status: QueuedExportStatus) => void;
     onError?: (definition: TableExport, error: Error) => void;
 };
 
@@ -15,6 +28,7 @@ export function useExports<T extends TableItem>(
 ) {
     const isExporting = ref(false);
     const error = ref<string | null>(null);
+    const queuedExport = ref<QueuedExportStatus | null>(null);
 
     function selectionFor(definition: TableExport): TableSelection | null {
         if (!definition.requiresSelection) return null;
@@ -55,11 +69,26 @@ export function useExports<T extends TableItem>(
                 body: JSON.stringify({
                     state: table.state.value,
                     selection: selectionFor(definition),
+                    idempotencyKey: createIdempotencyKey(),
                 }),
             });
 
             if (!response.ok) {
                 throw new Error(await responseMessage(response));
+            }
+
+            if (definition.queued) {
+                const payload = (await response.json()) as {
+                    export: QueuedExportStatus;
+                };
+                queuedExport.value = payload.export;
+                callbacks.onQueued?.(definition, payload.export);
+
+                if (payload.export.redirect) {
+                    router.visit(payload.export.redirect, { method: "get" });
+                }
+
+                return;
             }
 
             const blob = await response.blob();
@@ -89,11 +118,22 @@ export function useExports<T extends TableItem>(
         error.value = null;
     }
 
+    function clearQueuedExport() {
+        queuedExport.value = null;
+    }
+
+    function updateQueuedExport(status: QueuedExportStatus) {
+        queuedExport.value = status;
+    }
+
     return {
         clearError,
+        clearQueuedExport,
         error,
         isExporting,
         perform,
+        queuedExport,
+        updateQueuedExport,
     };
 }
 

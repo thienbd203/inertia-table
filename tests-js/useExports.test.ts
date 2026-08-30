@@ -5,8 +5,10 @@ import type { TableExport } from "../resources/js/types";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
 
+const { visit } = vi.hoisted(() => ({ visit: vi.fn() }));
+
 vi.mock("@inertiajs/vue3", () => ({
-    router: { visit: vi.fn(), on: vi.fn(() => vi.fn()) },
+    router: { visit, on: vi.fn(() => vi.fn()) },
     usePage: () => ({ url: "/admin/topics" }),
 }));
 
@@ -23,6 +25,16 @@ const selectedExport: TableExport = {
     requiresSelection: true,
     endpoint: "/_exports/selected?signature=valid",
     meta: {},
+};
+
+const queuedExport: TableExport = {
+    ...selectedExport,
+    key: "queued",
+    label: "Queued CSV",
+    scope: "filtered",
+    requiresSelection: false,
+    queued: true,
+    endpoint: "/_exports/queued?signature=valid",
 };
 
 function mountExports(callbacks = {}) {
@@ -46,6 +58,7 @@ function mountExports(callbacks = {}) {
 
 describe("useExports", () => {
     beforeEach(() => {
+        visit.mockReset();
         const meta = document.createElement("meta");
         meta.name = "csrf-token";
         meta.content = "csrf-value";
@@ -163,5 +176,43 @@ describe("useExports", () => {
         expect(vi.mocked(fetch).mock.calls[0][1]?.headers).toMatchObject({
             "X-XSRF-TOKEN": "cookie token",
         });
+    });
+
+    it("tracks queued dispatch state, emits it, and follows an explicit redirect without polling", async () => {
+        const status = {
+            id: "export-1",
+            status: "dispatched" as const,
+            filename: "topics.csv",
+            url: null,
+            redirect: "/exports/history",
+        };
+        vi.mocked(fetch).mockResolvedValue(
+            new Response(JSON.stringify({ export: status }), {
+                status: 202,
+                headers: { "content-type": "application/json" },
+            }),
+        );
+        const onQueued = vi.fn();
+        const { exports } = mountExports({ onQueued });
+
+        await exports.perform(queuedExport);
+
+        const payload = JSON.parse(
+            String(vi.mocked(fetch).mock.calls[0][1]?.body),
+        );
+        expect(payload.idempotencyKey).toBeTypeOf("string");
+        expect(exports.queuedExport.value).toEqual(status);
+        expect(onQueued).toHaveBeenCalledWith(queuedExport, status);
+        expect(visit).toHaveBeenCalledWith("/exports/history", {
+            method: "get",
+        });
+        expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
+
+        exports.updateQueuedExport({
+            ...status,
+            status: "ready",
+            url: "/file",
+        });
+        expect(exports.queuedExport.value?.status).toBe("ready");
     });
 });

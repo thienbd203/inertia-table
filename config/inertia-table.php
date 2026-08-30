@@ -14,6 +14,14 @@ return [
         'xlsx' => LaravelExcelExporter::class,
         'pdf' => LaravelExcelExporter::class,
     ],
+    'queue' => [
+        'connection' => null,
+        'queue' => null,
+        'delay' => 0,
+        'disk' => 'local',
+        'path' => 'table-exports',
+        'expires_after' => 604800,
+    ],
     'view_path' => '_inertia-table/views',
     'views' => [
         'table' => 'table_views',

@@ -4,8 +4,11 @@ namespace Musing\InertiaTable\Exports;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use LogicException;
+use Musing\InertiaTable\Contracts\ExportContext;
 use Musing\InertiaTable\Table;
+use Throwable;
 
 final class Export
 {
@@ -20,6 +23,35 @@ final class Export
     private ExportScope $scope = ExportScope::All;
 
     private bool $visibleColumnsOnly = false;
+
+    private bool $queued = false;
+
+    private ?string $queueConnection = null;
+
+    private ?string $queueName = null;
+
+    private ?int $queueDelay = null;
+
+    private ?string $queueDisk = null;
+
+    private ?int $queueExpiry = null;
+
+    /** @var array<string, mixed>|Closure */
+    private array|Closure $scopeAttributes = [];
+
+    /** @var class-string<ExportContext> */
+    private string $contextClass = AuthenticatedExportContext::class;
+
+    private string|Closure|null $dispatchRedirect = null;
+
+    private ?Closure $deliveryUrlResolver = null;
+
+    private ?Closure $readyCallback = null;
+
+    private ?Closure $failureCallback = null;
+
+    /** @var array<int, object>|Closure */
+    private array|Closure $chainedJobs = [];
 
     /** @var array<string, mixed> */
     private array $meta = [];
@@ -113,6 +145,86 @@ final class Export
         return $this;
     }
 
+    public function queue(
+        ?string $connection = null,
+        ?string $queue = null,
+        ?int $delay = null,
+        ?string $disk = null,
+        ?int $expiresAfter = null,
+    ): self {
+        if (($delay !== null && $delay < 0) || ($expiresAfter !== null && $expiresAfter < 1)) {
+            throw new LogicException('Queued export delay must be non-negative and expiry must be positive.');
+        }
+
+        $this->queued = true;
+        $this->queueConnection = $connection;
+        $this->queueName = $queue;
+        $this->queueDelay = $delay;
+        $this->queueDisk = $disk;
+        $this->queueExpiry = $expiresAfter;
+
+        return $this;
+    }
+
+    /** @param array<string, mixed>|Closure $attributes */
+    public function scopeAttributes(array|Closure $attributes): self
+    {
+        $this->scopeAttributes = $attributes;
+
+        return $this;
+    }
+
+    /** @param class-string<ExportContext> $contextClass */
+    public function context(string $contextClass): self
+    {
+        if (! is_subclass_of($contextClass, ExportContext::class)) {
+            throw new LogicException('Queued export contexts must implement '.ExportContext::class.'.');
+        }
+
+        $this->contextClass = $contextClass;
+
+        return $this;
+    }
+
+    public function redirectAfterDispatch(string|Closure $redirect): self
+    {
+        $this->dispatchRedirect = $redirect;
+
+        return $this;
+    }
+
+    /** @param Closure(QueuedExportSnapshot, string): (string|null) $resolver */
+    public function deliveryUrlUsing(Closure $resolver): self
+    {
+        $this->deliveryUrlResolver = $resolver;
+
+        return $this;
+    }
+
+    /** @param Closure(QueuedExportSnapshot, string|null): mixed $callback */
+    public function onReady(Closure $callback): self
+    {
+        $this->readyCallback = $callback;
+
+        return $this;
+    }
+
+    /** @param Closure(QueuedExportSnapshot, Throwable): mixed $callback */
+    public function onFailure(Closure $callback): self
+    {
+        $this->failureCallback = $callback;
+
+        return $this;
+    }
+
+    /** @param array<int, object>|Closure $jobs */
+    public function chain(array|Closure $jobs): self
+    {
+        $this->chainedJobs = $jobs;
+
+        return $this;
+    }
+
     /** @param array<string, mixed> $meta */
     public function meta(array $meta): self
     {
@@ -168,6 +280,108 @@ final class Export
         return $this->visibleColumnsOnly;
     }
 
+    public function isQueued(): bool
+    {
+        return $this->queued;
+    }
+
+    /**
+     * @return array{connection: string|null, queue: string|null, delay: int, disk: string, expiresAfter: int, path: string}
+     */
+    public function queueConfiguration(): array
+    {
+        $connection = $this->queueConnection ?? config('inertia-table.queue.connection');
+        $queue = $this->queueName ?? config('inertia-table.queue.queue');
+        $disk = $this->queueDisk ?? config('inertia-table.queue.disk', 'local');
+        $path = trim((string) config('inertia-table.queue.path', 'table-exports'), '/');
+
+        return [
+            'connection' => is_string($connection) && $connection !== '' ? $connection : null,
+            'queue' => is_string($queue) && $queue !== '' ? $queue : null,
+            'delay' => $this->queueDelay ?? max((int) config('inertia-table.queue.delay', 0), 0),
+            'disk' => is_string($disk) && $disk !== '' ? $disk : 'local',
+            'expiresAfter' => $this->queueExpiry ?? max((int) config('inertia-table.queue.expires_after', 604800), 1),
+            'path' => $path !== '' ? $path : 'table-exports',
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function resolvedScopeAttributes(Request $request, Table $table): array
+    {
+        $attributes = $this->scopeAttributes instanceof Closure
+            ? app()->call($this->scopeAttributes, compact('request', 'table'))
+            : $this->scopeAttributes;
+
+        if (! is_array($attributes)) {
+            throw new LogicException('Queued export scope attributes must resolve to an array.');
+        }
+
+        return $this->normalizeScopeAttributes($attributes);
+    }
+
+    /** @return class-string<ExportContext> */
+    public function contextClass(): string
+    {
+        return $this->contextClass;
+    }
+
+    public function resolvedDispatchRedirect(Request $request, Table $table): ?string
+    {
+        $redirect = $this->dispatchRedirect instanceof Closure
+            ? app()->call($this->dispatchRedirect, compact('request', 'table'))
+            : $this->dispatchRedirect;
+
+        return is_string($redirect) && $redirect !== '' ? $redirect : null;
+    }
+
+    public function resolvedDeliveryUrl(QueuedExportSnapshot $snapshot): ?string
+    {
+        if ($this->deliveryUrlResolver instanceof Closure) {
+            $url = app()->call($this->deliveryUrlResolver, [
+                'snapshot' => $snapshot,
+                'path' => $snapshot->path,
+            ]);
+
+            return is_string($url) && $url !== '' ? $url : null;
+        }
+
+        try {
+            return Storage::disk($snapshot->disk)->url($snapshot->path);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    public function notifyReady(QueuedExportSnapshot $snapshot, ?string $url): void
+    {
+        if ($this->readyCallback instanceof Closure) {
+            app()->call($this->readyCallback, compact('snapshot', 'url'));
+        }
+    }
+
+    public function notifyFailure(QueuedExportSnapshot $snapshot, Throwable $exception): void
+    {
+        if ($this->failureCallback instanceof Closure) {
+            app()->call($this->failureCallback, compact('snapshot', 'exception'));
+        }
+    }
+
+    /** @return array<int, object> */
+    public function resolvedChain(Request $request, Table $table, QueuedExportSnapshot $snapshot): array
+    {
+        $jobs = $this->chainedJobs instanceof Closure
+            ? app()->call($this->chainedJobs, compact('request', 'table', 'snapshot'))
+            : $this->chainedJobs;
+
+        if (! is_array($jobs) || collect($jobs)->contains(
+            fn (mixed $job) => ! is_object($job) || $job instanceof Closure,
+        )) {
+            throw new LogicException('Queued export chains must resolve to an array of job objects.');
+        }
+
+        return array_values($jobs);
+    }
+
     /** @return array<string, mixed> */
     public function metadata(): array
     {
@@ -184,6 +398,7 @@ final class Export
             'type' => $this->type,
             'scope' => $this->scope->value,
             'requiresSelection' => $this->scope === ExportScope::Selected,
+            'queued' => $this->queued,
             'endpoint' => $endpoint,
             'meta' => $this->meta,
         ];
@@ -198,5 +413,23 @@ final class Export
         }
 
         return $type;
+    }
+
+    /** @return array<string, mixed> */
+    private function normalizeScopeAttributes(array $values): array
+    {
+        foreach ($values as $key => $value) {
+            if (is_array($value)) {
+                $values[$key] = $this->normalizeScopeAttributes($value);
+            } elseif (! is_string($value) && ! is_int($value) && ! is_float($value) && ! is_bool($value) && $value !== null) {
+                throw new LogicException('Queued export scope attributes may contain only scalar, array, or null values.');
+            }
+        }
+
+        if (! array_is_list($values)) {
+            ksort($values);
+        }
+
+        return $values;
     }
 }

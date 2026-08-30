@@ -20,7 +20,7 @@ Toolbelt keeps the server authoritative. The browser can only request capabiliti
 - Text, numeric, set, boolean and date filters, including single-date and date-range calendars.
 - Per-table query-string state, Inertia partial reloads, pagination, column visibility and all-results selection across pages.
 - Scoped saved views with defaults, sharing, optimistic locking and live dirty-state feedback.
-- Signed synchronous CSV exports for all, filtered or selected rows, plus optional XLSX/PDF adapters.
+- Signed synchronous or queued exports for all, filtered or selected rows, plus optional XLSX/PDF adapters.
 - Presentation helpers for badges, dates, images, links, tooltips, alignment and Tailwind classes.
 - Slots and headless composables when the default renderer needs an escape hatch.
 - Built-in English and Vietnamese interface messages with per-app and per-table overrides.
@@ -72,6 +72,14 @@ return [
     'debounce' => 300,
     'action_path' => '_inertia-table/actions',
     'export_path' => '_inertia-table/exports',
+    'queue' => [
+        'connection' => null,
+        'queue' => null,
+        'delay' => 0,
+        'disk' => 'local',
+        'path' => 'table-exports',
+        'expires_after' => 604800,
+    ],
     'view_path' => '_inertia-table/views',
     'views' => ['table' => 'table_views'],
 ];
@@ -553,10 +561,49 @@ without it returns a clear validation error. Custom formats implement
 `Musing\InertiaTable\Contracts\Exporter` and are registered under
 `inertia-table.exporters.<type>`.
 
+Call `queue()` when the export should run outside the request. The worker rebuilds
+the table and query from a normalized, serializable snapshot; it never receives a
+live request, query builder, table instance or definition closure:
+
+```php
+use Illuminate\Support\Facades\Storage;
+use Musing\InertiaTable\Exports\QueuedExportSnapshot;
+
+Export::make('archive', 'Export archive')
+    ->filtered()
+    ->queue(
+        connection: 'redis',
+        queue: 'exports',
+        delay: 5,
+        disk: 's3',
+        expiresAfter: 86_400,
+    )
+    ->redirectAfterDispatch('/exports')
+    ->deliveryUrlUsing(
+        fn (QueuedExportSnapshot $snapshot) => Storage::disk($snapshot->disk)
+            ->temporaryUrl($snapshot->path, now()->addHour()),
+    )
+    ->onReady(fn (QueuedExportSnapshot $snapshot, ?string $url) => /* notify */ null)
+    ->onFailure(fn (QueuedExportSnapshot $snapshot, \Throwable $exception) => /* report */ null);
+```
+
+Queue connection, name, delay, disk, path and expiry fall back to
+`inertia-table.queue`. Every dispatch carries an idempotency key, so duplicate
+submissions for the same actor and scoped export reuse the existing job. Completed
+files are deleted after expiry, and partial files are removed when generation
+fails. `chain()` accepts follow-up job objects.
+
+The default context captures the authenticated actor and restores it in the
+worker before authorization is checked again. Multi-tenant applications can add
+scalar tenant identifiers with `scopeAttributes()` and provide an
+`ExportContext` implementation via `context()` to restore and release tenant
+state. Definitions removed or materially changed after dispatch fail safely
+instead of exporting with different semantics.
+
 The Vue renderer submits signed POST requests and reads Laravel's CSRF token from
 either `<meta name="csrf-token">` or the `XSRF-TOKEN` cookie. It exposes
-`export-success` and `export-error` events; custom renderers can use the same
-controller directly:
+`export-success`, `export-queued` and `export-error` events; custom renderers can
+use the same controller directly:
 
 ```ts
 import { useActions, useExports, useTable } from "@musing/inertia-table-vue";
@@ -565,6 +612,12 @@ const table = useTable(() => props.topics);
 const actions = useActions(table);
 const exports = useExports(table, actions);
 ```
+
+Queued dispatches expose `queuedExport` with `dispatched`, `processing`, `ready`,
+`failed` or `expired` state. The package does not start a hidden polling loop.
+Applications can deliver status through their existing notifications or realtime
+channel and call `updateQueuedExport(status)`; a ready status with a URL renders a
+download action. An explicit `redirectAfterDispatch()` is followed immediately.
 
 ## Slots and headless API
 
