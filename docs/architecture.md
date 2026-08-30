@@ -164,12 +164,15 @@ type ActionResource = {
         confirmLabel: string;
         cancelLabel: string;
     };
-    endpoint: { method: "post" | "patch" | "delete"; url: string };
+    endpoint: null | {
+        method: "get" | "post" | "put" | "patch" | "delete";
+        url: string;
+    };
     meta: Record<string, unknown>;
 };
 ```
 
-Actions are declared by the table and executed through `useActions()`. Application pages may still use slots to replace their presentation.
+Actions are declared by the table and executed through `useActions()`. An action may point to an application-owned endpoint, define a server-side handler, or omit both and emit a frontend custom action. Server-side handlers serialize as signed internal POST endpoints and recheck action scope and availability before execution. Handler closures remain server-only and are never serialized.
 
 ### Table state
 
@@ -185,6 +188,12 @@ type TableState = {
 ```
 
 Selection is intentionally not serialized into the URL. It is ephemeral frontend action state and is cleared when the result set identity changes.
+
+### Selection resolver
+
+The frontend selection descriptor is resolved to a typed PHP `Selection`. Explicit keys are constrained by the table's base query. An all-results selection rebuilds search and filter state only through declared columns and filters, then applies the `except` keys. The resulting query never trusts a raw client column or clause.
+
+`Action::handle()` iterates the resolved query by primary key in chunks and invokes the handler for each model. `Action::handleSelection()` invokes a handler once with the `Selection`, allowing set-based queries without loading every selected key or model into memory.
 
 ## URL contract
 
@@ -255,6 +264,7 @@ Included:
 - column visibility;
 - explicit row selection and all-results selection across pagination;
 - server-declared row and bulk actions;
+- typed server-side selection resolution and managed action handlers;
 - multiple named tables and partial reloads;
 - headless Vue composables and one shadcn-vue renderer;
 - localization-ready labels;

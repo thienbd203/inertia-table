@@ -12,6 +12,7 @@ class InertiaTableServiceProvider extends PackageServiceProvider
         $package
             ->name('inertia-table')
             ->hasConfigFile()
-            ->hasTranslations();
+            ->hasTranslations()
+            ->hasRoute('web');
     }
 }

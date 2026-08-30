@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Model;
 use LogicException;
+use Musing\InertiaTable\Selection;
 
 /** @implements Arrayable<string, mixed> */
 final class Action implements Arrayable
@@ -36,6 +37,10 @@ final class Action implements Arrayable
     private ?string $method = null;
 
     private string|Closure|null $url = null;
+
+    private ?Closure $handler = null;
+
+    private bool $handlesSelection = false;
 
     /** @var array<string, mixed> */
     private array $meta = [];
@@ -143,6 +148,10 @@ final class Action implements Arrayable
 
     public function endpoint(string $method, string|Closure $url): self
     {
+        if ($this->handler instanceof Closure) {
+            throw new LogicException('A table action cannot define both an endpoint and a server-side handler.');
+        }
+
         $method = strtolower($method);
 
         if (! in_array($method, ['get', 'post', 'put', 'patch', 'delete'], true)) {
@@ -151,6 +160,26 @@ final class Action implements Arrayable
 
         $this->method = $method;
         $this->url = $url;
+
+        return $this;
+    }
+
+    /** @param Closure(Model, Selection): mixed $handler */
+    public function handle(Closure $handler): self
+    {
+        $this->ensureHandlerCanBeDefined();
+        $this->handler = $handler;
+        $this->handlesSelection = false;
+
+        return $this;
+    }
+
+    /** @param Closure(Selection): mixed $handler */
+    public function handleSelection(Closure $handler): self
+    {
+        $this->ensureHandlerCanBeDefined();
+        $this->handler = $handler;
+        $this->handlesSelection = true;
 
         return $this;
     }
@@ -194,8 +223,37 @@ final class Action implements Arrayable
         return in_array($this->scope, ['bulk', 'both'], true);
     }
 
+    public function hasHandler(): bool
+    {
+        return $this->handler instanceof Closure;
+    }
+
+    public function handlesSelection(): bool
+    {
+        return $this->handlesSelection;
+    }
+
+    public function execute(Selection $selection): mixed
+    {
+        if (! $this->handler instanceof Closure) {
+            throw new LogicException('This table action does not have a server-side handler.');
+        }
+
+        if ($this->handlesSelection) {
+            return ($this->handler)($selection);
+        }
+
+        $result = null;
+
+        $selection->each(function (Model $model, Selection $selection) use (&$result) {
+            $result = ($this->handler)($model, $selection);
+        });
+
+        return $result;
+    }
+
     /** @return array<string, mixed> */
-    public function resolve(?Model $model = null): array
+    public function resolve(?Model $model = null, ?string $handlerUrl = null): array
     {
         $authorized = $this->authorized instanceof Closure
             ? ($model !== null && (bool) ($this->authorized)($model))
@@ -229,9 +287,18 @@ final class Action implements Arrayable
             'buttonClass' => is_string($buttonClass) && $buttonClass !== '' ? $buttonClass : null,
             'disabledTooltip' => $this->disabledTooltip,
             'confirmation' => $this->confirmation,
-            'endpoint' => $url === null ? null : ['method' => $this->method, 'url' => $url],
+            'endpoint' => $handlerUrl !== null
+                ? ['method' => 'post', 'url' => $handlerUrl]
+                : ($url === null ? null : ['method' => $this->method, 'url' => $url]),
             'meta' => $this->meta,
         ];
+    }
+
+    private function ensureHandlerCanBeDefined(): void
+    {
+        if ($this->url !== null) {
+            throw new LogicException('A table action cannot define both an endpoint and a server-side handler.');
+        }
     }
 
     private function resolveCondition(bool|Closure $condition, ?Model $model): bool

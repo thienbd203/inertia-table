@@ -11,6 +11,7 @@ use LogicException;
 use Musing\InertiaTable\Actions\Action;
 use Musing\InertiaTable\Columns\Column;
 use Musing\InertiaTable\Filters\Filter;
+use Musing\InertiaTable\Support\TableReference;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -86,39 +87,13 @@ abstract class Table implements Arrayable
         $filters = $this->validatedFilters();
         $actions = $this->validatedActions();
         $searchable = $this->searchableColumns($columns);
-        $perPageOptions = $this->perPageOptions ?? config('inertia-table.per_page_options', [10, 25, 50, 100]);
-        $state = TableState::fromRequest(
-            $request,
-            $this->name(),
-            $this->defaultSort,
-            $this->perPage ?? (int) config('inertia-table.per_page', 25),
-            $perPageOptions,
-            collect($columns)->mapWithKeys(fn (Column $column) => [
-                $column->attribute => $column->isVisibleByDefault(),
-            ])->all(),
-        );
-        $state = $this->normalizeSort($columns, $state);
-        if ($searchable === []) {
-            $state = $state->withSearch('');
-        }
-        $state = $this->normalizeFilters($filters, $state);
-        $state = $this->normalizeColumns($columns, $state);
-        $query = QueryBuilder::for(
-            $this->query(),
-            $this->queryBuilderRequest($request, $state),
-        )
-            ->allowedFilters(...$this->allowedFilters($columns, $filters))
-            ->allowedSorts(...array_map(
-                fn (Column $column) => $column->allowedSort(),
-                array_values(array_filter(
-                    $columns,
-                    fn (Column $column) => $column->isSortable(),
-                )),
-            ));
+        $perPageOptions = $this->perPageOptions();
+        $state = $this->resolveState($request, $columns, $filters);
+        $query = $this->buildQuery($request, $state, $columns, $filters);
 
         $bulkActions = collect($actions)
             ->filter(fn (Action $action) => $action->isBulkAction())
-            ->map(fn (Action $action) => $action->resolve())
+            ->map(fn (Action $action) => $this->resolveAction($action))
             ->filter(fn (array $action) => $action['authorized'] && ! $action['hidden'])
             ->values()
             ->all();
@@ -152,6 +127,83 @@ abstract class Table implements Arrayable
     public function toArray(): array
     {
         return $this->resolve()->toArray();
+    }
+
+    /** @param array<string, mixed> $payload */
+    public function selection(array $payload): Selection
+    {
+        return Selection::fromArray($this, $payload);
+    }
+
+    public function action(string $key): ?Action
+    {
+        foreach ($this->validatedActions() as $action) {
+            if ($action->key === $key) {
+                return $action;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Normalize untrusted client state through this table's declared search and filters.
+     *
+     * @param  array<string, mixed>  $state
+     * @return array{search: string, filters: array<string, array{enabled: bool, clause: string, value: mixed}>}
+     */
+    public function normalizeSelectionState(array $state): array
+    {
+        $request = Request::create('/', 'GET', [
+            'table' => [
+                $this->name() => [
+                    'search' => $state['search'] ?? '',
+                    'filters' => is_array($state['filters'] ?? null) ? $state['filters'] : [],
+                ],
+            ],
+        ]);
+        $resolved = $this->resolveState(
+            $request,
+            $this->validatedColumns(),
+            $this->validatedFilters(),
+        );
+
+        return [
+            'search' => $resolved->search,
+            'filters' => $resolved->filters,
+        ];
+    }
+
+    /** @return Builder<Model> */
+    public function queryForSelection(Selection $selection): Builder
+    {
+        if ($selection->table !== $this->name()) {
+            throw new LogicException('The selection does not belong to this table.');
+        }
+
+        if (! $selection->all) {
+            return $this->query()->whereKey($selection->keys);
+        }
+
+        $columns = $this->validatedColumns();
+        $filters = $this->validatedFilters();
+        $request = Request::create('/');
+        $state = new TableState(
+            search: $selection->state['search'],
+            sort: null,
+            filters: $selection->state['filters'],
+            columns: [],
+            page: 1,
+            perPage: $this->defaultPerPage(),
+        );
+        $query = $this->buildQuery($request, $state, $columns, $filters)
+            ->getEloquentBuilder();
+
+        if ($selection->except !== []) {
+            $query->whereKeyNot($selection->except);
+        }
+
+        return $query;
     }
 
     /**
@@ -279,6 +331,69 @@ abstract class Table implements Arrayable
 
     /**
      * @param  array<int, Column>  $columns
+     * @param  array<int, Filter>  $filters
+     */
+    private function resolveState(Request $request, array $columns, array $filters): TableState
+    {
+        $state = TableState::fromRequest(
+            $request,
+            $this->name(),
+            $this->defaultSort,
+            $this->defaultPerPage(),
+            $this->perPageOptions(),
+            collect($columns)->mapWithKeys(fn (Column $column) => [
+                $column->attribute => $column->isVisibleByDefault(),
+            ])->all(),
+        );
+        $state = $this->normalizeSort($columns, $state);
+
+        if ($this->searchableColumns($columns) === []) {
+            $state = $state->withSearch('');
+        }
+
+        return $this->normalizeColumns(
+            $columns,
+            $this->normalizeFilters($filters, $state),
+        );
+    }
+
+    /**
+     * @param  array<int, Column>  $columns
+     * @param  array<int, Filter>  $filters
+     */
+    private function buildQuery(
+        Request $request,
+        TableState $state,
+        array $columns,
+        array $filters,
+    ): QueryBuilder {
+        return QueryBuilder::for(
+            $this->query(),
+            $this->queryBuilderRequest($request, $state),
+        )
+            ->allowedFilters(...$this->allowedFilters($columns, $filters))
+            ->allowedSorts(...array_map(
+                fn (Column $column) => $column->allowedSort(),
+                array_values(array_filter(
+                    $columns,
+                    fn (Column $column) => $column->isSortable(),
+                )),
+            ));
+    }
+
+    /** @return array<int, int> */
+    private function perPageOptions(): array
+    {
+        return $this->perPageOptions ?? config('inertia-table.per_page_options', [10, 25, 50, 100]);
+    }
+
+    private function defaultPerPage(): int
+    {
+        return $this->perPage ?? (int) config('inertia-table.per_page', 25);
+    }
+
+    /**
+     * @param  array<int, Column>  $columns
      * @return array<int, Column>
      */
     protected function searchableColumns(array $columns): array
@@ -365,7 +480,7 @@ abstract class Table implements Arrayable
             ->all();
         $rowActions = collect($actions)
             ->filter(fn (Action $action) => $action->isRowAction())
-            ->map(fn (Action $action) => $action->resolve($model))
+            ->map(fn (Action $action) => $this->resolveAction($action, $model))
             ->filter(fn (array $action) => $action['authorized'] && ! $action['hidden'])
             ->values()
             ->all();
@@ -392,6 +507,23 @@ abstract class Table implements Arrayable
         return $url instanceof Url && $url->hasUrl() && ! $url->isHidden()
             ? $url->toArray()
             : null;
+    }
+
+    /** @return array<string, mixed> */
+    private function resolveAction(Action $action, ?Model $model = null): array
+    {
+        $handlerUrl = $action->hasHandler()
+            ? url()->signedRoute(
+                'inertia-table.actions',
+                [
+                    'table' => TableReference::encode(static::class),
+                    'action' => $action->key,
+                ],
+                absolute: false,
+            )
+            : null;
+
+        return $action->resolve($model, $handlerUrl);
     }
 
     /**
@@ -444,11 +576,18 @@ abstract class Table implements Arrayable
     private function validatedActions(): array
     {
         $actions = $this->actions();
+        $keys = [];
 
         foreach ($actions as $action) {
             if (! $action instanceof Action) {
                 throw new LogicException('Every table action must be an instance of '.Action::class.'.');
             }
+
+            if (in_array($action->key, $keys, true)) {
+                throw new LogicException("Table action keys must be unique; duplicate [{$action->key}] found.");
+            }
+
+            $keys[] = $action->key;
         }
 
         return array_values($actions);

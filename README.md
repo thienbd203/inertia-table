@@ -68,6 +68,7 @@ return [
     'per_page' => 25,
     'per_page_options' => [10, 25, 50, 100],
     'debounce' => 300,
+    'action_path' => '_inertia-table/actions',
 ];
 ```
 
@@ -345,6 +346,8 @@ SetFilter::make('status')->options([
 Actions are server-declared and can be row-level, bulk or both. Authorization, visibility, disabled state and action labels may vary per model.
 
 ```php
+use Musing\InertiaTable\Selection;
+
 Action::make('delete', 'Delete')
     ->row()
     ->destructive()
@@ -352,17 +355,29 @@ Action::make('delete', 'Delete')
     ->hideLabel()
     ->tooltip('Delete topic')
     ->authorized(fn (Topic $topic) => auth()->user()->can('delete', $topic))
-    ->endpoint('delete', fn (Topic $topic) => route('topics.destroy', $topic))
+    ->handle(fn (Topic $topic) => $topic->delete())
     ->confirm('Delete topic?', 'This cannot be undone.', 'Delete', 'Cancel');
 
 Action::make('archive', 'Archive')
-    ->row()
-    ->disabled(fn (Topic $topic) => $topic->archived_at !== null)
-    ->disabledTooltip('This topic is already archived')
-    ->buttonClass('text-amber-600 hover:bg-amber-500/10');
+    ->bulk()
+    ->handleSelection(fn (Selection $selection) => $selection
+        ->query()
+        ->update(['archived_at' => now()]));
 ```
 
-Omit `endpoint()` for a frontend-owned action. The component emits `custom-action` with `(action, keys, onFinish, selection)`; call `onFinish()` after the custom work completes. Existing handlers can keep using the first three arguments.
+`handle()` invokes the closure once per selected model in chunks, which is useful when model events must run. `handleSelection()` invokes the closure once with a typed `Selection`, which is useful for a set-based update over a large filtered result. Handler actions automatically receive a signed internal POST endpoint under the configured `action_path`; action scope, authorization, hidden and disabled state are checked again when that endpoint runs.
+
+The `Selection` query always starts from `Table::query()`. For an all-results selection, it rebuilds the query through the table's declared search/filter allowlist and applies the unchecked keys from `except`. Useful APIs are `query()`, `count()`, `get()`, `firstOrFail()` and memory-safe `each()`.
+
+Use `endpoint()` when an existing application route should own the action instead:
+
+```php
+Action::make('edit')
+    ->row()
+    ->endpoint('get', fn (Topic $topic) => route('topics.edit', $topic));
+```
+
+Omit both `handle()` and `endpoint()` for a frontend-owned action. The component emits `custom-action` with `(action, keys, onFinish, selection)`; call `onFinish()` after the custom work completes. Existing handlers can keep using the first three arguments.
 
 ```vue
 <DataTable :resource="topics" @custom-action="handleCustomAction" />
@@ -388,7 +403,7 @@ Explicit bulk selections keep the existing `{ ids: [...] }` request payload. Sel
 }
 ```
 
-Bulk endpoints should rebuild the matching query through the table's declared search/filter allowlist and then exclude `selection.except`; they must not apply raw client attributes directly to SQL.
+Managed handlers resolve this descriptor through `Selection` automatically. Application-owned `endpoint()` routes remain responsible for resolving it safely and must not apply raw client attributes directly to SQL.
 
 Action icons are intentionally library-agnostic. Register your Lucide resolver once:
 
