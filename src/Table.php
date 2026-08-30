@@ -97,6 +97,9 @@ abstract class Table implements Arrayable
             ->filter(fn (array $action) => $action['authorized'] && ! $action['hidden'])
             ->values()
             ->all();
+        $selectableTotal = $bulkActions === []
+            ? 0
+            : $this->selectableQuery(clone $query->getEloquentBuilder())->count();
 
         return new TableResource(
             name: $this->name(),
@@ -115,7 +118,13 @@ abstract class Table implements Arrayable
                 'hasToggleableColumns' => collect($columns)->contains(fn (Column $column) => $column->isToggleable()),
             ],
             state: $state,
-            results: $this->paginate($query, $state, $columns, $actions),
+            results: $this->paginate(
+                $query,
+                $state,
+                $columns,
+                $actions,
+                $selectableTotal,
+            ),
             options: [
                 'debounceTime' => (int) config('inertia-table.debounce', 300),
                 'perPage' => $perPageOptions,
@@ -133,6 +142,17 @@ abstract class Table implements Arrayable
     public function selection(array $payload): Selection
     {
         return Selection::fromArray($this, $payload);
+    }
+
+    /** @return Builder<Model> */
+    public function selectableQuery(Builder $query): Builder
+    {
+        return $query;
+    }
+
+    public function isSelectable(Model $model): bool
+    {
+        return true;
     }
 
     public function action(string $key): ?Action
@@ -182,22 +202,26 @@ abstract class Table implements Arrayable
         }
 
         if (! $selection->all) {
-            return $this->query()->whereKey($selection->keys);
+            $query = $this->query()->whereKey($selection->keys);
+        } else {
+            $columns = $this->validatedColumns();
+            $filters = $this->validatedFilters();
+            $request = Request::create('/');
+            $state = new TableState(
+                search: $selection->state['search'],
+                sort: null,
+                filters: $selection->state['filters'],
+                columns: [],
+                page: 1,
+                perPage: $this->defaultPerPage(),
+            );
+            $query = $this->buildQuery($request, $state, $columns, $filters)
+                ->getEloquentBuilder();
         }
 
-        $columns = $this->validatedColumns();
-        $filters = $this->validatedFilters();
-        $request = Request::create('/');
-        $state = new TableState(
-            search: $selection->state['search'],
-            sort: null,
-            filters: $selection->state['filters'],
-            columns: [],
-            page: 1,
-            perPage: $this->defaultPerPage(),
-        );
-        $query = $this->buildQuery($request, $state, $columns, $filters)
-            ->getEloquentBuilder();
+        if ($selection->appliesSelectableScope()) {
+            $query = $this->selectableQuery($query);
+        }
 
         if ($selection->except !== []) {
             $query->whereKeyNot($selection->except);
@@ -416,6 +440,7 @@ abstract class Table implements Arrayable
         TableState $state,
         array $columns,
         array $actions,
+        int $selectableTotal,
     ): array {
         $paginator = $query->paginate(
             perPage: $state->perPage,
@@ -435,6 +460,7 @@ abstract class Table implements Arrayable
             'perPage' => $paginator->perPage(),
             'to' => $paginator->lastItem(),
             'total' => $paginator->total(),
+            'selectableTotal' => $selectableTotal,
         ];
     }
 
@@ -489,6 +515,7 @@ abstract class Table implements Arrayable
             ...$data,
             '_table' => [
                 'key' => $model->getKey(),
+                'selectable' => $this->isSelectable($model),
                 'url' => $this->resolveUrl($this->rowUrl($model)),
                 'columns' => $columnUrls,
                 'cells' => $cellMeta,

@@ -5,7 +5,7 @@ import { UiTableBody, UiTableCell, UiTableRow } from "@/components/ui/table";
 import { useTableContext } from "@/context/tableContext";
 import { cellUrl, cellValue, rowUrl } from "@/helpers/cells";
 import type { TableColumn, TableItem } from "@/types";
-import { ActionButton } from "../actions";
+import { ActionButton, RowActionsMenu } from "../actions";
 import { CellContent } from "../cells";
 import { SlotOutlet } from "../shared";
 
@@ -113,6 +113,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                 <UiCheckbox
                     :aria-label="i18n.t('selectRow')"
                     :model-value="actions.isItemSelected(item, index)"
+                    :disabled="!actions.isItemSelectable(item)"
                     @click="handleSelectionClick($event, item, index)"
                 />
             </UiTableCell>
@@ -144,22 +145,25 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                     }"
                 >
                     <div v-if="column.type === 'action'">
-                        <SlotOutlet
-                            v-for="action in actions.rowActionsFor(item)"
-                            :key="action.key"
-                            :name="`action(${action.key})`"
-                            :slot-props="{
-                                action,
-                                item,
-                                selectedItems: actions.selectedItems.value,
-                                selectedCount: actions.selectedCount.value,
-                                selection: actions.selection.value,
-                                execute: () =>
-                                    actions.performAction(action, item),
-                            }"
-                        >
-                            <ActionButton :action="action" :item="item" />
-                        </SlotOutlet>
+                        <RowActionsMenu v-if="column.asDropdown" :item="item" />
+                        <template v-else>
+                            <SlotOutlet
+                                v-for="action in actions.rowActionsFor(item)"
+                                :key="action.key"
+                                :name="`action(${action.key})`"
+                                :slot-props="{
+                                    action,
+                                    item,
+                                    selectedItems: actions.selectedItems.value,
+                                    selectedCount: actions.selectedCount.value,
+                                    selection: actions.selection.value,
+                                    execute: () =>
+                                        actions.performAction(action, item),
+                                }"
+                            >
+                                <ActionButton :action="action" :item="item" />
+                            </SlotOutlet>
+                        </template>
                     </div>
                     <a
                         v-else-if="

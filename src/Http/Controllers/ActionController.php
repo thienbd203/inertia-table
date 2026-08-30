@@ -53,13 +53,7 @@ final class ActionController
     private function resolveSelection(Request $request, Table $table, bool $isRowAction): Selection
     {
         if ($isRowAction) {
-            return $table->selection([
-                'all' => false,
-                'keys' => [$request->input('id')],
-                'except' => [],
-                'table' => $table->name(),
-                'state' => [],
-            ]);
+            return Selection::forRow($table, $request->input('id'));
         }
 
         $selection = $request->input('selection');

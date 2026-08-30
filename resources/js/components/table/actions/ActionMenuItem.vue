@@ -3,9 +3,9 @@ import { computed } from "vue";
 import { UiDropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useTableContext } from "@/context/tableContext";
 import { resolveIcon } from "@/icons";
-import type { TableAction } from "@/types";
+import type { TableAction, TableItem } from "@/types";
 
-const props = defineProps<{ action: TableAction }>();
+const props = defineProps<{ action: TableAction; item?: TableItem }>();
 const { actions, iconResolver } = useTableContext();
 const icon = computed(() =>
     props.action.icon
@@ -17,7 +17,7 @@ const icon = computed(() =>
 <template>
     <UiDropdownMenuItem
         :disabled="
-            actions.selectedCount.value === 0 ||
+            (item === undefined && actions.selectedCount.value === 0) ||
             action.disabled ||
             actions.isPerformingAction.value
         "
@@ -31,7 +31,7 @@ const icon = computed(() =>
                 ? 'text-destructive focus:text-destructive'
                 : undefined,
         ]"
-        @select="actions.performAction(action)"
+        @select="actions.performAction(action, item)"
     >
         <component
             :is="icon"

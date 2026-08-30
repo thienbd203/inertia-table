@@ -106,6 +106,7 @@ export function topicResource(
                     is_featured: false,
                     _table: {
                         key: 1,
+                        selectable: true,
                         url: "/topics/1",
                         columns: { name: "/topics/1" },
                         actions: [
@@ -136,7 +137,13 @@ export function topicResource(
                     id: 2,
                     name: "Beta",
                     is_featured: true,
-                    _table: { key: 2, url: null, columns: {}, actions: [] },
+                    _table: {
+                        key: 2,
+                        selectable: true,
+                        url: null,
+                        columns: {},
+                        actions: [],
+                    },
                 },
             ],
             currentPage: 1,
@@ -146,6 +153,7 @@ export function topicResource(
             perPage: 25,
             to: 2,
             total: 30,
+            selectableTotal: 30,
         },
         options: {
             reloadProps: ["featuredCount"],

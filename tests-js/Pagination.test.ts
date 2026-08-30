@@ -40,6 +40,7 @@ describe("Pagination", () => {
                 perPage: 25,
                 to: 2,
                 total: 30,
+                selectableTotal: 30,
             },
         });
 
@@ -65,6 +66,7 @@ describe("Pagination", () => {
                 perPage: 25,
                 to: 4,
                 total: 4,
+                selectableTotal: 4,
             },
         });
 
@@ -90,6 +92,7 @@ describe("Pagination", () => {
                 perPage: 25,
                 to: 25,
                 total: 60,
+                selectableTotal: 60,
             },
         });
 

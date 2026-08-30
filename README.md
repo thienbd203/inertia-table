@@ -243,7 +243,13 @@ TextColumn::make('description')
 DateTimeColumn::make('published_at', 'Published')
     ->format('d/m/Y H:i')
     ->centerAligned();
+
+ActionColumn::new()->asDropdown();
 ```
+
+`ActionColumn::asDropdown()` groups each row's actions behind one accessible
+menu trigger. Dynamic `action(<key>)` slots work in both the inline and dropdown
+renderers.
 
 Use a custom sort for expressions, relationships or application-specific ordering:
 
@@ -372,11 +378,29 @@ Action::make('archive', 'Archive')
     ->after(fn () => session()->flash('success', 'Topics archived'));
 ```
 
-`handle()` invokes the closure once per selected model in chunks, which is useful when model events must run. Use `chunkSize()` to override the default chunk size of 1,000. During bulk execution, models whose row action is unauthorized, disabled or hidden are skipped. `handleSelection()` invokes the closure once with a typed `Selection`, which is useful for a set-based update over a large filtered result; because it operates directly on the query, its callback owns any per-model eligibility constraints.
+`handle()` invokes the closure once per selected model in chunks, which is useful when model events must run. Use `chunkSize()` to override the default chunk size of 1,000. During bulk execution, unselectable models and models whose row action is unauthorized, disabled or hidden are skipped. `handleSelection()` invokes the closure once with a typed `Selection`, which is useful for a set-based update over a large filtered result; because it operates directly on the query, its callback owns any additional per-model eligibility constraints that cannot be represented by `selectableQuery()`.
 
 `before()` and `after()` wrap the handler once per action request and receive the `Selection`. An `after()` callback may return a response or URL, and `after('/topics/archived')` provides a direct redirect. Use `authorize()` for request-level authorization and `authorized()` for model-level row authorization. Handler actions automatically receive a signed internal POST endpoint under the configured `action_path`; action scope and availability are checked again when that endpoint runs.
 
-The `Selection` query always starts from `Table::query()`. For an all-results selection, it rebuilds the query through the table's declared search/filter allowlist and applies the unchecked keys from `except`. Useful APIs are `query()`, `count()`, `get()`, `firstOrFail()` and memory-safe `each()`.
+Managed endpoints use Laravel's normal response contract consistently: returned `Response`/`Responsable` values pass through, successful handlers without one redirect back, unavailable actions return `403`, disabled row actions return validation errors, and unexpected exceptions remain visible to Laravel's exception handler.
+
+The `Selection` query always starts from `Table::query()` and applies `selectableQuery()`. For an all-results selection, it rebuilds the query through the table's declared search/filter allowlist and applies the unchecked keys from `except`. Useful APIs are `query()`, `count()`, `get()`, `firstOrFail()` and memory-safe `each()`.
+
+Declare bulk eligibility at both query and row level. The query scope gives the frontend an exact `selectableTotal` without loading every model; the row check disables individual checkboxes. Keep both rules equivalent whenever possible:
+
+```php
+public function selectableQuery(Builder $query): Builder
+{
+    return $query->whereNull('locked_at');
+}
+
+public function isSelectable(Model $model): bool
+{
+    return $model->locked_at === null;
+}
+```
+
+An unselectable row may still expose row actions. Selectability only defines the bulk-selection boundary.
 
 Use `endpoint()` when an existing application route should own the action instead:
 
@@ -392,7 +416,7 @@ Omit both `handle()` and `endpoint()` for a frontend-owned action. The component
 <DataTable :resource="topics" @custom-action="handleCustomAction" />
 ```
 
-The header checkbox immediately selects every result matching the current search and filters, across all pages. There is no intermediate "current page" selection step. Individual rows can then be unchecked and are tracked in `selection.except`. Shift-clicking a row checkbox applies the target checkbox state to the contiguous range from the previously clicked row on the current page.
+The header checkbox immediately selects every selectable result matching the current search and filters, across all pages. Its label and selected count use the exact server-provided `selectableTotal`; there is no intermediate "current page" selection step. The checkbox is empty, indeterminate, or checked, and clicking the indeterminate state always resolves to select-all. Individual rows can then be unchecked and are tracked in `selection.except`. Shift-clicking a row checkbox applies the target checkbox state to the contiguous range from the previously clicked row on the current page while skipping disabled checkboxes.
 
 Explicit bulk selections keep the existing `{ ids: [...] }` request payload. Selecting all matching results sends a selection descriptor instead of attempting to load every ID into the browser:
 
@@ -424,7 +448,27 @@ Action::make('delete', 'Delete')
         'Delete :count selected topics?',
         'You selected :count matching topics to move to trash.',
         'Delete :count',
-    );
+);
+```
+
+The title and message may instead contain singular, plural, and optional
+all-matching variants. An all-matching selection uses the third variant and
+falls back to the plural variant when it is omitted:
+
+```php
+->confirm(
+    [
+        'Delete :count topic?',
+        'Delete :count topics?',
+        'Delete all :count matching topics?',
+    ],
+    [
+        'This topic will be deleted.',
+        ':count topics will be deleted.',
+        'All :count matching topics will be deleted.',
+    ],
+    'Delete :count',
+);
 ```
 
 Action icons are intentionally library-agnostic. Register your Lucide resolver once:

@@ -34,7 +34,7 @@ final class Action implements Arrayable
 
     private string|Closure|null $buttonClass = null;
 
-    /** @var array<string, string>|null */
+    /** @var array{title: string|array<int, string>, message: string|array<int, string>, confirmLabel: string, cancelLabel: string}|null */
     private ?array $confirmation = null;
 
     private ?string $method = null;
@@ -229,13 +229,19 @@ final class Action implements Arrayable
     }
 
     public function confirm(
-        ?string $title = null,
-        ?string $message = null,
+        string|array|null $title = null,
+        string|array|null $message = null,
         ?string $confirmLabel = null,
         ?string $cancelLabel = null,
     ): self {
-        $title ??= (string) trans('inertia-table::messages.actions.confirm_title');
-        $message ??= (string) trans('inertia-table::messages.actions.confirm_message');
+        $title = $this->normalizeConfirmationCopy(
+            $title,
+            (string) trans('inertia-table::messages.actions.confirm_title'),
+        );
+        $message = $this->normalizeConfirmationCopy(
+            $message,
+            (string) trans('inertia-table::messages.actions.confirm_message'),
+        );
         $confirmLabel ??= (string) trans('inertia-table::messages.actions.confirm');
         $cancelLabel ??= (string) trans('inertia-table::messages.actions.cancel');
 
@@ -294,7 +300,10 @@ final class Action implements Arrayable
             $handler = $this->handler;
 
             $selection->each(function (Model $model, Selection $selection) use (&$result, $handler, $skipUnavailableModels) {
-                if ($skipUnavailableModels && ! $this->isAvailableFor($model)) {
+                if ($skipUnavailableModels && (
+                    ! $selection->isSelectable($model)
+                    || ! $this->isAvailableFor($model)
+                )) {
                     return;
                 }
 
@@ -364,6 +373,37 @@ final class Action implements Arrayable
         if ($this->url !== null) {
             throw new LogicException('A table action cannot define both an endpoint and a server-side handler.');
         }
+    }
+
+    /**
+     * @param  string|array<int, mixed>|null  $copy
+     * @return string|array<int, string>
+     */
+    private function normalizeConfirmationCopy(string|array|null $copy, string $default): string|array
+    {
+        if ($copy === null) {
+            return $default;
+        }
+
+        if (is_string($copy)) {
+            return $copy;
+        }
+
+        $variants = [];
+
+        foreach ($copy as $variant) {
+            if (! is_string($variant)) {
+                throw new LogicException('Confirmation copy arrays must contain singular, plural, and optionally all-matching strings.');
+            }
+
+            $variants[] = $variant;
+        }
+
+        if (count($variants) < 2 || count($variants) > 3) {
+            throw new LogicException('Confirmation copy arrays must contain singular, plural, and optionally all-matching strings.');
+        }
+
+        return $variants;
     }
 
     private function isAvailableFor(Model $model): bool

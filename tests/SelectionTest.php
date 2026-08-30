@@ -50,6 +50,19 @@ class ConstrainedSelectionTopicsTable extends SelectionTopicsTable
     }
 }
 
+class SelectableSelectionTopicsTable extends SelectionTopicsTable
+{
+    public function selectableQuery(Builder $query): Builder
+    {
+        return $query->where('score', '>=', 20);
+    }
+
+    public function isSelectable(Model $model): bool
+    {
+        return $model->getAttribute('score') >= 20;
+    }
+}
+
 beforeEach(function () {
     Schema::create('selection_topics', function (Blueprint $table) {
         $table->id();
@@ -118,6 +131,33 @@ it('never lets explicit keys bypass the table base query', function () {
     ]);
 
     expect($selection->query()->pluck('id')->all())->toBe([2, 3]);
+});
+
+it('applies the selectable query to explicit and all-matching selections', function () {
+    $table = new SelectableSelectionTopicsTable;
+    $explicit = $table->selection([
+        'all' => false,
+        'keys' => [1, 2, 3],
+        'table' => 'selection_topics',
+    ]);
+    $allMatching = $table->selection([
+        'all' => true,
+        'except' => [2],
+        'table' => 'selection_topics',
+        'state' => [
+            'search' => 'a',
+            'filters' => [
+                'is_featured' => [
+                    'enabled' => true,
+                    'clause' => 'is_true',
+                    'value' => null,
+                ],
+            ],
+        ],
+    ]);
+
+    expect($explicit->query()->pluck('id')->all())->toBe([2, 3])
+        ->and($allMatching->query()->pluck('id')->all())->toBe([3]);
 });
 
 it('rejects malformed and cross-table selections', function (array $payload) {

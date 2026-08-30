@@ -117,6 +117,7 @@ type ColumnResource = {
     headerClass: string | null;
     cellClass: string | null;
     meta: Record<string, unknown>;
+    asDropdown?: boolean;
 };
 ```
 
@@ -159,8 +160,8 @@ type ActionResource = {
     authorized: boolean;
     variant: "default" | "destructive";
     confirmation: null | {
-        title: string;
-        message: string;
+        title: string | [string, string, string?];
+        message: string | [string, string, string?];
         confirmLabel: string;
         cancelLabel: string;
     };
@@ -174,9 +175,9 @@ type ActionResource = {
 
 Actions are declared by the table and executed through `useActions()`. An action may point to an application-owned endpoint, define a server-side handler, or omit both and emit a frontend custom action. Server-side handlers serialize as signed internal POST endpoints and recheck action scope and availability before execution. Request-level authorization is separate from per-model row availability. Handler closures remain server-only and are never serialized.
 
-Managed actions have a once-per-request lifecycle: `before`, handler execution, then `after`. Per-model handlers iterate by primary key with a configurable chunk size and skip unauthorized, disabled, or hidden models during bulk execution. Selection handlers deliberately expose the normalized query for set-based work, so they own any per-model eligibility constraints that cannot be represented generically in SQL.
+Managed actions have a once-per-request lifecycle: `before`, handler execution, then `after`. Per-model handlers iterate by primary key with a configurable chunk size and skip unselectable, unauthorized, disabled, or hidden models during bulk execution. Selection handlers deliberately expose the normalized query for set-based work, so they own any additional per-model eligibility constraints that cannot be represented by the table's selectable query.
 
-Confirmation placeholders are resolved from the pending action context on the frontend. `:count` uses the exact explicit selection size or total matching rows minus exclusions; scalar row attributes such as `:name` resolve from serialized row data.
+Confirmation placeholders are resolved from the pending action context on the frontend. `:count` uses the exact explicit selection size or selectable matching rows minus exclusions; scalar row attributes such as `:name` resolve from serialized row data. Confirmation titles and messages may declare singular, plural, and all-matching variants.
 
 ### Table state
 
@@ -195,7 +196,7 @@ Selection is intentionally not serialized into the URL. It is ephemeral frontend
 
 ### Selection resolver
 
-The frontend selection descriptor is resolved to a typed PHP `Selection`. Explicit keys are constrained by the table's base query. An all-results selection rebuilds search and filter state only through declared columns and filters, then applies the `except` keys. The resulting query never trusts a raw client column or clause.
+The frontend selection descriptor is resolved to a typed PHP `Selection`. Explicit keys are constrained by the table's base query and selectable query. An all-results selection rebuilds search and filter state only through declared columns and filters, applies the selectable query, then applies the `except` keys. The paginated resource includes `results.selectableTotal`, while every row includes `_table.selectable`. The resulting query never trusts a raw client column or clause.
 
 `Action::handle()` iterates the resolved query by primary key in chunks and invokes the handler for each model. `Action::handleSelection()` invokes a handler once with the `Selection`, allowing set-based queries without loading every selected key or model into memory.
 
@@ -235,7 +236,7 @@ const table = useTable(resource);
 const actions = useActions(table);
 ```
 
-`useTable()` owns resolved state and navigation operations. `useActions()` owns explicit keys, all-results selection with exclusions, current-page Shift-click ranges, row/bulk action availability, confirmation, execution, and pending state. The header checkbox selects every row matching the normalized search/filter state across pagination immediately; it never stops at the current page.
+`useTable()` owns resolved state and navigation operations. `useActions()` owns explicit keys, all-results selection with exclusions, current-page Shift-click ranges, row/bulk action availability, confirmation, execution, and pending state. The header checkbox selects every selectable row matching the normalized search/filter state across pagination immediately; it never stops at the current page. Its three states use `selectableTotal`, and ranges skip unselectable rows.
 
 The default `<DataTable>` exposes these scopes through documented slots:
 

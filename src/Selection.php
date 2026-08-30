@@ -23,6 +23,7 @@ final readonly class Selection implements Arrayable
         public array $except,
         public string $table,
         public array $state,
+        private bool $applySelectableScope = true,
     ) {}
 
     /** @param array<string, mixed> $payload */
@@ -70,6 +71,25 @@ final readonly class Selection implements Arrayable
         );
     }
 
+    public static function forRow(Table $table, mixed $key): self
+    {
+        if (! is_int($key) && ! is_string($key)) {
+            throw ValidationException::withMessages([
+                'id' => 'The row id must be an integer or string.',
+            ]);
+        }
+
+        return new self(
+            tableInstance: $table,
+            all: false,
+            keys: [$key],
+            except: [],
+            table: $table->name(),
+            state: $table->normalizeSelectionState([]),
+            applySelectableScope: false,
+        );
+    }
+
     /** @return Builder<Model> */
     public function query(): Builder
     {
@@ -90,6 +110,16 @@ final readonly class Selection implements Arrayable
     public function firstOrFail(): Model
     {
         return $this->query()->firstOrFail();
+    }
+
+    public function appliesSelectableScope(): bool
+    {
+        return $this->applySelectableScope;
+    }
+
+    public function isSelectable(Model $model): bool
+    {
+        return $this->tableInstance->isSelectable($model);
     }
 
     /**

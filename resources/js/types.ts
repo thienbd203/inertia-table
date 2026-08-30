@@ -4,6 +4,7 @@ export type TableItem = {
     id?: TableKey;
     _table?: {
         key?: TableKey;
+        selectable?: boolean;
         url: TableUrl | string | null;
         columns: Record<string, TableUrl | string>;
         cells?: Record<string, Record<string, unknown>>;
@@ -38,6 +39,7 @@ export type TableColumn = {
     trueIcon?: string | null;
     falseIcon?: string | null;
     meta: Record<string, unknown>;
+    asDropdown?: boolean;
 };
 
 export type TableFilterOption = {
@@ -78,8 +80,8 @@ export type TableAction = {
     buttonClass: string | null;
     disabledTooltip: string | null;
     confirmation: null | {
-        title: string;
-        message: string;
+        title: string | [string, string, string?];
+        message: string | [string, string, string?];
         confirmLabel: string;
         cancelLabel: string;
     };
@@ -122,6 +124,7 @@ export type TableResults<T extends TableItem> = {
     perPage: number;
     to: number | null;
     total: number;
+    selectableTotal?: number;
 };
 
 export type TableResource<T extends TableItem = TableItem> = {

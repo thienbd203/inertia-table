@@ -131,6 +131,29 @@ class CustomPerPageTopicsTable extends TopicsTable
     protected ?array $perPageOptions = [1, 2];
 }
 
+class SelectableTopicsTable extends TopicsTable
+{
+    protected ?string $name = 'topics';
+
+    public function selectableQuery(Builder $query): Builder
+    {
+        return $query->where('score', '>=', 20);
+    }
+
+    public function isSelectable(Model $model): bool
+    {
+        return $model->getAttribute('score') >= 20;
+    }
+}
+
+class PaginatedSelectableTopicsTable extends SelectableTopicsTable
+{
+    protected ?int $perPage = 1;
+
+    /** @var array<int, int> */
+    protected ?array $perPageOptions = [1];
+}
+
 class ExternalTopicRecord extends Model
 {
     protected $table = 'external_topics';
@@ -241,6 +264,43 @@ it('serializes the eloquent primary key as stable row metadata', function () {
     $resource = (new ExternalTopicsTable)->resolve(Request::create('/external-topics'))->toArray();
 
     expect($resource['results']['data'][0]['_table']['key'])->toBe('topic-alpha');
+});
+
+it('serializes row eligibility and the exact selectable result count', function () {
+    $resource = (new SelectableTopicsTable)->resolve(tableRequest())->toArray();
+
+    expect($resource['results'])
+        ->total->toBe(3)
+        ->selectableTotal->toBe(2)
+        ->and(array_map(
+            fn (array $row) => $row['_table']['selectable'],
+            $resource['results']['data'],
+        ))->toBe([false, true, true]);
+});
+
+it('computes selectable totals against the normalized search and filters', function () {
+    $resource = (new SelectableTopicsTable)->resolve(tableRequest([
+        'filters' => ['status' => [
+            'enabled' => true,
+            'clause' => 'equals',
+            'value' => 'regular',
+        ]],
+    ]))->toArray();
+
+    expect($resource['results'])
+        ->total->toBe(1)
+        ->selectableTotal->toBe(0);
+});
+
+it('counts selectable rows outside the current page', function () {
+    $resource = (new PaginatedSelectableTopicsTable)->resolve(tableRequest())->toArray();
+
+    expect($resource['results'])
+        ->currentPage->toBe(1)
+        ->to->toBe(1)
+        ->total->toBe(3)
+        ->selectableTotal->toBe(2)
+        ->and($resource['results']['data'][0]['_table']['selectable'])->toBeFalse();
 });
 
 it('searches only searchable columns', function () {

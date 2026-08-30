@@ -37,9 +37,18 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
         <UiTableRow>
             <UiTableHead v-if="canSelect" class="tb-selection-cell">
                 <UiCheckbox
-                    :aria-label="i18n.t('selectAllResults')"
+                    :aria-label="
+                        i18n.t('selectAllMatching', {
+                            count: actions.selectableTotal.value,
+                        })
+                    "
+                    :title="
+                        i18n.t('selectAllMatching', {
+                            count: actions.selectableTotal.value,
+                        })
+                    "
                     :model-value="actions.selectionState.value"
-                    :disabled="resource.results.total === 0"
+                    :disabled="actions.selectableTotal.value === 0"
                     @update:model-value="actions.toggleAll"
                 />
             </UiTableHead>

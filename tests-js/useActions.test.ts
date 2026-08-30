@@ -48,6 +48,7 @@ describe("useActions", () => {
             },
         }));
         resource.results.total = count;
+        resource.results.selectableTotal = count;
         resource.results.to = count;
 
         return resource;
@@ -68,6 +69,17 @@ describe("useActions", () => {
         expect(actions.selectedCount.value).toBe(30);
     });
 
+    it("uses the selectable total instead of the raw result total", () => {
+        const resource = topicResource();
+        resource.results.selectableTotal = 18;
+        const { actions } = mountActions(resource);
+
+        actions.toggleAll();
+
+        expect(actions.selectedCount.value).toBe(18);
+        expect(actions.allItemsAreSelected.value).toBe(true);
+    });
+
     it("selects a contiguous current-page range with Shift-click", () => {
         const { actions, resource } = mountActions(resourceWithRows(5));
         const rows = resource.value.results.data;
@@ -77,6 +89,32 @@ describe("useActions", () => {
 
         expect([...actions.selectedKeys.value]).toEqual([2, 3, 4, 5]);
         expect(actions.selectedCount.value).toBe(4);
+    });
+
+    it("skips unselectable rows in a Shift-click range", () => {
+        const { actions, resource } = mountActions(resourceWithRows(5));
+        const rows = resource.value.results.data;
+        rows[2]._table!.selectable = false;
+        resource.value.results.selectableTotal = 4;
+
+        actions.toggleItem(rows[0], 0);
+        actions.toggleItem(rows[4], 4, true);
+
+        expect([...actions.selectedKeys.value]).toEqual([1, 2, 4, 5]);
+        expect(actions.selectedCount.value).toBe(4);
+        expect(actions.isItemSelected(rows[2], 2)).toBe(false);
+    });
+
+    it("resolves a partial header state to all matching results", () => {
+        const { actions, resource } = mountActions();
+
+        actions.toggleItem(resource.value.results.data[0], 0);
+        expect(actions.selectionState.value).toBe("indeterminate");
+
+        actions.toggleAll(false);
+
+        expect(actions.allSelected.value).toBe(true);
+        expect(actions.selectedCount.value).toBe(30);
     });
 
     it("updates exclusions when Shift-clicking an all-results range", () => {
@@ -234,6 +272,48 @@ describe("useActions", () => {
             confirmLabel: "Update Alpha",
             cancelLabel: "Cancel",
         });
+    });
+
+    it("resolves singular plural and all-matching confirmation variants", () => {
+        const resource = resourceWithRows(5);
+        const action = {
+            ...resource.actions[0],
+            confirmation: {
+                title: [
+                    "Delete :count topic?",
+                    "Delete :count topics?",
+                    "Delete all :count matching topics?",
+                ] as [string, string, string],
+                message: [
+                    "One topic",
+                    ":count topics",
+                    "All :count matching topics",
+                ] as [string, string, string],
+                confirmLabel: "Delete :count",
+                cancelLabel: "Cancel",
+            },
+        };
+        const { actions } = mountActions(resource);
+
+        actions.toggleItem(resource.results.data[0], 0);
+        actions.performAction(action);
+        expect(actions.pendingConfirmation.value?.title).toBe(
+            "Delete 1 topic?",
+        );
+        actions.cancelAction();
+
+        actions.toggleItem(resource.results.data[1], 1);
+        actions.performAction(action);
+        expect(actions.pendingConfirmation.value?.title).toBe(
+            "Delete 2 topics?",
+        );
+        actions.cancelAction();
+
+        actions.toggleAll();
+        actions.performAction(action);
+        expect(actions.pendingConfirmation.value?.title).toBe(
+            "Delete all 5 matching topics?",
+        );
     });
 
     it("performs resolved row link actions without duplicating the id in the query", () => {

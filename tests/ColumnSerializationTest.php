@@ -31,6 +31,33 @@ it('lets the actions column header be renamed', function () {
     expect(ActionColumn::new('Manage')->toArray()['header'])->toBe('Manage');
 });
 
+it('can group row actions in a dropdown', function () {
+    expect(ActionColumn::new()->asDropdown()->toArray())
+        ->asDropdown->toBeTrue();
+});
+
+it('serializes singular plural and all-matching confirmation copy', function () {
+    $confirmation = Action::make('delete')->confirm(
+        ['Delete :count topic?', 'Delete :count topics?', 'Delete all :count matching topics?'],
+        ['One topic will be deleted.', ':count topics will be deleted.', 'All :count matching topics will be deleted.'],
+    )->toArray()['confirmation'];
+
+    expect($confirmation['title'])->toBe([
+        'Delete :count topic?',
+        'Delete :count topics?',
+        'Delete all :count matching topics?',
+    ])->and($confirmation['message'])->toBe([
+        'One topic will be deleted.',
+        ':count topics will be deleted.',
+        'All :count matching topics will be deleted.',
+    ]);
+});
+
+it('rejects malformed confirmation variants', function () {
+    expect(fn () => Action::make('delete')->confirm(['Only one variant']))
+        ->toThrow(LogicException::class);
+});
+
 it('serializes a datetime column with its own default format distinct from DateColumn', function () {
     expect(DateTimeColumn::make('published_at')->toArray())->toMatchArray([
         'type' => 'datetime',

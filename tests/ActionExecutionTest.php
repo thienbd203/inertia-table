@@ -97,6 +97,27 @@ class ActionTopicsTable extends Table
     }
 }
 
+class SelectableActionTopicsTable extends ActionTopicsTable
+{
+    public function selectableQuery(Builder $query): Builder
+    {
+        return $query->whereKeyNot(2);
+    }
+
+    public function isSelectable(Model $model): bool
+    {
+        return $model->getKey() !== 2;
+    }
+}
+
+class PerModelSelectableActionTopicsTable extends ActionTopicsTable
+{
+    public function isSelectable(Model $model): bool
+    {
+        return $model->getKey() !== 2;
+    }
+}
+
 beforeEach(function () {
     ActionTopicsTable::$events = [];
 
@@ -132,6 +153,30 @@ function rowActionEndpoint(string $key, int $row = 0): string
         ->firstWhere('key', $key);
 
     return $action['endpoint']['url'];
+}
+
+function selectableActionResource(): array
+{
+    return (new SelectableActionTopicsTable)->resolve()->toArray();
+}
+
+function selectableBulkActionEndpoint(string $key): string
+{
+    return collect(selectableActionResource()['actions'])
+        ->firstWhere('key', $key)['endpoint']['url'];
+}
+
+function selectableRowActionEndpoint(string $key, int $row): string
+{
+    return collect(selectableActionResource()['results']['data'][$row]['_table']['actions'])
+        ->firstWhere('key', $key)['endpoint']['url'];
+}
+
+function perModelSelectableBulkActionEndpoint(string $key): string
+{
+    $resource = (new PerModelSelectableActionTopicsTable)->resolve()->toArray();
+
+    return collect($resource['actions'])->firstWhere('key', $key)['endpoint']['url'];
 }
 
 it('serializes server handlers as signed internal post endpoints', function () {
@@ -209,6 +254,50 @@ it('skips disabled models while iterating a bulk handler', function () {
 
     expect(ActionTopicRecord::query()->where('archived', true)->pluck('id')->all())
         ->toBe([1, 3]);
+});
+
+it('never executes per-model bulk handlers for unselectable rows', function () {
+    ActionTopicRecord::query()->update(['is_featured' => false]);
+
+    $this->post(selectableBulkActionEndpoint('feature'), ['ids' => [1, 2, 3]])
+        ->assertRedirect();
+
+    expect(ActionTopicRecord::query()->where('is_featured', true)->pluck('id')->all())
+        ->toBe([1, 3]);
+});
+
+it('rechecks per-model selectability while iterating bulk handlers', function () {
+    ActionTopicRecord::query()->update(['is_featured' => false]);
+
+    $this->post(perModelSelectableBulkActionEndpoint('feature'), ['ids' => [1, 2, 3]])
+        ->assertRedirect();
+
+    expect(ActionTopicRecord::query()->where('is_featured', true)->pluck('id')->all())
+        ->toBe([1, 3]);
+});
+
+it('applies selectable scopes to set-based all-matching handlers', function () {
+    $this->post(selectableBulkActionEndpoint('archive-matching'), [
+        'selection' => [
+            'all' => true,
+            'keys' => [],
+            'except' => [],
+            'table' => 'action_topics',
+            'state' => [],
+        ],
+    ])->assertRedirect();
+
+    expect(ActionTopicRecord::query()->where('archived', true)->pluck('id')->all())
+        ->toBe([1, 3]);
+});
+
+it('keeps row actions independent from bulk selectability', function () {
+    ActionTopicRecord::query()->whereKey(2)->update(['is_featured' => false]);
+
+    $this->post(selectableRowActionEndpoint('feature', 1), ['id' => 2])
+        ->assertRedirect();
+
+    expect(ActionTopicRecord::query()->findOrFail(2)->is_featured)->toBeTrue();
 });
 
 it('supports a redirect after a managed action', function () {

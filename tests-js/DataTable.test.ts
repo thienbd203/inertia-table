@@ -104,7 +104,7 @@ describe("DataTable shadcn renderer", () => {
         });
 
         await wrapper
-            .get('[aria-label="Select all matching results"]')
+            .get('[aria-label="Select all 30 matching results"]')
             .trigger("click");
         await flushPromises();
 
@@ -141,6 +141,27 @@ describe("DataTable shadcn renderer", () => {
         expect(wrapper.text()).toContain("2 rows selected");
     });
 
+    it("disables unselectable rows and skips them in a Shift-click range", async () => {
+        const resource = topicResource();
+        resource.results.data[1]._table!.selectable = false;
+        resource.results.selectableTotal = 29;
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+        const checkboxes = wrapper.findAll('tbody [data-slot="checkbox"]');
+
+        expect(checkboxes[1].attributes("disabled")).toBeDefined();
+
+        await checkboxes[0].trigger("click");
+        await checkboxes[1].trigger("click", { shiftKey: true });
+        await flushPromises();
+
+        expect(checkboxes[0].attributes("data-state")).toBe("checked");
+        expect(checkboxes[1].attributes("data-state")).toBe("unchecked");
+        expect(wrapper.text()).toContain("1 row selected");
+    });
+
     it("renders a dash for the partial header selection state", async () => {
         const wrapper = mount(DataTable, {
             props: { resource: topicResource() },
@@ -153,7 +174,7 @@ describe("DataTable shadcn renderer", () => {
         await flushPromises();
 
         const headerCheckbox = wrapper.get(
-            '[aria-label="Select all matching results"]',
+            '[aria-label="Select all 30 matching results"]',
         );
         expect(headerCheckbox.attributes("data-state")).toBe("indeterminate");
         expect(
@@ -212,6 +233,49 @@ describe("DataTable shadcn renderer", () => {
         ).toBe("Remove 0");
         expect(document.body.textContent).not.toContain("Delete");
         expect(wrapper.text()).toContain("Edit");
+    });
+
+    it("renders accessible row actions in an action-column dropdown", async () => {
+        const resource = topicResource();
+        resource.columns[2].asDropdown = true;
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        const trigger = wrapper.get('[aria-label="Row actions"]');
+        expect(trigger.attributes("aria-haspopup")).toBe("menu");
+
+        await trigger.trigger("keydown", { key: "Enter" });
+        await flushPromises();
+
+        const menuItem =
+            document.body.querySelector<HTMLElement>('[role="menuitem"]');
+        expect(menuItem?.textContent).toContain("Edit");
+    });
+
+    it("preserves custom action slots inside a row-action dropdown", async () => {
+        const resource = topicResource();
+        resource.columns[2].asDropdown = true;
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            slots: {
+                "action(edit)": ({ item }: { item: { name: string } }) =>
+                    h(
+                        "button",
+                        { "data-custom-edit": "" },
+                        `Edit ${item.name}`,
+                    ),
+            },
+            attachTo: document.body,
+        });
+
+        await wrapper.get('[aria-label="Row actions"]').trigger("click");
+        await flushPromises();
+
+        expect(
+            document.body.querySelector("[data-custom-edit]")?.textContent,
+        ).toBe("Edit Alpha");
     });
 
     it("forwards public feature slots through internal components", async () => {

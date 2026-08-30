@@ -60,12 +60,24 @@ export function useActions<T extends TableItem>(
     }
 
     function isItemSelected(item: T, index: number) {
+        if (!isItemSelectable(item)) return false;
+
         const key = rowKey(item, index);
 
         return allSelected.value
             ? !excludedKeys.value.has(key)
             : selectedKeys.value.has(key);
     }
+
+    function isItemSelectable(item: T) {
+        return item._table?.selectable !== false;
+    }
+
+    const selectableTotal = computed(
+        () =>
+            table.resource.value.results.selectableTotal ??
+            table.resource.value.results.total,
+    );
 
     const selectedItems = computed(() =>
         table.resource.value.results.data.filter((item, index) =>
@@ -74,16 +86,13 @@ export function useActions<T extends TableItem>(
     );
     const selectedCount = computed(() =>
         allSelected.value
-            ? Math.max(
-                  table.resource.value.results.total - excludedKeys.value.size,
-                  0,
-              )
+            ? Math.max(selectableTotal.value - excludedKeys.value.size, 0)
             : selectedKeys.value.size,
     );
     const allItemsAreSelected = computed(
         () =>
             allSelected.value &&
-            table.resource.value.results.total > 0 &&
+            selectableTotal.value > 0 &&
             excludedKeys.value.size === 0,
     );
     const selectionState = computed<boolean | "indeterminate">(() => {
@@ -111,8 +120,18 @@ export function useActions<T extends TableItem>(
         const attributes: Record<string, unknown> = pending.item
             ? { ...pending.item }
             : {};
-        const interpolate = (value: string) =>
-            value.replace(
+        const resolveVariant = (
+            value: string | [string, string, string?],
+        ): string => {
+            if (typeof value === "string") return value;
+
+            if (pending.item || count === 1) return value[0];
+            if (selection.value.all) return value[2] ?? value[1];
+
+            return value[1];
+        };
+        const interpolate = (copy: string | [string, string, string?]) =>
+            resolveVariant(copy).replace(
                 /:([A-Za-z_][A-Za-z0-9_]*)\b/g,
                 (placeholder, attribute: string) => {
                     if (attribute === "count") return String(count);
@@ -152,6 +171,8 @@ export function useActions<T extends TableItem>(
     );
 
     function toggleItem(item: T, index: number, selectRange = false) {
+        if (!isItemSelectable(item)) return;
+
         const key = rowKey(item, index);
         const items = table.resource.value.results.data;
         const anchorIndex = selectRange
@@ -166,7 +187,12 @@ export function useActions<T extends TableItem>(
         const rangeEnd = anchorIndex < 0 ? index : Math.max(anchorIndex, index);
         const keys = items
             .slice(rangeStart, rangeEnd + 1)
-            .map((candidate, offset) => rowKey(candidate, rangeStart + offset));
+            .map((candidate, offset) => ({
+                item: candidate,
+                key: rowKey(candidate, rangeStart + offset),
+            }))
+            .filter(({ item }) => isItemSelectable(item))
+            .map(({ key }) => key);
         const shouldSelect = !isItemSelected(item, index);
 
         if (allSelected.value) {
@@ -193,13 +219,14 @@ export function useActions<T extends TableItem>(
     }
 
     function toggleAll(value?: boolean | "indeterminate") {
-        if (table.resource.value.results.total === 0) {
+        if (selectableTotal.value === 0) {
             clearSelection();
 
             return;
         }
 
         const shouldSelectAll =
+            selectionState.value === "indeterminate" ||
             value === true ||
             value === "indeterminate" ||
             (value === undefined && !allItemsAreSelected.value);
@@ -323,6 +350,7 @@ export function useActions<T extends TableItem>(
         confirmAction,
         excludedKeys,
         isItemSelected,
+        isItemSelectable,
         isPerformingAction,
         pendingAction,
         pendingConfirmation,
@@ -332,6 +360,7 @@ export function useActions<T extends TableItem>(
         selectedCount,
         selectedItems,
         selectedKeys,
+        selectableTotal,
         selection,
         selectionState,
         toggleAll,
