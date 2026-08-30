@@ -346,6 +346,8 @@ SetFilter::make('status')->options([
 Actions are server-declared and can be row-level, bulk or both. Authorization, visibility, disabled state and action labels may vary per model.
 
 ```php
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Musing\InertiaTable\Selection;
 
 Action::make('delete', 'Delete')
@@ -360,12 +362,19 @@ Action::make('delete', 'Delete')
 
 Action::make('archive', 'Archive')
     ->bulk()
+    ->authorize(fn (Request $request) => $request->user()->can('update', Topic::class))
+    ->before(fn (Selection $selection) => Log::info('Archiving topics', [
+        'count' => $selection->count(),
+    ]))
     ->handleSelection(fn (Selection $selection) => $selection
         ->query()
-        ->update(['archived_at' => now()]));
+        ->update(['archived_at' => now()]))
+    ->after(fn () => session()->flash('success', 'Topics archived'));
 ```
 
-`handle()` invokes the closure once per selected model in chunks, which is useful when model events must run. `handleSelection()` invokes the closure once with a typed `Selection`, which is useful for a set-based update over a large filtered result. Handler actions automatically receive a signed internal POST endpoint under the configured `action_path`; action scope, authorization, hidden and disabled state are checked again when that endpoint runs.
+`handle()` invokes the closure once per selected model in chunks, which is useful when model events must run. Use `chunkSize()` to override the default chunk size of 1,000. During bulk execution, models whose row action is unauthorized, disabled or hidden are skipped. `handleSelection()` invokes the closure once with a typed `Selection`, which is useful for a set-based update over a large filtered result; because it operates directly on the query, its callback owns any per-model eligibility constraints.
+
+`before()` and `after()` wrap the handler once per action request and receive the `Selection`. An `after()` callback may return a response or URL, and `after('/topics/archived')` provides a direct redirect. Use `authorize()` for request-level authorization and `authorized()` for model-level row authorization. Handler actions automatically receive a signed internal POST endpoint under the configured `action_path`; action scope and availability are checked again when that endpoint runs.
 
 The `Selection` query always starts from `Table::query()`. For an all-results selection, it rebuilds the query through the table's declared search/filter allowlist and applies the unchecked keys from `except`. Useful APIs are `query()`, `count()`, `get()`, `firstOrFail()` and memory-safe `each()`.
 
@@ -404,6 +413,19 @@ Explicit bulk selections keep the existing `{ ids: [...] }` request payload. Sel
 ```
 
 Managed handlers resolve this descriptor through `Selection` automatically. Application-owned `endpoint()` routes remain responsible for resolving it safely and must not apply raw client attributes directly to SQL.
+
+Confirmation text supports `:count` for row and bulk actions, plus scalar row attributes such as `:name`. This keeps destructive confirmation copy honest without loading all matching IDs into the browser:
+
+```php
+Action::make('delete', 'Delete')
+    ->bulk()
+    ->destructive()
+    ->confirm(
+        'Delete :count selected topics?',
+        'You selected :count matching topics to move to trash.',
+        'Delete :count',
+    );
+```
 
 Action icons are intentionally library-agnostic. Register your Lucide resolver once:
 

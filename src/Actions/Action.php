@@ -5,6 +5,7 @@ namespace Musing\InertiaTable\Actions;
 use Closure;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use LogicException;
 use Musing\InertiaTable\Selection;
 
@@ -14,6 +15,8 @@ final class Action implements Arrayable
     private string $scope = 'row';
 
     private bool|Closure $authorized = true;
+
+    private bool|Closure $authorize = true;
 
     private bool|Closure $disabled = false;
 
@@ -41,6 +44,12 @@ final class Action implements Arrayable
     private ?Closure $handler = null;
 
     private bool $handlesSelection = false;
+
+    private ?Closure $before = null;
+
+    private string|Closure|null $after = null;
+
+    private int $chunkSize = 1000;
 
     /** @var array<string, mixed> */
     private array $meta = [];
@@ -79,6 +88,14 @@ final class Action implements Arrayable
     public function authorized(bool|Closure $authorized = true): self
     {
         $this->authorized = $authorized;
+
+        return $this;
+    }
+
+    /** @param bool|Closure(Request): bool $authorized */
+    public function authorize(bool|Closure $authorized = true): self
+    {
+        $this->authorize = $authorized;
 
         return $this;
     }
@@ -184,6 +201,33 @@ final class Action implements Arrayable
         return $this;
     }
 
+    /** @param Closure(Selection): mixed $callback */
+    public function before(Closure $callback): self
+    {
+        $this->before = $callback;
+
+        return $this;
+    }
+
+    /** @param string|Closure(Selection, mixed): mixed $callback */
+    public function after(string|Closure $callback): self
+    {
+        $this->after = $callback;
+
+        return $this;
+    }
+
+    public function chunkSize(int $chunkSize): self
+    {
+        if ($chunkSize < 1 || $chunkSize > 10_000) {
+            throw new LogicException('The table action chunk size must be between 1 and 10,000.');
+        }
+
+        $this->chunkSize = $chunkSize;
+
+        return $this;
+    }
+
     public function confirm(
         ?string $title = null,
         ?string $message = null,
@@ -233,21 +277,44 @@ final class Action implements Arrayable
         return $this->handlesSelection;
     }
 
-    public function execute(Selection $selection): mixed
+    public function execute(Selection $selection, bool $skipUnavailableModels = false): mixed
     {
         if (! $this->handler instanceof Closure) {
             throw new LogicException('This table action does not have a server-side handler.');
         }
 
-        if ($this->handlesSelection) {
-            return ($this->handler)($selection);
+        if ($this->before instanceof Closure) {
+            ($this->before)($selection);
         }
 
-        $result = null;
+        if ($this->handlesSelection) {
+            $result = ($this->handler)($selection);
+        } else {
+            $result = null;
+            $handler = $this->handler;
 
-        $selection->each(function (Model $model, Selection $selection) use (&$result) {
-            $result = ($this->handler)($model, $selection);
-        });
+            $selection->each(function (Model $model, Selection $selection) use (&$result, $handler, $skipUnavailableModels) {
+                if ($skipUnavailableModels && ! $this->isAvailableFor($model)) {
+                    return;
+                }
+
+                $result = $handler($model, $selection);
+            }, $this->chunkSize);
+        }
+
+        if (is_string($this->after)) {
+            return redirect()->to($this->after);
+        }
+
+        if ($this->after instanceof Closure) {
+            $afterResult = ($this->after)($selection, $result);
+
+            if (is_string($afterResult) && $afterResult !== '') {
+                return redirect()->to($afterResult);
+            }
+
+            return $afterResult ?? $result;
+        }
 
         return $result;
     }
@@ -255,9 +322,7 @@ final class Action implements Arrayable
     /** @return array<string, mixed> */
     public function resolve(?Model $model = null, ?string $handlerUrl = null): array
     {
-        $authorized = $this->authorized instanceof Closure
-            ? ($model !== null && (bool) ($this->authorized)($model))
-            : $this->authorized;
+        $authorized = $this->resolveAuthorization($model);
         $disabled = $this->resolveCondition($this->disabled, $model);
         $hidden = $this->resolveCondition($this->hidden, $model);
         $label = $this->label instanceof Closure
@@ -299,6 +364,25 @@ final class Action implements Arrayable
         if ($this->url !== null) {
             throw new LogicException('A table action cannot define both an endpoint and a server-side handler.');
         }
+    }
+
+    private function isAvailableFor(Model $model): bool
+    {
+        return $this->resolveAuthorization($model)
+            && ! $this->resolveCondition($this->disabled, $model)
+            && ! $this->resolveCondition($this->hidden, $model);
+    }
+
+    private function resolveAuthorization(?Model $model): bool
+    {
+        $globallyAuthorized = $this->authorize instanceof Closure
+            ? (bool) ($this->authorize)(request())
+            : $this->authorize;
+        $modelAuthorized = $this->authorized instanceof Closure
+            ? ($model !== null && (bool) ($this->authorized)($model))
+            : $this->authorized;
+
+        return $globallyAuthorized && $modelAuthorized;
     }
 
     private function resolveCondition(bool|Closure $condition, ?Model $model): bool

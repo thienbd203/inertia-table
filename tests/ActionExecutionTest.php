@@ -3,6 +3,7 @@
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Musing\InertiaTable\Actions\Action;
@@ -31,6 +32,9 @@ class ActionTopicRecord extends Model
 
 class ActionTopicsTable extends Table
 {
+    /** @var array<int, string> */
+    public static array $events = [];
+
     protected ?string $name = 'action_topics';
 
     public function query(): Builder
@@ -57,6 +61,26 @@ class ActionTopicsTable extends Table
             Action::make('archive-matching')
                 ->bulk()
                 ->handleSelection(fn (Selection $selection) => $selection->query()->update(['archived' => true])),
+            Action::make('archive-available')
+                ->rowAndBulk()
+                ->disabled(fn (ActionTopicRecord $topic) => $topic->getKey() === 2)
+                ->handle(fn (ActionTopicRecord $topic) => $topic->update(['archived' => true])),
+            Action::make('lifecycle')
+                ->bulk()
+                ->chunkSize(1)
+                ->before(fn (Selection $selection) => self::$events[] = 'before:'.$selection->count())
+                ->handle(fn (ActionTopicRecord $topic) => self::$events[] = 'handle:'.$topic->getKey())
+                ->after(function (Selection $selection) {
+                    self::$events[] = 'after:'.$selection->count();
+                }),
+            Action::make('redirect-after')
+                ->row()
+                ->handle(fn (ActionTopicRecord $topic) => $topic->update(['is_featured' => true]))
+                ->after('/topics/archived'),
+            Action::make('unauthorized')
+                ->bulk()
+                ->authorize(fn (Request $request) => false)
+                ->handle(fn (ActionTopicRecord $topic) => $topic->update(['archived' => true])),
             Action::make('disabled')
                 ->row()
                 ->disabled()
@@ -74,6 +98,8 @@ class ActionTopicsTable extends Table
 }
 
 beforeEach(function () {
+    ActionTopicsTable::$events = [];
+
     Schema::create('action_topics', function (Blueprint $table) {
         $table->id();
         $table->string('name');
@@ -165,6 +191,47 @@ it('executes one selection handler for all filtered matches except exclusions', 
         ->toBe([3]);
 });
 
+it('runs before and after once around chunked per-model handlers', function () {
+    $this->post(bulkActionEndpoint('lifecycle'), ['ids' => [1, 3]])
+        ->assertRedirect();
+
+    expect(ActionTopicsTable::$events)->toBe([
+        'before:2',
+        'handle:1',
+        'handle:3',
+        'after:2',
+    ]);
+});
+
+it('skips disabled models while iterating a bulk handler', function () {
+    $this->post(bulkActionEndpoint('archive-available'), ['ids' => [1, 2, 3]])
+        ->assertRedirect();
+
+    expect(ActionTopicRecord::query()->where('archived', true)->pluck('id')->all())
+        ->toBe([1, 3]);
+});
+
+it('supports a redirect after a managed action', function () {
+    $this->post(rowActionEndpoint('redirect-after'), ['id' => 1])
+        ->assertRedirect('/topics/archived');
+
+    expect(ActionTopicRecord::query()->findOrFail(1)->is_featured)->toBeTrue();
+});
+
+it('supports request-level authorization for bulk handlers', function () {
+    expect(collect(actionTableResource()['actions'])->pluck('key')->all())
+        ->not->toContain('unauthorized');
+
+    $url = URL::signedRoute('inertia-table.actions', [
+        'table' => TableReference::encode(ActionTopicsTable::class),
+        'action' => 'unauthorized',
+    ], absolute: false);
+
+    $this->post($url, ['ids' => [1]])->assertForbidden();
+
+    expect(ActionTopicRecord::query()->findOrFail(1)->archived)->toBeFalse();
+});
+
 it('rejects a tampered managed action url', function () {
     $url = str_replace('archive-matching', 'feature', bulkActionEndpoint('archive-matching'));
 
@@ -205,5 +272,12 @@ it('does not allow endpoints and handlers on the same action', function () {
     expect(fn () => Action::make('invalid')->endpoint('post', '/invalid')->handle(fn () => null))
         ->toThrow(LogicException::class)
         ->and(fn () => Action::make('invalid')->handle(fn () => null)->endpoint('post', '/invalid'))
+        ->toThrow(LogicException::class);
+});
+
+it('validates the per-action chunk size', function () {
+    expect(fn () => Action::make('invalid')->chunkSize(0))
+        ->toThrow(LogicException::class)
+        ->and(fn () => Action::make('invalid')->chunkSize(10_001))
         ->toThrow(LogicException::class);
 });

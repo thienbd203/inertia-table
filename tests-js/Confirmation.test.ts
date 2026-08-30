@@ -69,6 +69,27 @@ describe("Confirmation", () => {
         expect(visit).not.toHaveBeenCalled();
     });
 
+    it("interpolates the honest bulk count in confirmation copy", async () => {
+        const { actions } = mountWithTableContext(Confirmation);
+        actions.toggleAll();
+        actions.performAction({
+            ...deleteAction,
+            confirmation: {
+                ...deleteAction.confirmation!,
+                title: "Delete :count topics?",
+                message: "You selected :count matching topics.",
+                confirmLabel: "Delete :count",
+            },
+        });
+        await nextTick();
+
+        expect(document.body.textContent).toContain("Delete 30 topics?");
+        expect(document.body.textContent).toContain(
+            "You selected 30 matching topics.",
+        );
+        expect(document.body.textContent).toContain("Delete 30");
+    });
+
     it("clears the pending action without visiting when cancelled", async () => {
         const { actions } = mountWithTableContext(Confirmation);
         actions.toggleAll();

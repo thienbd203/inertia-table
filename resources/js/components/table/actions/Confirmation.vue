@@ -26,15 +26,10 @@ function updateOpen(open: boolean) {
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>
-                    {{
-                        actions.pendingAction.value?.action.confirmation?.title
-                    }}
+                    {{ actions.pendingConfirmation.value?.title }}
                 </DialogTitle>
                 <DialogDescription>
-                    {{
-                        actions.pendingAction.value?.action.confirmation
-                            ?.message
-                    }}
+                    {{ actions.pendingConfirmation.value?.message }}
                 </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -43,10 +38,7 @@ function updateOpen(open: boolean) {
                     :disabled="actions.isPerformingAction.value"
                     @click="actions.cancelAction"
                 >
-                    {{
-                        actions.pendingAction.value?.action.confirmation
-                            ?.cancelLabel
-                    }}
+                    {{ actions.pendingConfirmation.value?.cancelLabel }}
                 </UiButton>
                 <UiButton
                     :variant="
@@ -59,10 +51,7 @@ function updateOpen(open: boolean) {
                         v-if="actions.isPerformingAction.value"
                         class="size-4 animate-spin"
                     />
-                    {{
-                        actions.pendingAction.value?.action.confirmation
-                            ?.confirmLabel
-                    }}
+                    {{ actions.pendingConfirmation.value?.confirmLabel }}
                 </UiButton>
             </DialogFooter>
         </DialogContent>

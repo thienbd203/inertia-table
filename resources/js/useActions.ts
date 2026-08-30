@@ -101,6 +101,39 @@ export function useActions<T extends TableItem>(
             filters: table.resource.value.state.filters,
         },
     }));
+    const pendingConfirmation = computed(() => {
+        const pending = pendingAction.value;
+        const confirmation = pending?.action.confirmation;
+
+        if (!pending || !confirmation) return null;
+
+        const count = pending.item ? 1 : selectedCount.value;
+        const attributes: Record<string, unknown> = pending.item
+            ? { ...pending.item }
+            : {};
+        const interpolate = (value: string) =>
+            value.replace(
+                /:([A-Za-z_][A-Za-z0-9_]*)\b/g,
+                (placeholder, attribute: string) => {
+                    if (attribute === "count") return String(count);
+
+                    const replacement = attributes[attribute];
+
+                    return typeof replacement === "string" ||
+                        typeof replacement === "number" ||
+                        typeof replacement === "boolean"
+                        ? String(replacement)
+                        : placeholder;
+                },
+            );
+
+        return {
+            title: interpolate(confirmation.title),
+            message: interpolate(confirmation.message),
+            confirmLabel: interpolate(confirmation.confirmLabel),
+            cancelLabel: interpolate(confirmation.cancelLabel),
+        };
+    });
     const bulkActions = computed(() =>
         table.resource.value.actions.filter(
             (action) =>
@@ -292,6 +325,7 @@ export function useActions<T extends TableItem>(
         isItemSelected,
         isPerformingAction,
         pendingAction,
+        pendingConfirmation,
         performAction,
         rowKey,
         rowActionsFor,

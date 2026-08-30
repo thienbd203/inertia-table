@@ -172,7 +172,11 @@ type ActionResource = {
 };
 ```
 
-Actions are declared by the table and executed through `useActions()`. An action may point to an application-owned endpoint, define a server-side handler, or omit both and emit a frontend custom action. Server-side handlers serialize as signed internal POST endpoints and recheck action scope and availability before execution. Handler closures remain server-only and are never serialized.
+Actions are declared by the table and executed through `useActions()`. An action may point to an application-owned endpoint, define a server-side handler, or omit both and emit a frontend custom action. Server-side handlers serialize as signed internal POST endpoints and recheck action scope and availability before execution. Request-level authorization is separate from per-model row availability. Handler closures remain server-only and are never serialized.
+
+Managed actions have a once-per-request lifecycle: `before`, handler execution, then `after`. Per-model handlers iterate by primary key with a configurable chunk size and skip unauthorized, disabled, or hidden models during bulk execution. Selection handlers deliberately expose the normalized query for set-based work, so they own any per-model eligibility constraints that cannot be represented generically in SQL.
+
+Confirmation placeholders are resolved from the pending action context on the frontend. `:count` uses the exact explicit selection size or total matching rows minus exclusions; scalar row attributes such as `:name` resolve from serialized row data.
 
 ### Table state
 

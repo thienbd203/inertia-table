@@ -38,7 +38,10 @@ final class ActionController
             $this->ensureAvailable($tableAction);
         }
 
-        $response = $tableAction->execute($selection);
+        $response = $tableAction->execute(
+            $selection,
+            skipUnavailableModels: ! $isRowAction,
+        );
 
         if ($response instanceof Response || $response instanceof Responsable) {
             return $response;

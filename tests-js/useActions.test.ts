@@ -213,6 +213,29 @@ describe("useActions", () => {
         expect(visit).toHaveBeenCalledOnce();
     });
 
+    it("resolves row attributes and count in confirmation placeholders", () => {
+        const { actions, resource } = mountActions();
+        const item = resource.value.results.data[0];
+        const action = {
+            ...item._table!.actions[0],
+            confirmation: {
+                title: "Edit :name",
+                message: "Update :count topic named :name?",
+                confirmLabel: "Update :name",
+                cancelLabel: "Cancel",
+            },
+        };
+
+        actions.performAction(action, item);
+
+        expect(actions.pendingConfirmation.value).toEqual({
+            title: "Edit Alpha",
+            message: "Update 1 topic named Alpha?",
+            confirmLabel: "Update Alpha",
+            cancelLabel: "Cancel",
+        });
+    });
+
     it("performs resolved row link actions without duplicating the id in the query", () => {
         const { actions, resource } = mountActions();
         const item = resource.value.results.data[0];
