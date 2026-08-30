@@ -2,6 +2,7 @@
 
 namespace Musing\InertiaTable;
 
+use Closure;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -29,6 +30,10 @@ abstract class Table implements Arrayable
 
     protected ?bool $stickyHeader = null;
 
+    protected bool $pagination = true;
+
+    protected ?int $debounceTime = null;
+
     /** @var array<int, int>|null */
     protected ?array $perPageOptions = null;
 
@@ -41,6 +46,51 @@ abstract class Table implements Arrayable
     public static function make(): static
     {
         return app(static::class);
+    }
+
+    /**
+     * Build a lightweight table without declaring a dedicated Table class.
+     *
+     * @param  class-string<Model>|Builder<Model>  $resource
+     * @param  array<int, mixed>  $columns
+     * @param  array<int, mixed>  $filters
+     * @param  array<int, string>|string|null  $search
+     * @param  array<int, mixed>|null  $perPageOptions
+     * @param  Closure(Model): mixed|null  $transformModelUsing
+     * @param  Closure(QueryBuilder): mixed|null  $withQueryBuilder
+     */
+    public static function build(
+        string|Builder $resource,
+        array $columns = [],
+        array $filters = [],
+        array|string|null $search = [],
+        string $name = 'default',
+        bool $pagination = true,
+        ?int $debounceTime = null,
+        ?array $perPageOptions = null,
+        ?string $defaultSort = null,
+        ?Closure $transformModelUsing = null,
+        ?Closure $withQueryBuilder = null,
+        ?EmptyState $emptyState = null,
+        ?bool $stickyHeader = null,
+        ?int $defaultPerPage = null,
+    ): AnonymousTable {
+        return new AnonymousTable(
+            resource: $resource,
+            columns: $columns,
+            filters: $filters,
+            search: $search,
+            name: $name,
+            pagination: $pagination,
+            debounceTime: $debounceTime,
+            perPageOptions: $perPageOptions,
+            defaultSort: $defaultSort,
+            transformModelUsing: $transformModelUsing,
+            withQueryBuilder: $withQueryBuilder,
+            emptyState: $emptyState,
+            stickyHeader: $stickyHeader,
+            defaultPerPage: $defaultPerPage,
+        );
     }
 
     abstract public function query(): Builder;
@@ -173,7 +223,7 @@ abstract class Table implements Arrayable
             capabilities: [
                 'searchable' => $searchable !== [],
                 'selectable' => $selectable,
-                'paginated' => true,
+                'paginated' => $this->pagination,
                 'hasSearch' => $searchable !== [],
                 'hasFilters' => $filters !== [],
                 'hasActions' => $actions !== [],
@@ -186,7 +236,7 @@ abstract class Table implements Arrayable
             state: $state,
             results: $results,
             options: [
-                'debounceTime' => (int) config('inertia-table.debounce', 300),
+                'debounceTime' => $this->debounceTime ?? (int) config('inertia-table.debounce', 300),
                 'perPage' => $perPageOptions,
                 'reloadProps' => $this->reloadProps,
                 'stickyHeader' => $this->stickyHeader ?? false,
@@ -663,6 +713,26 @@ abstract class Table implements Arrayable
         array $actions,
         int $selectableTotal,
     ): array {
+        if (! $this->pagination) {
+            $models = $query->get();
+            $total = $models->count();
+
+            return [
+                'data' => $models
+                    ->map(fn (Model $model) => $this->serializeRow($model, $columns, $actions))
+                    ->values()
+                    ->all(),
+                'currentPage' => 1,
+                'from' => $total > 0 ? 1 : null,
+                'lastPage' => 1,
+                'links' => [],
+                'perPage' => $total,
+                'to' => $total > 0 ? $total : null,
+                'total' => $total,
+                'selectableTotal' => $selectableTotal,
+            ];
+        }
+
         $paginator = $query->paginate(
             perPage: $state->perPage,
             pageName: "table[{$this->name()}][page]",

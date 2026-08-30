@@ -233,11 +233,13 @@ export function useTable<T extends TableItem>(
     }
 
     function setPage(page: number) {
+        if (!toValue(resource).capabilities.paginated) return;
         if (page < 1 || page > toValue(resource).results.lastPage) return;
         patchState({ page });
     }
 
     function setPerPage(perPage: number) {
+        if (!toValue(resource).capabilities.paginated) return;
         if (!toValue(resource).options.perPage.includes(perPage)) return;
         patchState({ perPage, page: 1 });
     }

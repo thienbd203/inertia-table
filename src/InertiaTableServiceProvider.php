@@ -2,6 +2,7 @@
 
 namespace Musing\InertiaTable;
 
+use Musing\InertiaTable\Commands\MakeTableCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -14,6 +15,7 @@ class InertiaTableServiceProvider extends PackageServiceProvider
             ->hasConfigFile()
             ->hasTranslations()
             ->hasMigration('create_table_views_table')
+            ->hasCommand(MakeTableCommand::class)
             ->hasRoute('web');
     }
 }

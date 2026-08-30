@@ -13,3 +13,4 @@ All notable changes to `inertia-table` will be documented in this file.
 - Allowlisted relationship search, filtering and sorting with shared query customization.
 - Sticky headers plus user-toggleable and permanent sticky columns, measured stacked offsets, RTL support and Saved View persistence.
 - Table resource schema v2 with genuine empty states, empty-state actions and safe per-row data attributes.
+- Anonymous tables through `Table::build()`, optional unpaginated resources and the `make:inertia-table` generator.

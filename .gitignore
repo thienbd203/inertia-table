@@ -30,5 +30,7 @@ phpunit.xml
 phpstan.neon
 testbench.yaml
 /docs/*
+!/docs/api-stability.md
 !/docs/architecture.md
+!/docs/customization.md
 /coverage

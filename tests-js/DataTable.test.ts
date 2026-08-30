@@ -649,6 +649,19 @@ describe("DataTable shadcn renderer", () => {
         expect(row.attributes("data-status")).toBe("PUBLISHED");
     });
 
+    it("does not render pagination controls for an unpaginated resource", () => {
+        const resource = topicResource();
+        resource.capabilities.paginated = false;
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        expect(wrapper.find('[aria-label="Next page"]').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain("Rows per page");
+    });
+
     it("renders sticky headers and measured column offsets with logical RTL-safe properties", async () => {
         const originalRect = HTMLElement.prototype.getBoundingClientRect;
         let nameWidth = 120;

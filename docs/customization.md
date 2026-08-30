@@ -1,0 +1,63 @@
+# Customization and translations
+
+The server owns query capabilities and normalized metadata. The Vue package
+owns interaction and default rendering. Application-specific wording, icons and
+presentation can be replaced without forking either layer.
+
+## Translations
+
+Laravel translates server-generated defaults such as action confirmation text,
+boolean labels, the action-column heading and the default genuine empty-state
+title. Publish and edit those files with:
+
+```bash
+php artisan vendor:publish --tag=inertia-table-translations
+```
+
+Application-owned column, filter-option, action and empty-state labels should be
+translated before they are passed to the package.
+
+The Vue renderer ships complete English and Vietnamese catalogs. Configure an
+application-wide locale and partial overrides through the plugin:
+
+```ts
+import { createInertiaTable, vi } from "@musing/inertia-table-vue";
+
+app.use(createInertiaTable({
+    locale: "vi-VN",
+    messages: {
+        ...vi,
+        searchPlaceholder: "Tìm chủ đề…",
+    },
+}));
+```
+
+`DataTable` accepts the same `locale` and `messages` props for a local override.
+Local messages fall back to the application catalog and then English. Message
+parameters use `{name}` syntax; missing parameters stay visible to expose an
+incomplete translation during development.
+
+## Icons
+
+Built-in Lucide names resolve automatically. Use `iconResolver` on one table or
+`setIconResolver()` for application-wide aliases and custom components. The
+resolver receives both the icon name and its context, such as a column, action,
+empty state or empty-state action.
+
+## Rendering and styles
+
+Use attribute slots such as `cell(name)`, `header(name)`, `filter(status)` and
+`image(avatar)` for targeted changes. Layout slots include `topbar`,
+`beforeSearch`, `afterSearch`, `beforeActions`, `afterActions`, `filters`,
+`table`, `thead`, `tbody`, `footer`, `loading`, `emptyState` and `confirmation`.
+
+Prefer documented `tb-*` classes and CSS custom properties for styling.
+Tailwind utility order and internal shadcn primitives may change in minor
+releases. Server row attributes belong in
+`dataAttributesForModel()`; names are normalized to `data-*`, scalar-only and
+cannot replace package-owned selection or navigation attributes.
+
+For a fully application-owned renderer, compose `useTable()`, `useActions()`,
+`useViews()` and `useExports()` against the typed `TableResource`. Keep the
+server resource authoritative instead of deriving searchable, selectable or
+actionable behavior from visible DOM rows.

@@ -107,6 +107,17 @@ The package uses your existing shadcn/Tailwind CSS variables. It does not requir
 
 ## Quick start
 
+Generate a dedicated table class when the table needs row actions, bulk actions,
+Saved Views or exports:
+
+```bash
+php artisan make:inertia-table TopicsTable
+php artisan make:inertia-table Admin/TopicsTable --model=Content/Topic
+```
+
+The command writes to `app/Tables`, infers a singular model when `--model` is
+omitted, and refuses to replace an existing class unless `--force` is passed.
+
 Create a table definition. This is the source of truth for what users can do.
 
 ```php
@@ -203,6 +214,46 @@ defineProps<{ topics: TableResource<Topic> }>();
 </template>
 ```
 
+### Anonymous tables
+
+Simple read-only tables can be defined inline without a dedicated class. The
+resource may be an Eloquent model class or an existing Eloquent builder; the
+builder is cloned before each resolution so the table cannot mutate the
+controller's query.
+
+```php
+use App\Models\Topic;
+use Musing\InertiaTable\Columns\TextColumn;
+use Musing\InertiaTable\Filters\BooleanFilter;
+use Musing\InertiaTable\Table;
+
+return inertia('Admin/Topics/Index', [
+    'topics' => Table::build(
+        resource: Topic::query()->where('archived', false),
+        columns: [
+            TextColumn::make('name')->searchable()->sortable(),
+        ],
+        filters: [
+            BooleanFilter::make('is_featured', 'Featured'),
+        ],
+        name: 'topics',
+        defaultSort: 'name',
+        perPageOptions: [25, 50, 100],
+        defaultPerPage: 25,
+        transformModelUsing: fn (Topic $topic) => [
+            ...$topic->toArray(),
+            'display_name' => str($topic->name)->headline()->toString(),
+        ],
+    ),
+]);
+```
+
+`Table::build()` also accepts `search`, `pagination`, `debounceTime`,
+`withQueryBuilder`, `emptyState` and `stickyHeader`. Set `pagination: false` to
+return the complete normalized result and remove page controls. Anonymous
+tables intentionally do not declare actions, exports or Saved Views; use a
+generated class when server-managed behavior or persisted state is required.
+
 ## Internationalization
 
 The Vue renderer defaults to English and ships with Vietnamese messages. Configure it once on the Vue app:
@@ -244,6 +295,11 @@ Laravel-owned defaults follow `app()->getLocale()` automatically. Publish the la
 ```bash
 php artisan vendor:publish --tag=inertia-table-translations
 ```
+
+Every Vietnamese frontend key is type-checked against the English catalog.
+Unknown interpolation placeholders are left visible rather than silently
+removed. See [docs/customization.md](docs/customization.md) for the ownership
+rules, icon overrides, slots, stable CSS hooks and headless customization API.
 
 ## Columns
 
@@ -918,7 +974,9 @@ npm test
 npm run build
 ```
 
-The design and resource contract are described in [docs/architecture.md](docs/architecture.md).
+The design and resource contract are described in
+[docs/architecture.md](docs/architecture.md). Public compatibility guarantees
+are documented in [docs/api-stability.md](docs/api-stability.md).
 
 ## License
 

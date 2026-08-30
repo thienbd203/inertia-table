@@ -198,7 +198,13 @@ provideTableContext({
                     (item, column) => emit('rowClick', item as T, column)
                 "
             />
-            <SlotOutlet v-if="resource.results.total > 0" name="footer">
+            <SlotOutlet
+                v-if="
+                    resource.capabilities.paginated &&
+                    resource.results.total > 0
+                "
+                name="footer"
+            >
                 <Pagination />
             </SlotOutlet>
         </div>

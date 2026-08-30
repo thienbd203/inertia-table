@@ -1,0 +1,44 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Database\Eloquent\Builder;
+use Musing\InertiaTable\Actions\Action;
+use Musing\InertiaTable\Columns\TextColumn;
+use Musing\InertiaTable\Exports\Export;
+use Musing\InertiaTable\Filters\Filter;
+use Musing\InertiaTable\Table;
+use {{ modelNamespace }};
+
+final class {{ class }} extends Table
+{
+    public function query(): Builder
+    {
+        return {{ model }}::query();
+    }
+
+    public function columns(): array
+    {
+        return [
+            TextColumn::make('id', 'ID')->sortable()->toggleable(false),
+        ];
+    }
+
+    /** @return array<int, Filter> */
+    public function filters(): array
+    {
+        return [];
+    }
+
+    /** @return array<int, Action> */
+    public function actions(): array
+    {
+        return [];
+    }
+
+    /** @return array<int, Export> */
+    public function exports(): array
+    {
+        return [];
+    }
+}

@@ -125,6 +125,16 @@ describe("useTable", () => {
         expect(visit).not.toHaveBeenCalled();
     });
 
+    it("ignores page navigation for unpaginated resources", () => {
+        const { resource, table } = mountTable();
+        resource.value.capabilities.paginated = false;
+
+        table.setPage(2);
+        table.setPerPage(10);
+
+        expect(visit).not.toHaveBeenCalled();
+    });
+
     it("tracks only navigation initiated by its own table instance", () => {
         const first = mountTable();
         const second = mountTable();

@@ -1,6 +1,6 @@
 # Musing Inertia Table — Architecture v0.1
 
-Status: implemented resource contract. APIs remain subject to minor-version changes before v1.0.
+Status: resource schema v2 implemented; public APIs are stabilizing for v1.0.
 
 ## Product boundary
 
@@ -164,6 +164,21 @@ Searchability belongs to table query configuration, not presentation state. A
 column helper may opt an attribute into search, while the Table `$search`
 property can explicitly override the resolved allowlist. The serialized
 resource exposes both that allowlist and convenient capabilities.
+
+### Anonymous table boundary
+
+`Table::build()` returns an `AnonymousTable` backed by either a model class or a
+cloned Eloquent builder. It reuses the same column, filter, state normalization,
+query allowlist and resource v2 pipeline as a dedicated class. Builder callbacks
+may mutate the isolated Spatie query builder or return a replacement; model
+transforms must return arrays.
+
+Anonymous tables do not expose row/bulk actions, exports or Saved Views because
+those protocols require a stable class reference when a later signed request is
+resolved. The `make:inertia-table` generator is the supported migration path
+once a table needs those features. Disabling pagination changes
+`capabilities.paginated` to false, returns a one-page result envelope and makes
+the renderer and headless page controls inert.
 
 ### Filter resource
 
