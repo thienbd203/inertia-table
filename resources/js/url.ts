@@ -31,12 +31,18 @@ export function tableUrl<T extends TableItem>(
         }
     }
 
-    if (state.search !== "") {
+    if (state.view !== undefined && state.view !== null) {
+        params.set(stateKey(table, "view"), String(state.view));
+    }
+
+    if (state.search !== "" || state.view != null) {
         params.set(stateKey(table, "search"), state.search);
     }
 
     if (state.sort) {
         params.set(stateKey(table, "sort"), state.sort);
+    } else if (state.view != null) {
+        params.set(stateKey(table, "sort"), "");
     }
 
     if (state.page > 1) {
@@ -46,14 +52,21 @@ export function tableUrl<T extends TableItem>(
     params.set(stateKey(table, "perPage"), String(state.perPage));
 
     for (const [attribute, filter] of Object.entries(state.filters)) {
-        if (!filter.enabled) continue;
+        if (!filter.enabled && state.view == null) continue;
 
-        params.set(nestedKey(table, "filters", attribute, "enabled"), "1");
+        params.set(
+            nestedKey(table, "filters", attribute, "enabled"),
+            filter.enabled ? "1" : "0",
+        );
         params.set(
             nestedKey(table, "filters", attribute, "clause"),
             filter.clause,
         );
         const valueKey = nestedKey(table, "filters", attribute, "value");
+
+        if (filter.value === null || filter.value === undefined) {
+            continue;
+        }
 
         if (Array.isArray(filter.value)) {
             for (const value of filter.value) {

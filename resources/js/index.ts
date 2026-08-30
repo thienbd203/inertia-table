@@ -1,6 +1,7 @@
 export { default as DataTable } from "./DataTable.vue";
 export { useActions } from "./useActions";
 export { useTable } from "./useTable";
+export { useViews } from "./useViews";
 export { tableUrl } from "./url";
 export { setIconResolver } from "./icons";
 export type { IconResolver } from "./icons";
@@ -48,5 +49,8 @@ export type {
     TableResults,
     TableSelection,
     TableState,
+    TableView,
+    TableViewsResource,
+    TableViewState,
     TableOptions,
 } from "./types";

@@ -1,6 +1,6 @@
 # Musing Inertia Table — Architecture v0.1
 
-Status: proposal. The current implementation is a spike and does not define the public API.
+Status: implemented resource contract. APIs remain subject to minor-version changes before v1.0.
 
 ## Product boundary
 
@@ -41,6 +41,7 @@ Responsibilities:
 - consume and validate the resource shape;
 - expose `useTable()` for search, sorting, filters, columns, and pagination;
 - expose `useActions()` for selection, row actions, and bulk actions;
+- expose `useViews()` for persisted table-state operations;
 - generate namespaced URLs;
 - perform Inertia partial reloads;
 - preserve unrelated query parameters;
@@ -97,6 +98,7 @@ type TableResource<T> = {
         perPage: number[];
         reloadProps: string[];
     };
+    views: TableViewsResource | null;
 };
 ```
 
@@ -189,10 +191,32 @@ type TableState = {
     columns: Record<string, boolean>;
     page: number;
     perPage: number;
+    view?: string | number | null;
 };
 ```
 
 Selection is intentionally not serialized into the URL. It is ephemeral frontend action state and is cleared when the result set identity changes.
+
+### Saved views
+
+Saved views are an opt-in persistence layer over normalized table state. A view
+stores schema version, sort, filters, column visibility, pinned-column metadata,
+page size and optionally search. Page number and selection are never persisted.
+On read, state is normalized through the current table declarations so removed
+columns, filters, clauses and page sizes cannot be restored from stale records.
+
+The resolution order is explicit URL state, selected view, scoped default view,
+then table defaults. View identity is part of the table namespace, while unrelated
+navigation state remains intact. The default renderer exposes the current view,
+dirty state and authorized mutations; `useViews()` provides the same behavior to
+custom renderers.
+
+Persistence uses a publishable `table_views` migration. Context hashes isolate
+the table class, optional table name and recursively normalized application
+attributes. Scope hashes additionally isolate the owning user. User-scoped views
+may be shared read-only with other users; `scopeUser(false)` creates global views.
+All mutations use signed CSRF-protected routes, rerun server authorization and
+require an optimistic `lock_version` to prevent lost updates.
 
 ### Selection resolver
 
@@ -234,9 +258,10 @@ Spatie Query Builder does not own column visibility, table naming, action execut
 ```ts
 const table = useTable(resource);
 const actions = useActions(table);
+const views = useViews(table);
 ```
 
-`useTable()` owns resolved state and navigation operations. `useActions()` owns explicit keys, all-results selection with exclusions, current-page Shift-click ranges, row/bulk action availability, confirmation, execution, and pending state. The header checkbox selects every selectable row matching the normalized search/filter state across pagination immediately; it never stops at the current page. Its three states use `selectableTotal`, and ranges skip unselectable rows.
+`useTable()` owns resolved state and navigation operations. `useActions()` owns explicit keys, all-results selection with exclusions, current-page Shift-click ranges, row/bulk action availability, confirmation, execution, and pending state. `useViews()` owns view switching, normalized persistence payloads, dirty comparison and authorized mutations. The header checkbox selects every selectable row matching the normalized search/filter state across pagination immediately; it never stops at the current page. Its three states use `selectableTotal`, and ranges skip unselectable rows.
 
 The default `<DataTable>` exposes these scopes through documented slots:
 
@@ -278,7 +303,6 @@ Included:
 Deferred:
 
 - exports and queued exports;
-- saved views/bookmarks;
 - relationship sorting helpers beyond custom Spatie sorts;
 - cursor pagination;
 - React renderer;

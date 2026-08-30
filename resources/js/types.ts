@@ -99,6 +99,44 @@ export type TableState = {
     columns: Record<string, boolean>;
     page: number;
     perPage: number;
+    view?: TableKey | null;
+};
+
+export type TableViewState = {
+    schemaVersion: 1;
+    sort: string | null;
+    filters: Record<string, TableFilterState>;
+    columns: Record<string, boolean>;
+    pinnedColumns: { left: string[]; right: string[] };
+    perPage: number;
+    search?: string;
+};
+
+export type TableView = {
+    id: TableKey;
+    name: string;
+    state: TableViewState;
+    isDefault: boolean;
+    isShared: boolean;
+    version: number;
+    canUpdate: boolean;
+    canDelete: boolean;
+    canShare: boolean;
+    canDefault: boolean;
+    endpoints: {
+        update: string | null;
+        delete: string | null;
+        default: string | null;
+        share: string | null;
+    };
+};
+
+export type TableViewsResource = {
+    items: TableView[];
+    selected: TableKey | null;
+    includeSearch: boolean;
+    canCreate: boolean;
+    storeEndpoint: string | null;
 };
 
 export type TableSelection = {
@@ -151,6 +189,7 @@ export type TableResource<T extends TableItem = TableItem> = {
         perPage: number[];
         reloadProps: string[];
     };
+    views?: TableViewsResource | null;
 };
 
 export type TableOptions<T extends TableItem> = {

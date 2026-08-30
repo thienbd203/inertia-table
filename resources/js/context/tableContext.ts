@@ -4,11 +4,13 @@ import type { TableI18n } from "@/i18n";
 import type { TableItem, TableResource } from "@/types";
 import type { UseActions } from "@/useActions";
 import type { UseTable } from "@/useTable";
+import type { UseViews } from "@/useViews";
 
 export type TableContext<T extends TableItem = TableItem> = {
     resource: Ref<TableResource<T>>;
     table: UseTable<T>;
     actions: UseActions<T>;
+    views: UseViews<T>;
     iconResolver?: IconResolver;
     i18n: TableI18n;
     searchPlaceholder: Ref<string>;
@@ -22,6 +24,7 @@ export type TableContext<T extends TableItem = TableItem> = {
     scope: {
         table: UseTable<T>;
         actions: UseActions<T>;
+        views: UseViews<T>;
     };
 };
 

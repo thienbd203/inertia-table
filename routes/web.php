@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Musing\InertiaTable\Http\Controllers\ActionController;
+use Musing\InertiaTable\Http\Controllers\ViewController;
 
 Route::middleware(['web', 'signed:relative'])
     ->post(
@@ -11,3 +12,19 @@ Route::middleware(['web', 'signed:relative'])
     )
     ->where('table', '[A-Za-z0-9_-]+')
     ->name('inertia-table.actions');
+
+Route::middleware(['web', 'signed:relative'])
+    ->prefix(trim((string) config('inertia-table.view_path', '_inertia-table/views'), '/'))
+    ->where(['table' => '[A-Za-z0-9_-]+', 'view' => '[A-Za-z0-9_-]+'])
+    ->group(function () {
+        Route::post('/{table}', [ViewController::class, 'store'])
+            ->name('inertia-table.views.store');
+        Route::patch('/{table}/{view}', [ViewController::class, 'update'])
+            ->name('inertia-table.views.update');
+        Route::delete('/{table}/{view}', [ViewController::class, 'destroy'])
+            ->name('inertia-table.views.destroy');
+        Route::post('/{table}/{view}/default', [ViewController::class, 'setDefault'])
+            ->name('inertia-table.views.default');
+        Route::post('/{table}/{view}/share', [ViewController::class, 'share'])
+            ->name('inertia-table.views.share');
+    });

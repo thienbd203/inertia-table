@@ -5,6 +5,7 @@ import { ActionsMenu } from "../actions";
 import { ColumnVisibilityMenu } from "../columns";
 import { AddFilterMenu } from "../filters";
 import { SlotOutlet } from "../shared";
+import { ViewsMenu } from "../views";
 
 const {
     resource,
@@ -33,6 +34,7 @@ const {
 
         <div class="tb-action-group flex gap-2">
             <SlotOutlet name="beforeActions" />
+            <ViewsMenu />
             <ActionsMenu />
             <AddFilterMenu
                 :filters="resource.filters"

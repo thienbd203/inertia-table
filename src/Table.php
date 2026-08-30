@@ -59,6 +59,11 @@ abstract class Table implements Arrayable
         return [];
     }
 
+    public function views(): ?Views
+    {
+        return null;
+    }
+
     public function name(): string
     {
         return $this->name ?? str(class_basename(static::class))
@@ -86,9 +91,20 @@ abstract class Table implements Arrayable
         $columns = $this->validatedColumns();
         $filters = $this->validatedFilters();
         $actions = $this->validatedActions();
+        $views = $this->views();
+        $resolvedViews = $views?->resolve($this, $request);
         $searchable = $this->searchableColumns($columns);
         $perPageOptions = $this->perPageOptions();
-        $state = $this->resolveState($request, $columns, $filters);
+        $state = $this->resolveState(
+            $request,
+            $columns,
+            $filters,
+            $resolvedViews['state'] ?? [],
+        );
+
+        if ($resolvedViews !== null) {
+            $state = $state->withView($resolvedViews['resource']['selected']);
+        }
         $query = $this->buildQuery($request, $state, $columns, $filters);
 
         $bulkActions = collect($actions)
@@ -130,6 +146,7 @@ abstract class Table implements Arrayable
                 'perPage' => $perPageOptions,
                 'reloadProps' => $this->reloadProps,
             ],
+            views: $resolvedViews['resource'] ?? null,
         );
     }
 
@@ -153,6 +170,51 @@ abstract class Table implements Arrayable
     public function isSelectable(Model $model): bool
     {
         return true;
+    }
+
+    /**
+     * Normalize saved view state through the table's current declarations.
+     *
+     * @param  array<string, mixed>  $state
+     * @return array<string, mixed>
+     */
+    public function normalizeViewState(array $state, bool $includeSearch = false): array
+    {
+        $columns = $this->validatedColumns();
+        $request = Request::create('/', 'GET', [
+            'table' => [$this->name() => $state],
+        ]);
+        $resolved = $this->resolveState(
+            $request,
+            $columns,
+            $this->validatedFilters(),
+        );
+        $allowedColumns = array_map(
+            fn (Column $column) => $column->attribute,
+            $columns,
+        );
+        $pinned = is_array($state['pinnedColumns'] ?? null)
+            ? $state['pinnedColumns']
+            : [];
+        $left = $this->normalizePinnedColumns($pinned['left'] ?? [], $allowedColumns);
+        $right = array_values(array_diff(
+            $this->normalizePinnedColumns($pinned['right'] ?? [], $allowedColumns),
+            $left,
+        ));
+        $normalized = [
+            'schemaVersion' => 1,
+            'sort' => $resolved->sort,
+            'filters' => $resolved->filters,
+            'columns' => $resolved->columns,
+            'pinnedColumns' => ['left' => $left, 'right' => $right],
+            'perPage' => $resolved->perPage,
+        ];
+
+        if ($includeSearch) {
+            $normalized['search'] = $resolved->search;
+        }
+
+        return $normalized;
     }
 
     public function action(string $key): ?Action
@@ -357,8 +419,13 @@ abstract class Table implements Arrayable
      * @param  array<int, Column>  $columns
      * @param  array<int, Filter>  $filters
      */
-    private function resolveState(Request $request, array $columns, array $filters): TableState
-    {
+    private function resolveState(
+        Request $request,
+        array $columns,
+        array $filters,
+        array $baseState = [],
+    ): TableState {
+        $request = $this->stateRequest($request, $baseState);
         $state = TableState::fromRequest(
             $request,
             $this->name(),
@@ -379,6 +446,34 @@ abstract class Table implements Arrayable
             $columns,
             $this->normalizeFilters($filters, $state),
         );
+    }
+
+    /** @param array<string, mixed> $baseState */
+    private function stateRequest(Request $request, array $baseState): Request
+    {
+        if ($baseState === []) {
+            return $request;
+        }
+
+        $query = $request->query->all();
+        $tables = is_array($query['table'] ?? null) ? $query['table'] : [];
+        $explicit = is_array($tables[$this->name()] ?? null)
+            ? $tables[$this->name()]
+            : [];
+        $merged = array_replace($baseState, $explicit);
+
+        foreach (['filters', 'columns'] as $group) {
+            if (is_array($baseState[$group] ?? null) && is_array($explicit[$group] ?? null)) {
+                $merged[$group] = array_replace($baseState[$group], $explicit[$group]);
+            }
+        }
+
+        $tables[$this->name()] = $merged;
+        $query['table'] = $tables;
+        $stateRequest = Request::createFrom($request);
+        $stateRequest->query->replace($query);
+
+        return $stateRequest;
     }
 
     /**
@@ -618,5 +713,21 @@ abstract class Table implements Arrayable
         }
 
         return array_values($actions);
+    }
+
+    /**
+     * @param  array<int, string>  $allowed
+     * @return array<int, string>
+     */
+    private function normalizePinnedColumns(mixed $columns, array $allowed): array
+    {
+        if (! is_array($columns)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(
+            $columns,
+            fn (mixed $column) => is_string($column) && in_array($column, $allowed, true),
+        )));
     }
 }

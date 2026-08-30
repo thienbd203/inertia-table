@@ -4,6 +4,7 @@ import { provideTableContext } from "../resources/js/context/tableContext";
 import type { TableResource } from "../resources/js/types";
 import { useActions } from "../resources/js/useActions";
 import { useTable } from "../resources/js/useTable";
+import { useViews } from "../resources/js/useViews";
 import { useTableI18n } from "../resources/js/i18n";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
@@ -21,18 +22,21 @@ export function mountWithTableContext(
     const resource = ref(topicResource(resourceOverrides));
     let table!: ReturnType<typeof useTable<Topic>>;
     let actions!: ReturnType<typeof useActions<Topic>>;
+    let views!: ReturnType<typeof useViews<Topic>>;
 
     const wrapper = mount(
         defineComponent({
             setup() {
                 table = useTable(resource);
                 actions = useActions(table);
+                views = useViews(table);
                 const i18n = useTableI18n();
 
                 provideTableContext({
                     resource,
                     table,
                     actions,
+                    views,
                     iconResolver: undefined,
                     i18n,
                     searchPlaceholder: ref("Search…"),
@@ -43,7 +47,7 @@ export function mountWithTableContext(
                     consumePendingFilterPopover: () => {},
                     removeFilter: () => {},
                     clearFilters: () => {},
-                    scope: { table, actions },
+                    scope: { table, actions, views },
                 });
 
                 return () => h(component);
@@ -52,5 +56,11 @@ export function mountWithTableContext(
         { attachTo: document.body },
     );
 
-    return { actions: actions!, resource, table: table!, wrapper };
+    return {
+        actions: actions!,
+        resource,
+        table: table!,
+        views: views!,
+        wrapper,
+    };
 }

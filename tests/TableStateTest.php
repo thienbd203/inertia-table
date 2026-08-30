@@ -81,6 +81,20 @@ it('does not read another table namespace', function () {
     expect($state->search)->toBe('');
 });
 
+it('parses an isolated saved view identifier', function () {
+    $state = TableState::fromRequest(
+        stateRequest(['view' => 'view-7']),
+        'topics',
+        null,
+        25,
+        [25],
+    );
+
+    expect($state->view)->toBe('view-7')
+        ->and($state->withView(8)->view)->toBe(8)
+        ->and($state->view)->toBe('view-7');
+});
+
 it('exposes immutable with* helpers that do not mutate the original state', function () {
     $original = TableState::fromRequest(stateRequest(), 'topics', null, 25, [25]);
 

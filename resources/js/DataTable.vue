@@ -23,6 +23,7 @@ import type {
 } from "@/types";
 import { useActions } from "@/useActions";
 import { useTable } from "@/useTable";
+import { useViews } from "@/useViews";
 
 const props = withDefaults(
     defineProps<{
@@ -68,6 +69,7 @@ const i18n = createTableI18n(
 );
 provideTableI18n(i18n);
 const table = useTable(resource);
+const views = useViews(table);
 const actions = useActions(
     table,
     { rowKey: props.rowKey },
@@ -145,6 +147,7 @@ provideTableContext({
     resource,
     table,
     actions,
+    views,
     iconResolver: props.iconResolver,
     i18n,
     searchPlaceholder: computed(
@@ -157,7 +160,7 @@ provideTableContext({
     consumePendingFilterPopover,
     removeFilter,
     clearFilters,
-    scope: { table, actions },
+    scope: { table, actions, views },
 });
 </script>
 

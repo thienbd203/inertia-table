@@ -19,6 +19,7 @@ Toolbelt keeps the server authoritative. The browser can only request capabiliti
 - A ready-to-use Vue `<DataTable>` built from shadcn-vue-style source and Reka UI primitives.
 - Text, numeric, set, boolean and date filters, including single-date and date-range calendars.
 - Per-table query-string state, Inertia partial reloads, pagination, column visibility and all-results selection across pages.
+- Scoped saved views with defaults, sharing, optimistic locking and live dirty-state feedback.
 - Presentation helpers for badges, dates, images, links, tooltips, alignment and Tailwind classes.
 - Slots and headless composables when the default renderer needs an escape hatch.
 - Built-in English and Vietnamese interface messages with per-app and per-table overrides.
@@ -69,7 +70,17 @@ return [
     'per_page_options' => [10, 25, 50, 100],
     'debounce' => 300,
     'action_path' => '_inertia-table/actions',
+    'view_path' => '_inertia-table/views',
+    'views' => ['table' => 'table_views'],
 ];
+```
+
+Saved views are opt-in. Publish and run their migration before enabling them on
+a table:
+
+```bash
+php artisan vendor:publish --tag=inertia-table-migrations
+php artisan migrate
 ```
 
 ### Tailwind CSS v4
@@ -558,6 +569,59 @@ Every table gets an isolated query-string namespace. Several table resources may
 ```
 
 Toolbelt translates this state to Spatie's query contract internally. Invalid columns, sorts, clauses, filter values and page sizes are ignored or replaced by safe defaults before the query executes.
+
+## Saved views
+
+Enable saved views by returning a `Views` definition from the table. The default
+scope belongs to the authenticated Laravel user:
+
+```php
+use Musing\InertiaTable\Views;
+
+public function views(): ?Views
+{
+    return Views::make();
+}
+```
+
+The toolbar then provides the view switcher and create, update, rename, delete,
+default and share operations allowed by the server. View state contains sort,
+filters, column visibility, pinned-column metadata and page size. Search remains
+ephemeral unless `includeSearch()` is enabled:
+
+```php
+public function views(): ?Views
+{
+    return Views::make()
+        ->includeSearch()
+        ->scopeTableName()
+        ->attributes(fn () => ['tenant_id' => tenant()->id]);
+}
+```
+
+`attributes()` isolates otherwise identical tables by application context, such
+as tenant or workspace. `scopeTableName()` additionally isolates multiple named
+instances of the same PHP table class. Use `scopeUser(false)` for application-wide
+views, `userResolver()` for a non-standard identity source, and `modelClass()` for
+a `TableView` subclass. Fine-grained policies are available through
+`authorizeCreate()`, `authorizeUpdate()`, `authorizeDelete()`, `authorizeShare()`
+and `authorizeDefault()`.
+
+State precedence is explicit URL values over the selected view, then the user's
+default view, then table defaults. Stored values are normalized against the
+table's current columns, filters and per-page allowlist whenever they are read,
+so stale definitions cannot restore undeclared query capabilities. CRUD uses
+signed, CSRF-protected routes and a `lock_version`; concurrent stale edits are
+rejected instead of silently overwriting a newer view.
+
+For a custom renderer, compose the view controller with the same table instance:
+
+```ts
+import { useTable, useViews } from "@musing/inertia-table-vue";
+
+const table = useTable(() => props.topics);
+const views = useViews(table);
+```
 
 ## Development
 

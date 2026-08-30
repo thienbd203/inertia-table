@@ -85,4 +85,32 @@ describe("tableUrl", () => {
             ),
         ).toEqual(["featured", "pending"]);
     });
+
+    it("keeps selected views isolated and serializes explicit disabled state", () => {
+        const resource = topicResource();
+        const url = tableUrl(
+            "/admin?table%5Bauthors%5D%5Bview%5D=4",
+            resource,
+            {
+                ...resource.state,
+                view: 7,
+                sort: null,
+                filters: {
+                    status: {
+                        enabled: false,
+                        clause: "equals",
+                        value: null,
+                    },
+                },
+            },
+        );
+        const parsed = new URL(url, "http://toolbelt.local");
+
+        expect(parsed.searchParams.get("table[authors][view]")).toBe("4");
+        expect(parsed.searchParams.get("table[topics][view]")).toBe("7");
+        expect(parsed.searchParams.get("table[topics][sort]")).toBe("");
+        expect(
+            parsed.searchParams.get("table[topics][filters][status][enabled]"),
+        ).toBe("0");
+    });
 });

@@ -19,6 +19,7 @@ final readonly class TableState implements Arrayable
         public array $columns,
         public int $page,
         public int $perPage,
+        public int|string|null $view = null,
     ) {}
 
     /**
@@ -55,18 +56,21 @@ final readonly class TableState implements Arrayable
         $perPage = in_array($requestedPerPage, $perPageOptions, true)
             ? $requestedPerPage
             : $defaultPerPage;
+        $view = is_int($input['view'] ?? null) || is_string($input['view'] ?? null)
+            ? $input['view']
+            : null;
 
-        return new self($search, $sort, $filters, $columns, $page, $perPage);
+        return new self($search, $sort, $filters, $columns, $page, $perPage, $view);
     }
 
     public function withSort(?string $sort): self
     {
-        return new self($this->search, $sort, $this->filters, $this->columns, $this->page, $this->perPage);
+        return new self($this->search, $sort, $this->filters, $this->columns, $this->page, $this->perPage, $this->view);
     }
 
     public function withSearch(string $search): self
     {
-        return new self($search, $this->sort, $this->filters, $this->columns, $this->page, $this->perPage);
+        return new self($search, $this->sort, $this->filters, $this->columns, $this->page, $this->perPage, $this->view);
     }
 
     /**
@@ -74,13 +78,18 @@ final readonly class TableState implements Arrayable
      */
     public function withFilters(array $filters): self
     {
-        return new self($this->search, $this->sort, $filters, $this->columns, $this->page, $this->perPage);
+        return new self($this->search, $this->sort, $filters, $this->columns, $this->page, $this->perPage, $this->view);
     }
 
     /** @param array<string, bool> $columns */
     public function withColumns(array $columns): self
     {
-        return new self($this->search, $this->sort, $this->filters, $columns, $this->page, $this->perPage);
+        return new self($this->search, $this->sort, $this->filters, $columns, $this->page, $this->perPage, $this->view);
+    }
+
+    public function withView(int|string|null $view): self
+    {
+        return new self($this->search, $this->sort, $this->filters, $this->columns, $this->page, $this->perPage, $view);
     }
 
     public function toArray(): array
@@ -92,6 +101,7 @@ final readonly class TableState implements Arrayable
             'columns' => $this->columns,
             'page' => $this->page,
             'perPage' => $this->perPage,
+            'view' => $this->view,
         ];
     }
 }

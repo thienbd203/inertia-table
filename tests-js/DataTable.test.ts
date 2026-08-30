@@ -1,7 +1,7 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { h } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { TableItem } from "../resources/js/types";
+import type { TableItem, TableView } from "../resources/js/types";
 import { topicResource } from "./fixtures";
 
 const { listeners } = vi.hoisted(() => ({
@@ -48,6 +48,44 @@ async function openDropdown(
     await flushPromises();
 }
 
+function attachViews(resource: ReturnType<typeof topicResource>) {
+    const view: TableView = {
+        id: 7,
+        name: "Featured view",
+        state: {
+            schemaVersion: 1,
+            sort: resource.state.sort,
+            filters: resource.state.filters,
+            columns: resource.state.columns,
+            pinnedColumns: { left: [], right: [] },
+            perPage: resource.state.perPage,
+        },
+        isDefault: true,
+        isShared: false,
+        version: 0,
+        canUpdate: true,
+        canDelete: true,
+        canShare: true,
+        canDefault: true,
+        endpoints: {
+            update: "/views/7?signature=update",
+            delete: "/views/7?signature=delete",
+            default: "/views/7/default?signature=default",
+            share: "/views/7/share?signature=share",
+        },
+    };
+    resource.state.view = 7;
+    resource.views = {
+        items: [view],
+        selected: 7,
+        includeSearch: false,
+        canCreate: true,
+        storeEndpoint: "/views?signature=store",
+    };
+
+    return view;
+}
+
 describe("DataTable shadcn renderer", () => {
     beforeEach(() => {
         listeners.clear();
@@ -82,6 +120,50 @@ describe("DataTable shadcn renderer", () => {
 
         await openDropdown(wrapper, "Actions");
         expect(document.body.textContent).toContain("Delete");
+    });
+
+    it("renders the saved-view switcher and destructive delete confirmation", async () => {
+        const resource = topicResource();
+        attachViews(resource);
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        await openDropdown(wrapper, "Featured view");
+        expect(document.body.textContent).toContain("Saved views");
+        expect(document.body.textContent).toContain("Save view");
+        expect(document.body.textContent).toContain("Rename view");
+
+        const deleteItem = Array.from(
+            document.body.querySelectorAll<HTMLElement>(
+                '[data-slot="dropdown-menu-item"]',
+            ),
+        ).find((item) => item.textContent?.includes("Delete view"));
+        deleteItem?.click();
+        await flushPromises();
+
+        expect(document.body.textContent).toContain(
+            'Delete the saved view "Featured view"?',
+        );
+    });
+
+    it("shows a dirty view indicator and exposes reset/update actions", async () => {
+        const resource = topicResource();
+        attachViews(resource);
+        resource.state.sort = "-name";
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        expect(
+            wrapper.find('[aria-label="View has unsaved changes"]').exists(),
+        ).toBe(true);
+
+        await openDropdown(wrapper, "Featured view");
+        expect(document.body.textContent).toContain("Update view");
+        expect(document.body.textContent).toContain("Reset changes");
     });
 
     it("forwards a custom row key resolver to selection and rendering", () => {
