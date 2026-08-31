@@ -207,7 +207,7 @@ it('executes a per-model handler for explicit bulk keys', function () {
     $this->post(bulkActionEndpoint('feature'), ['ids' => [1, 3]])
         ->assertRedirect();
 
-    expect(ActionTopicRecord::query()->where('is_featured', true)->pluck('id')->all())
+    expect(ActionTopicRecord::query()->where('is_featured', true)->orderBy('id')->pluck('id')->all())
         ->toBe([1, 2, 3]);
 });
 

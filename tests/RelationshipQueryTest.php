@@ -264,12 +264,16 @@ it('sorts nullable to-one and duplicate-producing to-many relationships through 
     $authors = (new RelationshipTopicsTable)->resolve(
         relationshipRequest(['sort' => 'author.name']),
     )->toArray();
+    $authorsDescending = (new RelationshipTopicsTable)->resolve(
+        relationshipRequest(['sort' => '-author.name']),
+    )->toArray();
     $comments = (new RelationshipTopicsTable)->resolve(
         relationshipRequest(['sort' => '-comments.score']),
     )->toArray();
 
     expect($authors['results']['total'])->toBe(4)
-        ->and(array_column($authors['results']['data'], 'id'))->toContain(4)
+        ->and(array_column($authors['results']['data'], 'id'))->toBe([1, 2, 3, 4])
+        ->and(array_column($authorsDescending['results']['data'], 'id'))->toBe([3, 1, 2, 4])
         ->and($comments['results']['total'])->toBe(4)
         ->and(array_column($comments['results']['data'], 'id'))
         ->toBe([2, 1, 3, 4]);
