@@ -21,7 +21,7 @@ it('merges the package default configuration without a published config file', f
         ->and(config('inertia-table.views.table'))->toBe('table_views')
         ->and(route('inertia-table.actions', ['table' => 'table', 'action' => 'action'], false))
         ->toStartWith('/_inertia-table/actions/table/action')
-        ->and(route('inertia-table.exports', ['table' => 'table', 'export' => 'csv'], false))
+        ->and(route('inertia-table.execute-export', ['table' => 'table', 'export' => 'csv'], false))
         ->toStartWith('/_inertia-table/exports/table/csv')
         ->and(route('inertia-table.views.store', ['table' => 'table'], false))
         ->toStartWith('/_inertia-table/views/table');

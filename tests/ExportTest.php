@@ -303,7 +303,7 @@ it('rejects missing selections, unauthorized exports, and tampered references', 
     $tampered = str_replace('/all?', '/unauthorized?', $allEndpoint);
     $this->post($tampered, ['state' => []])->assertForbidden();
 
-    $unauthorized = URL::signedRoute('inertia-table.exports', [
+    $unauthorized = URL::signedRoute('inertia-table.execute-export', [
         'table' => TableReference::encode(ExportTopicsTable::class),
         'export' => 'unauthorized',
     ], absolute: false);

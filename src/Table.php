@@ -862,7 +862,7 @@ abstract class Table implements Arrayable
     private function resolveExport(Export $export, Request $request): array
     {
         $endpoint = url()->signedRoute(
-            'inertia-table.exports',
+            'inertia-table.execute-export',
             [
                 'table' => TableReference::encode(static::class),
                 'export' => $export->key,

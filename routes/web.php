@@ -21,7 +21,7 @@ Route::middleware(['web', 'signed:relative'])
         ExportController::class,
     )
     ->where(['table' => '[A-Za-z0-9_-]+', 'export' => '[A-Za-z0-9_-]+'])
-    ->name('inertia-table.exports');
+    ->name('inertia-table.execute-export');
 
 Route::middleware(['web', 'signed:relative'])
     ->prefix(trim((string) config('inertia-table.view_path', '_inertia-table/views'), '/'))
