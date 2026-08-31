@@ -213,14 +213,47 @@ export function useTable<T extends TableItem>(
             left: [],
             right: [],
         };
-        const wasPinned = columnPinSide(attribute) !== null;
-        const side = index <= (visible.length - 1) / 2 ? "left" : "right";
+        const currentSide = columnPinSide(attribute);
+        const side =
+            currentSide ??
+            (index <= (visible.length - 1) / 2 ? "left" : "right");
+        const permanent = new Set(
+            current.columns
+                .filter((column) => column.sticky)
+                .map((column) => column.attribute),
+        );
+        const positions = new Map(
+            visible.map((column, position) => [column.attribute, position]),
+        );
         const next = {
-            left: existing.left.filter((column) => column !== attribute),
-            right: existing.right.filter((column) => column !== attribute),
+            left: [...existing.left],
+            right: [...existing.right],
         };
 
-        if (!wasPinned) next[side].push(attribute);
+        if (currentSide) {
+            next[side] = next[side].filter((column) => {
+                if (permanent.has(column)) return true;
+
+                const position = positions.get(column);
+                if (position === undefined) return true;
+
+                return side === "left" ? position < index : position > index;
+            });
+        } else {
+            const edgeColumns = (
+                side === "left"
+                    ? visible.slice(0, index + 1)
+                    : visible.slice(index)
+            )
+                .filter((column) => column.stickable)
+                .map((column) => column.attribute);
+
+            next[side] = [...new Set([...next[side], ...edgeColumns])];
+            const opposite = side === "left" ? "right" : "left";
+            next[opposite] = next[opposite].filter(
+                (column) => !edgeColumns.includes(column),
+            );
+        }
 
         for (const candidate of ["left", "right"] as const) {
             const selected = new Set(next[candidate]);

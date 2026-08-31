@@ -94,24 +94,66 @@ describe("useTable", () => {
         expect(visit).not.toHaveBeenCalled();
     });
 
-    it("pins stickable columns to their automatic side and lets users unpin them", () => {
+    it("pins a contiguous edge group and cascades unpinning toward the center", () => {
         const { resource, table } = mountTable();
         resource.value.columns[0].stickable = true;
+        resource.value.columns[1].stickable = true;
 
-        table.togglePinnedColumn("name");
-        expect(visit.mock.calls[0][0]).toContain(
-            "table%5Btopics%5D%5BpinnedColumns%5D%5Bleft%5D%5B%5D=name",
-        );
+        table.togglePinnedColumn("is_featured");
+        let url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        expect(
+            url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
+        ).toEqual(["name", "is_featured"]);
 
         visit.mockReset();
         resource.value.state.pinnedColumns = {
-            left: ["name"],
+            left: ["name", "is_featured"],
+            right: [],
+        };
+        table.togglePinnedColumn("is_featured");
+        url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        expect(
+            url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
+        ).toEqual(["name"]);
+
+        visit.mockReset();
+        resource.value.state.pinnedColumns = {
+            left: ["name", "is_featured"],
             right: [],
         };
         table.togglePinnedColumn("name");
-        const url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
+        ).toEqual([]);
+    });
+
+    it("applies the same contiguous behavior from the right edge", () => {
+        const { resource, table } = mountTable();
+        resource.value.columns.splice(2, 0, {
+            ...resource.value.columns[1],
+            attribute: "score",
+            header: "Score",
+            stickable: true,
+        });
+        resource.value.columns[3].stickable = true;
+        resource.value.state.columns.score = true;
+
+        table.togglePinnedColumn("score");
+        let url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        expect(
+            url.searchParams.getAll("table[topics][pinnedColumns][right][]"),
+        ).toEqual(["score", "__actions"]);
+
+        visit.mockReset();
+        resource.value.state.pinnedColumns = {
+            left: [],
+            right: ["score", "__actions"],
+        };
+        table.togglePinnedColumn("__actions");
+        url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        expect(
+            url.searchParams.getAll("table[topics][pinnedColumns][right][]"),
         ).toEqual([]);
     });
 

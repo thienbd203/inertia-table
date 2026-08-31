@@ -122,7 +122,7 @@ function canTogglePin(attribute: string): boolean {
                             canTogglePin(column.attribute)
                         "
                     >
-                        <UiDropdownMenuTrigger class="-ms-3">
+                        <UiDropdownMenuTrigger as-child>
                             <UiButton
                                 :variant="
                                     sortDirection(column.attribute)
@@ -130,7 +130,7 @@ function canTogglePin(attribute: string): boolean {
                                         : 'ghost'
                                 "
                                 size="sm"
-                                class="tb-sort-button font-semibold"
+                                class="-ms-3 tb-sort-button font-semibold"
                                 :data-active="
                                     sortDirection(column.attribute)
                                         ? ''

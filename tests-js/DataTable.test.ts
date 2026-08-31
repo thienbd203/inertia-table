@@ -723,6 +723,30 @@ describe("DataTable shadcn renderer", () => {
             );
             expect(actions.attributes("data-sticky-edge")).toBe("end");
 
+            const container = wrapper.get('[data-slot="table-container"]');
+            Object.defineProperties(container.element, {
+                scrollWidth: { configurable: true, value: 400 },
+                clientWidth: { configurable: true, value: 200 },
+            });
+            container.element.scrollLeft = 0;
+            await container.trigger("scroll");
+            expect(
+                container.attributes("data-scrolled-from-start"),
+            ).toBeUndefined();
+            expect(container.attributes("data-scrolled-from-end")).toBe("");
+
+            container.element.scrollLeft = 80;
+            await container.trigger("scroll");
+            expect(container.attributes("data-scrolled-from-start")).toBe("");
+            expect(container.attributes("data-scrolled-from-end")).toBe("");
+
+            container.element.scrollLeft = 200;
+            await container.trigger("scroll");
+            expect(container.attributes("data-scrolled-from-start")).toBe("");
+            expect(
+                container.attributes("data-scrolled-from-end"),
+            ).toBeUndefined();
+
             nameWidth = 200;
             window.dispatchEvent(new Event("resize"));
             await flushPromises();
