@@ -28,10 +28,23 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node: ['20.19.0', '22.12.0']
+        include:
+          - node: '20.19.0'
+            inertia: '^2.0.0'
+            vue: '~3.4.0'
+          - node: '20.19.0'
+            inertia: '^3.0.0'
+            vue: '^3.5.0'
+          - node: '22.12.0'
+            inertia: '^2.0.0'
+            vue: '^3.5.0'
+          - node: '22.12.0'
+            inertia: '^3.0.0'
+            vue: '~3.4.0'
 
-    name: Node ${{ matrix.node }}
+    name: Node ${{ matrix.node }} · Inertia ${{ matrix.inertia }} · Vue ${{ matrix.vue }}
 
     steps:
       - name: Checkout code
@@ -45,6 +58,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install supported peer versions
+        run: npm install --no-save --package-lock=false "@inertiajs/vue3:${{ matrix.inertia }}" "@vue/compiler-sfc:${{ matrix.vue }}" "@vue/server-renderer:${{ matrix.vue }}" "vue:${{ matrix.vue }}"
+
+      - name: List installed peer versions
+        run: npm ls --depth=0 @inertiajs/vue3 vue
 
       - name: Check formatting
         run: npm run format:check
