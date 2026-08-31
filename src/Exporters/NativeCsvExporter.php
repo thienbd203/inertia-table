@@ -4,6 +4,7 @@ namespace Musing\InertiaTable\Exporters;
 
 use BackedEnum;
 use DateTimeInterface;
+use Generator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -30,14 +31,21 @@ final class NativeCsvExporter implements Exporter
         $includeBom = $metadata['bom'] ?? true;
 
         return response()->streamDownload(
-            function () use ($query, $columns, $delimiter, $includeBom) {
+            function () use ($query, $columns, $delimiter, $includeBom, $export) {
                 $stream = fopen('php://output', 'wb');
 
                 if ($stream === false) {
                     throw new \RuntimeException('Unable to open the CSV output stream.');
                 }
 
-                $this->write($stream, $query, $columns, $delimiter, $includeBom !== false);
+                $this->write(
+                    $stream,
+                    $query,
+                    $columns,
+                    $delimiter,
+                    $includeBom !== false,
+                    $export->resolvedChunkSize(),
+                );
             },
             $filename,
             ['Content-Type' => 'text/csv; charset=UTF-8'],
@@ -67,6 +75,7 @@ final class NativeCsvExporter implements Exporter
                 $columns,
                 $this->delimiter($metadata['delimiter'] ?? ','),
                 ($metadata['bom'] ?? true) !== false,
+                $export->resolvedChunkSize(),
             );
             rewind($temporary);
 
@@ -83,8 +92,14 @@ final class NativeCsvExporter implements Exporter
      * @param  Builder<Model>  $query
      * @param  array<int, Column>  $columns
      */
-    private function write($stream, Builder $query, array $columns, string $delimiter, bool $includeBom): void
-    {
+    private function write(
+        $stream,
+        Builder $query,
+        array $columns,
+        string $delimiter,
+        bool $includeBom,
+        int $chunkSize,
+    ): void {
         if ($includeBom) {
             fwrite($stream, "\xEF\xBB\xBF");
         }
@@ -97,7 +112,7 @@ final class NativeCsvExporter implements Exporter
             '',
         );
 
-        foreach ($query->cursor() as $model) {
+        foreach ($this->models($query, $chunkSize) as $model) {
             fputcsv(
                 $stream,
                 array_map(
@@ -110,6 +125,42 @@ final class NativeCsvExporter implements Exporter
                 '"',
                 '',
             );
+        }
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @return Generator<int, Model>
+     */
+    private function models(Builder $query, int $chunkSize): Generator
+    {
+        $baseOffset = max((int) ($query->getQuery()->offset ?? 0), 0);
+        $remaining = $query->getQuery()->limit;
+        $processed = 0;
+
+        while ($remaining === null || $remaining > 0) {
+            $size = $remaining === null
+                ? $chunkSize
+                : min($chunkSize, $remaining);
+            $models = (clone $query)
+                ->offset($baseOffset + $processed)
+                ->limit($size)
+                ->get();
+            $count = $models->count();
+
+            foreach ($models as $model) {
+                yield $model;
+            }
+
+            $processed += $count;
+
+            if ($count < $size) {
+                return;
+            }
+
+            if ($remaining !== null) {
+                $remaining -= $count;
+            }
         }
     }
 

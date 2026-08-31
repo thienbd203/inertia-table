@@ -7,12 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use LogicException;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithCustomChunkSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Musing\InertiaTable\Columns\Column;
 
 /** @internal Loaded only when the optional maatwebsite/excel package is installed. */
-final class LaravelExcelRows implements FromQuery, WithColumnFormatting, WithHeadings, WithMapping
+final class LaravelExcelRows implements FromQuery, WithColumnFormatting, WithCustomChunkSize, WithHeadings, WithMapping
 {
     /**
      * @param  Builder<Model>  $query
@@ -21,7 +22,13 @@ final class LaravelExcelRows implements FromQuery, WithColumnFormatting, WithHea
     public function __construct(
         private readonly Builder $query,
         private readonly array $columns,
+        private readonly int $chunkSize,
     ) {}
+
+    public function chunkSize(): int
+    {
+        return $this->chunkSize;
+    }
 
     /** @return Builder<Model> */
     public function query(): Builder

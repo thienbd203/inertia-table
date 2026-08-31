@@ -40,7 +40,7 @@ final class LaravelExcelExporter implements Exporter
         };
         $response = call_user_func(
             [$writer, 'download'],
-            new LaravelExcelRows($query, $columns),
+            new LaravelExcelRows($query, $columns, $export->resolvedChunkSize()),
             $export->resolvedFilename($request, $table),
             $writerType,
         );
@@ -84,7 +84,7 @@ final class LaravelExcelExporter implements Exporter
         };
         $stored = call_user_func(
             [$writer, 'store'],
-            new LaravelExcelRows($query, $columns),
+            new LaravelExcelRows($query, $columns, $export->resolvedChunkSize()),
             $path,
             $disk,
             $writerType,

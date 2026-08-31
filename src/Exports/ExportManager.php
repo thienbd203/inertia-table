@@ -25,7 +25,7 @@ final class ExportManager
         array $state,
         ?array $selection,
     ): Response {
-        [$query, $columns] = $this->resolve($table, $export, $state, $selection);
+        [$query, $columns] = $this->resolve($request, $table, $export, $state, $selection);
 
         return $this->exporter($export)->download(
             $request,
@@ -49,7 +49,7 @@ final class ExportManager
         string $disk,
         string $path,
     ): void {
-        [$query, $columns] = $this->resolve($table, $export, $state, $selection);
+        [$query, $columns] = $this->resolve($request, $table, $export, $state, $selection);
         $this->exporter($export)->store(
             $request,
             $table,
@@ -67,6 +67,7 @@ final class ExportManager
      * @return array{Builder<Model>, array<int, Column>}
      */
     private function resolve(
+        Request $request,
         Table $table,
         Export $export,
         array $state,
@@ -77,6 +78,8 @@ final class ExportManager
             ExportScope::Filtered => $table->queryForState($state),
             ExportScope::Selected => $this->selectedQuery($table, $selection),
         };
+        $query = $export->modifyQuery($query, $request, $table, $state, $selection);
+        $this->stabilizeOrder($query);
         $columns = $table->columnsForExport($export, $state);
 
         if ($columns === []) {
@@ -86,6 +89,24 @@ final class ExportManager
         }
 
         return [$query, $columns];
+    }
+
+    /** @param Builder<Model> $query */
+    private function stabilizeOrder(Builder $query): void
+    {
+        $key = $query->getModel()->getKeyName();
+        $qualifiedKey = $query->getModel()->qualifyColumn($key);
+        $orders = $query->getQuery()->orders ?? [];
+
+        foreach ($orders as $order) {
+            $column = is_array($order) ? ($order['column'] ?? null) : null;
+
+            if (is_string($column) && in_array($column, [$key, $qualifiedKey], true)) {
+                return;
+            }
+        }
+
+        $query->orderBy($qualifiedKey);
     }
 
     /**

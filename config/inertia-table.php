@@ -15,6 +15,9 @@ return [
         'xlsx' => LaravelExcelExporter::class,
         'pdf' => LaravelExcelExporter::class,
     ],
+    'exports' => [
+        'chunk_size' => 1000,
+    ],
     'relationship_sorter' => PowerJoinsRelationshipSorter::class,
     'queue' => [
         'connection' => null,

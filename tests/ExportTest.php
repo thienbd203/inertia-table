@@ -2,7 +2,9 @@
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Musing\InertiaTable\Columns\ActionColumn;
@@ -116,6 +118,63 @@ class ExportUuidTopicsTable extends Table
     }
 }
 
+class ExportAuthorRecord extends Model
+{
+    protected $table = 'export_authors';
+
+    protected $guarded = [];
+
+    public $timestamps = false;
+}
+
+class ExportRelationalTopicRecord extends Model
+{
+    protected $table = 'export_relational_topics';
+
+    protected $guarded = [];
+
+    public $timestamps = false;
+
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(ExportAuthorRecord::class, 'author_id');
+    }
+}
+
+class ExportRelationalTopicsTable extends Table
+{
+    protected ?string $name = 'export_relational_topics';
+
+    public function query(): Builder
+    {
+        return ExportRelationalTopicRecord::query()->with('author:id,name');
+    }
+
+    public function columns(): array
+    {
+        return [
+            NumberColumn::make('id', 'ID'),
+            NumberColumn::make('rank', 'Rank')->sortable(),
+            TextColumn::make('author.name', 'Author'),
+        ];
+    }
+
+    public function exports(): array
+    {
+        return [
+            Export::make('chunked', 'Chunked CSV')
+                ->filtered()
+                ->chunkSize(5),
+            Export::make('optimized', 'Optimized CSV')
+                ->allRows()
+                ->modifyQueryUsing(fn (Builder $query) => $query
+                    ->where('rank', 1)
+                    ->offset(1)
+                    ->limit(3)),
+        ];
+    }
+}
+
 beforeEach(function () {
     Schema::create('export_topics', function (Blueprint $table) {
         $table->id();
@@ -128,6 +187,15 @@ beforeEach(function () {
     Schema::create('export_uuid_topics', function (Blueprint $table) {
         $table->string('uuid')->primary();
         $table->string('name');
+    });
+    Schema::create('export_authors', function (Blueprint $table) {
+        $table->id();
+        $table->string('name');
+    });
+    Schema::create('export_relational_topics', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('author_id');
+        $table->unsignedInteger('rank');
     });
 
     ExportTopicRecord::query()->insert([
@@ -158,6 +226,17 @@ beforeEach(function () {
         ['uuid' => 'topic-b', 'name' => 'Beta'],
         ['uuid' => 'topic-c', 'name' => 'Gamma'],
     ]);
+    ExportAuthorRecord::query()->insert([
+        ['name' => 'Ada'],
+        ['name' => 'Grace'],
+    ]);
+    ExportRelationalTopicRecord::query()->insert(array_map(
+        fn (int $id) => [
+            'author_id' => $id % 2 === 0 ? 2 : 1,
+            'rank' => $id % 2 === 0 ? 1 : 2,
+        ],
+        range(1, 12),
+    ));
 });
 
 /** @return array<int, array<int, string|null>> */
@@ -213,6 +292,45 @@ it('exposes adapter formatting metadata without serializing server callbacks', f
             'style' => ['font' => ['bold' => true]],
         ])
         ->and($column->toArray())->not->toHaveKeys(['exportFormat', 'exportMeta']);
+});
+
+it('resolves a configurable global chunk size with per-export overrides', function () {
+    config()->set('inertia-table.exports.chunk_size', 250);
+
+    expect(Export::make()->resolvedChunkSize())->toBe(250)
+        ->and(Export::make()->chunkSize(25)->resolvedChunkSize())->toBe(25)
+        ->and(fn () => Export::make()->chunkSize(0))
+        ->toThrow(LogicException::class, 'Export chunk size must be at least 1.');
+});
+
+it('eager loads relationships in configurable chunks and stabilizes tied sorts', function () {
+    $table = new ExportRelationalTopicsTable;
+    $endpoint = exportEndpoint($table, 'chunked');
+    $queries = 0;
+    DB::listen(function () use (&$queries): void {
+        $queries++;
+    });
+
+    $response = $this->post($endpoint, [
+        'state' => ['sort' => 'rank'],
+    ])->assertOk();
+    $rows = array_slice(csvRows($response->streamedContent()), 1);
+
+    expect(array_column($rows, 0))->toBe([
+        '2', '4', '6', '8', '10', '12',
+        '1', '3', '5', '7', '9', '11',
+    ])->and(array_values(array_unique(array_column($rows, 2))))->toBe(['Grace', 'Ada'])
+        ->and($queries)->toBeLessThanOrEqual(6);
+});
+
+it('allows each export to customize its resolved query', function () {
+    $response = $this->post(
+        exportEndpoint(new ExportRelationalTopicsTable, 'optimized'),
+        ['state' => []],
+    )->assertOk();
+    $rows = array_slice(csvRows($response->streamedContent()), 1);
+
+    expect(array_column($rows, 0))->toBe(['4', '6', '8']);
 });
 
 it('streams UTF-8 CSV with mapped values, escaping, dates, booleans, nulls, and formula protection', function () {
@@ -324,7 +442,7 @@ it('returns a clear validation error when the optional Laravel Excel adapter is 
         ->assertJsonPath('errors.export.0', 'Install maatwebsite/excel before using XLSX or PDF table exports.');
 });
 
-it('streams a large CSV query without materializing a result collection', function () {
+it('streams a large CSV query without materializing the entire result collection', function () {
     $rows = [];
 
     for ($index = 0; $index < 1200; $index++) {

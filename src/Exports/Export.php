@@ -3,6 +3,8 @@
 namespace Musing\InertiaTable\Exports;
 
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use LogicException;
@@ -25,6 +27,10 @@ final class Export
     private bool $visibleColumnsOnly = false;
 
     private bool $queued = false;
+
+    private ?int $chunkSize = null;
+
+    private ?Closure $queryModifier = null;
 
     private ?string $queueConnection = null;
 
@@ -166,6 +172,25 @@ final class Export
         return $this;
     }
 
+    public function chunkSize(int $chunkSize): self
+    {
+        if ($chunkSize < 1) {
+            throw new LogicException('Export chunk size must be at least 1.');
+        }
+
+        $this->chunkSize = $chunkSize;
+
+        return $this;
+    }
+
+    /** @param Closure(Builder, Request, Table, array<string, mixed>, array<string, mixed>|null): (Builder|void) $modifier */
+    public function modifyQueryUsing(Closure $modifier): self
+    {
+        $this->queryModifier = $modifier;
+
+        return $this;
+    }
+
     /** @param array<string, mixed>|Closure $attributes */
     public function scopeAttributes(array|Closure $attributes): self
     {
@@ -283,6 +308,48 @@ final class Export
     public function isQueued(): bool
     {
         return $this->queued;
+    }
+
+    public function resolvedChunkSize(): int
+    {
+        return $this->chunkSize
+            ?? max((int) config('inertia-table.exports.chunk_size', 1000), 1);
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @param  array<string, mixed>  $state
+     * @param  array<string, mixed>|null  $selection
+     * @return Builder<Model>
+     */
+    public function modifyQuery(
+        Builder $query,
+        Request $request,
+        Table $table,
+        array $state,
+        ?array $selection,
+    ): Builder {
+        if (! $this->queryModifier instanceof Closure) {
+            return $query;
+        }
+
+        $modified = app()->call($this->queryModifier, compact(
+            'query',
+            'request',
+            'table',
+            'state',
+            'selection',
+        ));
+
+        if ($modified === null) {
+            return $query;
+        }
+
+        if (! $modified instanceof Builder) {
+            throw new LogicException('Export query modifiers must return an Eloquent builder or nothing.');
+        }
+
+        return $modified;
     }
 
     /**

@@ -754,9 +754,28 @@ NumberColumn::make('amount')
 
 Declared exportable columns are used by default. Call `visibleColumnsOnly()` on
 an export when it should follow the normalized column visibility state. Native
-CSV streams the Eloquent cursor, emits UTF-8 with a BOM by default, and protects
-spreadsheet formula prefixes. Use `meta(['delimiter' => ';', 'bom' => false])`
-to customize CSV output.
+CSV reads Eloquent models in eager-loaded chunks, streams each row immediately,
+emits UTF-8 with a BOM by default, and protects spreadsheet formula prefixes.
+The default chunk size is `inertia-table.exports.chunk_size` (1,000). Override it
+for a specific definition with `chunkSize()`:
+
+```php
+use Illuminate\Database\Eloquent\Builder;
+
+Export::make('archive')
+    ->filtered()
+    ->chunkSize(2_000)
+    ->modifyQueryUsing(fn (Builder $query) => $query->select([
+        'topics.id',
+        'topics.name',
+    ]));
+```
+
+Query modifiers run after the export scope, filters and sort are resolved. They
+may mutate the builder or return another Eloquent builder, which lets expensive
+table-only selects, counts or relationships be replaced for an export. Use
+`meta(['delimiter' => ';', 'bom' => false])` to customize CSV output. The same
+resolved chunk size is passed to the optional Laravel Excel adapter.
 
 XLSX and PDF use the optional Laravel Excel adapter:
 

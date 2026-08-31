@@ -15,6 +15,7 @@ import {
     UiDropdownMenuContent,
     UiDropdownMenuItem,
     UiDropdownMenuLabel,
+    UiDropdownMenuSeparator,
     UiDropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTableContext } from "@/context/tableContext";
@@ -76,6 +77,7 @@ function updateQueuedDialog(open: boolean): void {
             <UiDropdownMenuLabel>{{
                 i18n.t("exportData")
             }}</UiDropdownMenuLabel>
+            <UiDropdownMenuSeparator />
             <UiDropdownMenuItem
                 v-for="definition in resource.exports"
                 :key="definition.key"
@@ -129,7 +131,7 @@ function updateQueuedDialog(open: boolean): void {
                     }}
                 </DialogDescription>
             </DialogHeader>
-            <DialogFooter class="sm:justify-center">
+            <DialogFooter>
                 <UiButton v-if="tableExports.queuedExport.value?.url" as-child>
                     <a
                         :href="tableExports.queuedExport.value.url"
