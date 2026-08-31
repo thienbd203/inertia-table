@@ -81,11 +81,10 @@ function removeSelected() {
                 />
             </UiButton>
         </UiDropdownMenuTrigger>
-        <UiDropdownMenuContent align="end" class="min-w-56">
+        <UiDropdownMenuContent align="start" class="min-w-56">
             <UiDropdownMenuLabel>{{
                 i18n.t("savedViews")
             }}</UiDropdownMenuLabel>
-            <UiDropdownMenuSeparator />
             <UiDropdownMenuItem
                 v-if="views.resource.value.items.length === 0"
                 disabled

@@ -32,7 +32,7 @@ const { i18n } = useTableContext();
             </UiButton>
         </UiDropdownMenuTrigger>
         <UiDropdownMenuContent
-            align="end"
+            align="start"
             class="DropdownMenuContentAnimate"
             @closeAutoFocus="(e) => e.preventDefault()"
         >

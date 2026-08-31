@@ -26,7 +26,7 @@ const columns = computed(() =>
                 {{ i18n.t("columns") }}
             </UiButton>
         </UiDropdownMenuTrigger>
-        <UiDropdownMenuContent>
+        <UiDropdownMenuContent align="end">
             <UiDropdownMenuLabel>{{ i18n.t("columns") }}</UiDropdownMenuLabel>
             <UiDropdownMenuSeparator />
             <UiDropdownMenuCheckboxItem

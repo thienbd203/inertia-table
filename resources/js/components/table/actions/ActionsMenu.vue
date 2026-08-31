@@ -22,7 +22,7 @@ const { actions, i18n } = useTableContext();
                 <Wrench class="h-4 w-4" />{{ i18n.t("actions") }}</UiButton
             >
         </UiDropdownMenuTrigger>
-        <UiDropdownMenuContent>
+        <UiDropdownMenuContent align="start">
             <UiDropdownMenuLabel>
                 {{ i18n.t("bulkActions") }}
             </UiDropdownMenuLabel>

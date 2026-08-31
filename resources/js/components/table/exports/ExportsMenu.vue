@@ -73,7 +73,7 @@ function updateQueuedDialog(open: boolean): void {
                 {{ i18n.t("exports") }}
             </UiButton>
         </UiDropdownMenuTrigger>
-        <UiDropdownMenuContent align="end" class="min-w-48">
+        <UiDropdownMenuContent align="start" class="min-w-48">
             <UiDropdownMenuLabel>{{
                 i18n.t("exportData")
             }}</UiDropdownMenuLabel>
