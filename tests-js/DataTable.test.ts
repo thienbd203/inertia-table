@@ -30,6 +30,8 @@ import {
     UiDropdownMenuTrigger,
 } from "../resources/js/components/ui/dropdown-menu";
 import AddFilterMenu from "../resources/js/components/table/filters/AddFilterMenu.vue";
+import ExportsMenu from "../resources/js/components/table/exports/ExportsMenu.vue";
+import { mountWithTableContext } from "./harness";
 
 async function openDropdown(
     wrapper: ReturnType<typeof mount>,
@@ -180,6 +182,99 @@ describe("DataTable shadcn renderer", () => {
             ),
         ).find((item) => item.textContent?.includes("Selected CSV"));
         expect(exportItem?.getAttribute("data-disabled")).not.toBeNull();
+    });
+
+    it("renders a completed queued export as a named download", async () => {
+        const { exports } = mountWithTableContext(ExportsMenu, {
+            exports: [
+                {
+                    key: "queued",
+                    label: "All rows",
+                    filename: "topics.csv",
+                    type: "csv",
+                    scope: "all",
+                    requiresSelection: false,
+                    queued: true,
+                    endpoint: "/exports/queued?signature=valid",
+                    meta: {},
+                },
+            ],
+        });
+
+        exports.updateQueuedExport({
+            id: "export-1",
+            status: "ready",
+            filename: "topics.csv",
+            url: "/downloads/export-1",
+        });
+        await flushPromises();
+
+        const download = document.body.querySelector<HTMLAnchorElement>(
+            'a[href="/downloads/export-1"]',
+        );
+        expect(download?.getAttribute("download")).toBe("topics.csv");
+    });
+
+    it("keeps tracking a dismissed queued export and notifies when it is ready", async () => {
+        const { exports } = mountWithTableContext(ExportsMenu, {
+            exports: [
+                {
+                    key: "queued",
+                    label: "All rows",
+                    filename: "topics.csv",
+                    type: "csv",
+                    scope: "all",
+                    requiresSelection: false,
+                    queued: true,
+                    endpoint: "/exports/queued?signature=valid",
+                    meta: {},
+                },
+            ],
+        });
+
+        exports.updateQueuedExport({
+            id: "export-2",
+            status: "processing",
+            filename: "topics.csv",
+            url: null,
+        });
+        await flushPromises();
+
+        expect(document.body.textContent).toContain(
+            "Your export is being processed",
+        );
+        expect(document.body.textContent).toContain(
+            "You can close this dialog and we'll notify you once it's done.",
+        );
+
+        Array.from(
+            document.body.querySelectorAll<HTMLButtonElement>(
+                '[data-slot="button"]',
+            ),
+        )
+            .find((button) => button.textContent?.trim() === "Close")
+            ?.click();
+        await flushPromises();
+
+        expect(exports.queuedExport.value?.status).toBe("processing");
+        expect(document.body.textContent).not.toContain(
+            "Your export is being processed",
+        );
+
+        exports.updateQueuedExport({
+            id: "export-2",
+            status: "ready",
+            filename: "topics.csv",
+            url: "/downloads/export-2",
+        });
+        await flushPromises();
+
+        expect(document.body.textContent).toContain("Export ready");
+        expect(
+            document.body.querySelector<HTMLAnchorElement>(
+                'a[href="/downloads/export-2"]',
+            ),
+        ).not.toBeNull();
     });
 
     it("shows a dirty view indicator and exposes reset/update actions", async () => {

@@ -251,7 +251,9 @@ it('dispatches a closure-free normalized snapshot with queue configuration and c
         ->and($job->delay)->toBe(5)
         ->and($job->chained)->toHaveCount(1)
         ->and(serialize($job))->not->toContain('Closure')
-        ->and($response->json('export.id'))->toBe($job->snapshot->id);
+        ->and($response->json('export.id'))->toBe($job->snapshot->id)
+        ->and($response->json('export.statusEndpoint'))->toContain('signature=')
+        ->and($response->json('export'))->not->toHaveKey('_accessHash');
 });
 
 it('restores actor and tenant, writes the same filtered CSV, and publishes ready status', function () {
@@ -259,7 +261,7 @@ it('restores actor and tenant, writes the same filtered CSV, and publishes ready
     $this->actingAs($user);
     $payload = queuedExportPayload();
     $sync = $this->post(queuedExportEndpoint('sync'), $payload)->assertOk()->streamedContent();
-    $this->postJson(queuedExportEndpoint('queued'), $payload)->assertStatus(202);
+    $dispatch = $this->postJson(queuedExportEndpoint('queued'), $payload)->assertStatus(202);
     $job = capturedQueuedExportJob();
 
     Auth::guard()->forgetUser();
@@ -282,6 +284,30 @@ it('restores actor and tenant, writes the same filtered CSV, and publishes ready
             '/downloads/'.$job->snapshot->id,
         ]);
     Queue::assertPushed(CleanupQueuedExport::class);
+
+    QueuedExportTopicsTable::$tenant = 'tenant-one';
+    $this->actingAs($user)->getJson($dispatch->json('export.statusEndpoint'))
+        ->assertOk()
+        ->assertJsonPath('export.status', 'ready')
+        ->assertJsonPath('export.url', '/downloads/'.$job->snapshot->id)
+        ->assertJsonMissingPath('export._accessHash');
+
+    QueuedExportTopicsTable::$tenant = 'tenant-two';
+    $this->getJson($dispatch->json('export.statusEndpoint'))->assertNotFound();
+});
+
+it('protects queued status endpoints with the export authorization and signature', function () {
+    $user = QueuedExportUser::query()->create(['name' => 'Allowed']);
+    $this->actingAs($user);
+    $dispatch = $this->postJson(queuedExportEndpoint('queued'), queuedExportPayload())->assertStatus(202);
+    $statusEndpoint = $dispatch->json('export.statusEndpoint');
+
+    $denied = QueuedExportUser::query()->create(['name' => 'Denied']);
+    $this->actingAs($denied)->getJson($statusEndpoint)->assertForbidden();
+
+    $statusId = basename((string) parse_url($statusEndpoint, PHP_URL_PATH));
+    $tampered = str_replace($statusId, '00000000-0000-0000-0000-000000000000', $statusEndpoint);
+    $this->actingAs($user)->getJson($tampered)->assertForbidden();
 });
 
 it('normalizes and executes all-matching selected snapshots with exclusions', function () {

@@ -822,10 +822,14 @@ const exports = useExports(table, actions);
 ```
 
 Queued dispatches expose `queuedExport` with `dispatched`, `processing`, `ready`,
-`failed` or `expired` state. The package does not start a hidden polling loop.
-Applications can deliver status through their existing notifications or realtime
-channel and call `updateQueuedExport(status)`; a ready status with a URL renders a
-download action. An explicit `redirectAfterDispatch()` is followed immediately.
+`failed` or `expired` state. Unless the export redirects after dispatch, the Vue
+renderer polls a signed, actor-scoped status endpoint until the job reaches a
+terminal state. The progress dialog can be dismissed without stopping that
+polling; it opens again when the export becomes ready, fails or expires. A ready
+status with a URL renders a download action. Applications using notifications or
+a realtime channel can still call
+`updateQueuedExport(status)`. An explicit `redirectAfterDispatch()` is followed
+immediately and disables the built-in polling loop.
 
 ## Slots and headless API
 

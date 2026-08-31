@@ -3,11 +3,13 @@
 namespace Musing\InertiaTable\Exports;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use LogicException;
 use Musing\InertiaTable\Contracts\ExportContext;
 use Musing\InertiaTable\Jobs\GenerateQueuedExport;
+use Musing\InertiaTable\Support\TableReference;
 use Musing\InertiaTable\Table;
 use Throwable;
 
@@ -51,10 +53,10 @@ final class QueuedExportDispatcher
         $existingId = $repository->reserve($fingerprint, $id, $configuration['expiresAfter'] + 86400);
 
         if ($existingId !== null) {
-            return [
+            return $repository->forResponse([
                 ...($repository->get($existingId) ?? ['id' => $existingId, 'status' => 'dispatched']),
                 'duplicate' => true,
-            ];
+            ]);
         }
 
         $filename = $export->resolvedFilename($request, $table);
@@ -80,8 +82,24 @@ final class QueuedExportDispatcher
             'filename' => $filename,
             'url' => null,
             'expiresAt' => $snapshot->expiresAt,
+            'statusEndpoint' => URL::temporarySignedRoute(
+                'inertia-table.export-status',
+                now()->addSeconds($configuration['expiresAfter'] + 86400),
+                [
+                    'table' => TableReference::encode($table::class),
+                    'export' => $export->key,
+                    'id' => $id,
+                ],
+                absolute: false,
+            ),
             'redirect' => $export->resolvedDispatchRedirect($request, $table),
             'duplicate' => false,
+            '_accessHash' => $repository->accessHash(
+                $table::class,
+                $export->key,
+                $actorId,
+                $attributes,
+            ),
         ];
         $repository->put($id, $status, $configuration['expiresAfter'] + 86400);
         $job = new GenerateQueuedExport($snapshot);
@@ -102,7 +120,7 @@ final class QueuedExportDispatcher
             throw $exception;
         }
 
-        return $status;
+        return $repository->forResponse($status);
     }
 
     /**

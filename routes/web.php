@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Musing\InertiaTable\Http\Controllers\ActionController;
 use Musing\InertiaTable\Http\Controllers\ExportController;
+use Musing\InertiaTable\Http\Controllers\QueuedExportStatusController;
 use Musing\InertiaTable\Http\Controllers\ViewController;
 
 Route::middleware(['web', 'signed:relative'])
@@ -22,6 +23,19 @@ Route::middleware(['web', 'signed:relative'])
     )
     ->where(['table' => '[A-Za-z0-9_-]+', 'export' => '[A-Za-z0-9_-]+'])
     ->name('inertia-table.execute-export');
+
+Route::middleware(['web', 'signed:relative'])
+    ->get(
+        trim((string) config('inertia-table.export_path', '_inertia-table/exports'), '/')
+            .'/{table}/{export}/{id}',
+        QueuedExportStatusController::class,
+    )
+    ->where([
+        'table' => '[A-Za-z0-9_-]+',
+        'export' => '[A-Za-z0-9_-]+',
+        'id' => '[A-Fa-f0-9-]+',
+    ])
+    ->name('inertia-table.export-status');
 
 Route::middleware(['web', 'signed:relative'])
     ->prefix(trim((string) config('inertia-table.view_path', '_inertia-table/views'), '/'))

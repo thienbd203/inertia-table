@@ -229,6 +229,13 @@ it('streams UTF-8 CSV with mapped values, escaping, dates, booleans, nulls, and 
         ->and($rows[3])->toBe(['3', 'Gamma #3', 'true', '2026-08-03', 'plain']);
 });
 
+it('accepts a null selection for exports that do not require one', function () {
+    $this->postJson(exportEndpoint(new ExportTopicsTable, 'all'), [
+        'state' => [],
+        'selection' => null,
+    ])->assertOk();
+});
+
 it('normalizes filtered exports and honors visible columns only when requested', function () {
     $response = $this->post(exportEndpoint(new ExportTopicsTable, 'filtered'), [
         'state' => [

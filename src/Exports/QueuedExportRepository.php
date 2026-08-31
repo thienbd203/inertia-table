@@ -6,6 +6,21 @@ use Illuminate\Support\Facades\Cache;
 
 final class QueuedExportRepository
 {
+    /** @param array<string, mixed> $attributes */
+    public function accessHash(
+        string $tableClass,
+        string $exportKey,
+        int|string|null $actorId,
+        array $attributes,
+    ): string {
+        return hash('sha256', json_encode([
+            'table' => $tableClass,
+            'export' => $exportKey,
+            'actor' => $actorId,
+            'attributes' => $attributes,
+        ], JSON_THROW_ON_ERROR));
+    }
+
     public function reserve(string $fingerprint, string $id, int $ttl): ?string
     {
         $key = $this->idempotencyKey($fingerprint);
@@ -36,6 +51,17 @@ final class QueuedExportRepository
     public function forget(string $id): void
     {
         Cache::forget($this->statusKey($id));
+    }
+
+    /**
+     * @param  array<string, mixed>  $status
+     * @return array<string, mixed>
+     */
+    public function forResponse(array $status): array
+    {
+        unset($status['_accessHash']);
+
+        return $status;
     }
 
     private function idempotencyKey(string $fingerprint): string

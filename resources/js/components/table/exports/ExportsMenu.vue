@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch } from "vue";
 import { Download, LoaderCircle } from "@lucide/vue";
 import { UiButton } from "@/components/ui/button";
 import {
@@ -19,6 +20,39 @@ import {
 import { useTableContext } from "@/context/tableContext";
 
 const { resource, actions, exports: tableExports, i18n } = useTableContext();
+const queuedDialogOpen = ref(false);
+
+function isTerminal(status: string | undefined): boolean {
+    return ["ready", "failed", "expired"].includes(status ?? "");
+}
+
+watch(
+    () => tableExports.queuedExport.value,
+    (status, previous) => {
+        if (!status) {
+            queuedDialogOpen.value = false;
+
+            return;
+        }
+
+        if (
+            !previous ||
+            previous.id !== status.id ||
+            (!isTerminal(previous.status) && isTerminal(status.status))
+        ) {
+            queuedDialogOpen.value = true;
+        }
+    },
+    { immediate: true },
+);
+
+function updateQueuedDialog(open: boolean): void {
+    queuedDialogOpen.value = open;
+
+    if (!open && isTerminal(tableExports.queuedExport.value?.status)) {
+        tableExports.clearQueuedExport();
+    }
+}
 </script>
 
 <template>
@@ -58,12 +92,18 @@ const { resource, actions, exports: tableExports, i18n } = useTableContext();
         </UiDropdownMenuContent>
     </UiDropdownMenu>
 
-    <Dialog
-        :open="tableExports.queuedExport.value !== null"
-        @update:open="(open) => !open && tableExports.clearQueuedExport()"
-    >
+    <Dialog :open="queuedDialogOpen" @update:open="updateQueuedDialog">
         <DialogContent>
-            <DialogHeader>
+            <DialogHeader class="items-center text-center sm:text-center">
+                <div
+                    v-if="!isTerminal(tableExports.queuedExport.value?.status)"
+                    class="flex size-12 items-center justify-center rounded-full bg-muted"
+                    aria-hidden="true"
+                >
+                    <LoaderCircle
+                        class="size-6 animate-spin text-muted-foreground"
+                    />
+                </div>
                 <DialogTitle>
                     {{
                         tableExports.queuedExport.value?.status === "ready"
@@ -89,16 +129,21 @@ const { resource, actions, exports: tableExports, i18n } = useTableContext();
                     }}
                 </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
+            <DialogFooter class="sm:justify-center">
                 <UiButton v-if="tableExports.queuedExport.value?.url" as-child>
-                    <a :href="tableExports.queuedExport.value.url">
+                    <a
+                        :href="tableExports.queuedExport.value.url"
+                        :download="
+                            tableExports.queuedExport.value.filename ?? ''
+                        "
+                    >
                         {{ i18n.t("downloadExport") }}
                     </a>
                 </UiButton>
                 <UiButton
                     v-else
                     variant="outline"
-                    @click="tableExports.clearQueuedExport()"
+                    @click="updateQueuedDialog(false)"
                 >
                     {{ i18n.t("close") }}
                 </UiButton>

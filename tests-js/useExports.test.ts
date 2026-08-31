@@ -76,6 +76,7 @@ describe("useExports", () => {
         document.cookie = "XSRF-TOKEN=; Max-Age=0; path=/";
         vi.restoreAllMocks();
         vi.unstubAllGlobals();
+        vi.useRealTimers();
     });
 
     it("posts normalized state and selection, downloads the response, and preserves selection", async () => {
@@ -201,6 +202,10 @@ describe("useExports", () => {
             String(vi.mocked(fetch).mock.calls[0][1]?.body),
         );
         expect(payload.idempotencyKey).toBeTypeOf("string");
+        expect(payload).not.toHaveProperty("selection");
+        expect(vi.mocked(fetch).mock.calls[0][1]?.headers).toMatchObject({
+            Accept: "application/json, application/octet-stream",
+        });
         expect(exports.queuedExport.value).toEqual(status);
         expect(onQueued).toHaveBeenCalledWith(queuedExport, status);
         expect(visit).toHaveBeenCalledWith("/exports/history", {
@@ -214,5 +219,64 @@ describe("useExports", () => {
             url: "/file",
         });
         expect(exports.queuedExport.value?.status).toBe("ready");
+    });
+
+    it("polls queued exports until the file is ready", async () => {
+        vi.useFakeTimers();
+        const dispatched = {
+            id: "export-2",
+            status: "dispatched" as const,
+            filename: "topics.csv",
+            url: null,
+            statusEndpoint: "/_exports/queued/export-2?signature=valid",
+        };
+        const processing = {
+            ...dispatched,
+            status: "processing" as const,
+        };
+        const ready = {
+            ...dispatched,
+            status: "ready" as const,
+            url: "/downloads/export-2",
+        };
+        vi.mocked(fetch)
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ export: dispatched }), {
+                    status: 202,
+                    headers: { "content-type": "application/json" },
+                }),
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ export: processing }), {
+                    status: 200,
+                    headers: { "content-type": "application/json" },
+                }),
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ export: ready }), {
+                    status: 200,
+                    headers: { "content-type": "application/json" },
+                }),
+            );
+        const { exports, wrapper } = mountExports();
+
+        await exports.perform(queuedExport);
+        await vi.advanceTimersByTimeAsync(1_500);
+
+        expect(exports.queuedExport.value?.status).toBe("processing");
+        expect(fetch).toHaveBeenNthCalledWith(
+            2,
+            dispatched.statusEndpoint,
+            expect.objectContaining({ method: "GET" }),
+        );
+
+        await vi.advanceTimersByTimeAsync(1_500);
+
+        expect(exports.queuedExport.value).toEqual(ready);
+        expect(fetch).toHaveBeenCalledTimes(3);
+
+        await vi.advanceTimersByTimeAsync(3_000);
+        expect(fetch).toHaveBeenCalledTimes(3);
+        wrapper.unmount();
     });
 });

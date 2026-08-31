@@ -187,6 +187,7 @@ export type QueuedExportStatus = {
     status: "dispatched" | "processing" | "ready" | "failed" | "expired";
     filename?: string;
     url?: string | null;
+    statusEndpoint?: string | null;
     expiresAt?: number;
     redirect?: string | null;
     duplicate?: boolean;

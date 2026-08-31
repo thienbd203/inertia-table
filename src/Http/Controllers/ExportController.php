@@ -25,7 +25,7 @@ final class ExportController
 
         $validated = $request->validate([
             'state' => ['sometimes', 'array'],
-            'selection' => ['sometimes', 'array'],
+            'selection' => ['sometimes', 'nullable', 'array'],
             'idempotencyKey' => [$definition->isQueued() ? 'required' : 'sometimes', 'string', 'max:128'],
         ]);
 

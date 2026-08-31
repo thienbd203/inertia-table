@@ -54,8 +54,9 @@ export const en = {
     exportExpired: "Export expired",
     exportExpiredMessage: "This export is no longer available to download.",
     exportFailed: "Export failed",
-    exportQueued: "Export queued",
-    exportQueuedMessage: "Your export is being processed.",
+    exportQueued: "Your export is being processed",
+    exportQueuedMessage:
+        "We're now exporting your data! You can close this dialog and we'll notify you once it's done.",
     exportReady: "Export ready",
     exportReadyMessage: "Your export is ready to download.",
     exports: "Export",
@@ -151,8 +152,9 @@ export const vi: TableMessages = {
     exportExpired: "File xuất đã hết hạn",
     exportExpiredMessage: "File xuất này không còn khả dụng để tải xuống.",
     exportFailed: "Xuất dữ liệu thất bại",
-    exportQueued: "Đã xếp hàng xuất dữ liệu",
-    exportQueuedMessage: "Dữ liệu xuất đang được xử lý.",
+    exportQueued: "Dữ liệu của bạn đang được xuất",
+    exportQueuedMessage:
+        "Chúng tôi đang xuất dữ liệu của bạn. Bạn có thể đóng hộp thoại này và chúng tôi sẽ thông báo khi hoàn tất.",
     exportReady: "Dữ liệu xuất đã sẵn sàng",
     exportReadyMessage: "File xuất đã sẵn sàng để tải xuống.",
     exports: "Xuất",
