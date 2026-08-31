@@ -52,6 +52,13 @@
         var(--tb-row-border-color, var(--color-border, rgb(0 0 0 / 10%)));
 }
 
+.tb-table
+    [data-slot="table-body"]
+    > [data-slot="table-row"]:last-child
+    > [data-slot="table-cell"] {
+    border-block-end: 0;
+}
+
 .tb-sticky-cell {
     z-index: 10;
 }
