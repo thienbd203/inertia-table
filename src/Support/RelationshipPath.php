@@ -22,6 +22,15 @@ final class RelationshipPath
         $relationship = self::split($path);
 
         if ($relationship === null) {
+            if ($boolean === 'or') {
+                $query->orWhere(fn (Builder $nested) => $constraint(
+                    $nested,
+                    $nested->qualifyColumn($path),
+                ));
+
+                return;
+            }
+
             $constraint($query, $query->qualifyColumn($path));
 
             return;

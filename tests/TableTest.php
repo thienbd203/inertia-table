@@ -108,6 +108,19 @@ class ExplicitSearchTopicsTable extends TopicsTable
     protected array|string|null $search = [];
 }
 
+class MultiColumnSearchTopicsTable extends TopicsTable
+{
+    protected ?string $name = 'topics';
+
+    public function columns(): array
+    {
+        return [
+            TextColumn::make('name')->searchable(),
+            TextColumn::make('reference')->searchable(),
+        ];
+    }
+}
+
 class StickyTopicsTable extends TopicsTable
 {
     protected ?string $name = 'topics';
@@ -260,14 +273,15 @@ beforeEach(function () {
     Schema::create('topics', function (Blueprint $table) {
         $table->id();
         $table->string('name');
+        $table->string('reference')->nullable();
         $table->unsignedInteger('score')->default(0);
         $table->boolean('is_featured')->default(false);
     });
 
     TopicRecord::query()->insert([
-        ['name' => 'Alpha', 'score' => 10, 'is_featured' => false],
-        ['name' => 'Beta', 'score' => 30, 'is_featured' => true],
-        ['name' => 'Gamma', 'score' => 20, 'is_featured' => true],
+        ['name' => 'Alpha', 'reference' => 'A-100', 'score' => 10, 'is_featured' => false],
+        ['name' => 'Beta', 'reference' => 'B-200', 'score' => 30, 'is_featured' => true],
+        ['name' => 'Gamma', 'reference' => 'G-300', 'score' => 20, 'is_featured' => true],
     ]);
 });
 
@@ -409,6 +423,16 @@ it('searches only searchable columns', function () {
     expect($resource['results']['data'])
         ->toHaveCount(1)
         ->and($resource['results']['data'][0]['name'])->toBe('Gamma');
+});
+
+it('matches any declared base column during global search', function () {
+    $resource = (new MultiColumnSearchTopicsTable)->resolve(
+        tableRequest(['search' => 'B-200']),
+    )->toArray();
+
+    expect($resource['results']['data'])
+        ->toHaveCount(1)
+        ->and($resource['results']['data'][0]['name'])->toBe('Beta');
 });
 
 it('can explicitly disable global search on the table', function () {
