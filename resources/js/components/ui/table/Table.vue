@@ -70,7 +70,7 @@ onBeforeUnmount(() => {
         <table
             ref="table"
             data-slot="table"
-            :class="cn('w-full caption-bottom text-sm', props.class)"
+            :class="cn('w-full caption-bottom text-sm rounded-md', props.class)"
         >
             <slot />
         </table>
