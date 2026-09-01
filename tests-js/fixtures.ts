@@ -170,6 +170,7 @@ export function topicResource(
             perPage: [10, 25, 50],
             paginationType: "full",
             stickyHeader: false,
+            stickyBackdropFilter: true,
         },
         ...overrides,
     };

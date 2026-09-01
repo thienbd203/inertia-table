@@ -8,6 +8,7 @@ it('merges the package default configuration without a published config file', f
         ->and(config('inertia-table.per_page_options'))->toBe([10, 25, 50, 100])
         ->and(config('inertia-table.pagination_type'))->toBe('full')
         ->and(config('inertia-table.debounce'))->toBe(300)
+        ->and(config('inertia-table.sticky.backdrop_filter'))->toBeTrue()
         ->and(config('inertia-table.action_path'))->toBe('_inertia-table/actions')
         ->and(config('inertia-table.export_path'))->toBe('_inertia-table/exports')
         ->and(config('inertia-table.exporters.csv'))->toBe(NativeCsvExporter::class)

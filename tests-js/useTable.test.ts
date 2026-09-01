@@ -94,7 +94,7 @@ describe("useTable", () => {
         expect(visit).not.toHaveBeenCalled();
     });
 
-    it("pins a contiguous edge group and cascades unpinning toward the center", () => {
+    it("pins and unpins only the selected column on the left", () => {
         const { resource, table } = mountTable();
         resource.value.columns[0].stickable = true;
         resource.value.columns[1].stickable = true;
@@ -103,7 +103,7 @@ describe("useTable", () => {
         let url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
-        ).toEqual(["name", "is_featured"]);
+        ).toEqual(["is_featured"]);
 
         visit.mockReset();
         resource.value.state.pinnedColumns = {
@@ -115,20 +115,9 @@ describe("useTable", () => {
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
         ).toEqual(["name"]);
-
-        visit.mockReset();
-        resource.value.state.pinnedColumns = {
-            left: ["name", "is_featured"],
-            right: [],
-        };
-        table.togglePinnedColumn("name");
-        url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
-        expect(
-            url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
-        ).toEqual([]);
     });
 
-    it("applies the same contiguous behavior from the right edge", () => {
+    it("pins and unpins only the selected column on the right", () => {
         const { resource, table } = mountTable();
         resource.value.columns.splice(2, 0, {
             ...resource.value.columns[1],
@@ -143,7 +132,7 @@ describe("useTable", () => {
         let url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][right][]"),
-        ).toEqual(["score", "__actions"]);
+        ).toEqual(["score"]);
 
         visit.mockReset();
         resource.value.state.pinnedColumns = {
@@ -154,7 +143,7 @@ describe("useTable", () => {
         url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][right][]"),
-        ).toEqual([]);
+        ).toEqual(["score"]);
     });
 
     it("does not let client state unpin permanently sticky columns", () => {

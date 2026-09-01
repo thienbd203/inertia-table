@@ -27,6 +27,8 @@ const canSelect = computed(
             class="tb-table"
             :container-class="{
                 'tb-sticky-header-container': resource.options.stickyHeader,
+                'tb-sticky-backdrop-filter':
+                    resource.options.stickyBackdropFilter ?? true,
             }"
         >
             <SlotOutlet name="thead">

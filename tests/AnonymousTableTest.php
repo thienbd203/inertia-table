@@ -60,6 +60,7 @@ it('builds an anonymous table from a model class using the public options', func
         emptyState: EmptyState::make('No inline topics'),
         stickyHeader: true,
         defaultPerPage: 2,
+        stickyBackdropFilter: false,
     );
 
     $resource = $table->resolve(Request::create('/', 'GET'))->toArray();
@@ -75,6 +76,7 @@ it('builds an anonymous table from a model class using the public options', func
             'debounceTime' => 125,
             'perPage' => [2, 5],
             'stickyHeader' => true,
+            'stickyBackdropFilter' => false,
         ])
         ->and($resource['state']['sort'])->toBe('-score')
         ->and($resource['state']['perPage'])->toBe(2)

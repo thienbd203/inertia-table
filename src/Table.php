@@ -33,6 +33,8 @@ abstract class Table implements Arrayable
 
     protected ?bool $stickyHeader = null;
 
+    protected ?bool $stickyBackdropFilter = null;
+
     protected bool $pagination = true;
 
     protected ?PaginationType $paginationType = null;
@@ -80,6 +82,7 @@ abstract class Table implements Arrayable
         ?bool $stickyHeader = null,
         ?int $defaultPerPage = null,
         ?PaginationType $paginationType = null,
+        ?bool $stickyBackdropFilter = null,
     ): AnonymousTable {
         return new AnonymousTable(
             resource: $resource,
@@ -97,6 +100,7 @@ abstract class Table implements Arrayable
             stickyHeader: $stickyHeader,
             defaultPerPage: $defaultPerPage,
             paginationType: $paginationType,
+            stickyBackdropFilter: $stickyBackdropFilter,
         );
     }
 
@@ -161,6 +165,13 @@ abstract class Table implements Arrayable
     public function stickyHeader(bool $sticky = true): static
     {
         $this->stickyHeader = $sticky;
+
+        return $this;
+    }
+
+    public function stickyBackdropFilter(bool $enabled = true): static
+    {
+        $this->stickyBackdropFilter = $enabled;
 
         return $this;
     }
@@ -267,6 +278,8 @@ abstract class Table implements Arrayable
                 'paginationType' => $paginationType->value,
                 'reloadProps' => $this->reloadProps,
                 'stickyHeader' => $this->stickyHeader ?? false,
+                'stickyBackdropFilter' => $this->stickyBackdropFilter
+                    ?? (bool) config('inertia-table.sticky.backdrop_filter', true),
             ],
             views: $resolvedViews['resource'] ?? null,
             exports: $resolvedExports,

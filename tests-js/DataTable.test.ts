@@ -119,9 +119,43 @@ describe("DataTable shadcn renderer", () => {
         expect(wrapper.text()).toContain("Actions");
         expect(wrapper.text()).toContain("Filters");
         expect(wrapper.text()).toContain("Columns");
+        expect(
+            wrapper.get('[data-slot="table-container"]').classes(),
+        ).toContain("tb-sticky-backdrop-filter");
+        expect(
+            wrapper.get('th[data-column="__actions"] .font-semibold').text(),
+        ).toBe("Actions");
 
         await openDropdown(wrapper, "Actions");
         expect(document.body.textContent).toContain("Delete");
+    });
+
+    it("disables the sticky backdrop filter for one table", () => {
+        const resource = topicResource();
+        resource.options.stickyBackdropFilter = false;
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        expect(
+            wrapper.get('[data-slot="table-container"]').classes(),
+        ).not.toContain("tb-sticky-backdrop-filter");
+    });
+
+    it("keeps the sticky backdrop filter enabled for older resources", () => {
+        const resource = topicResource();
+        delete resource.options.stickyBackdropFilter;
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        expect(
+            wrapper.get('[data-slot="table-container"]').classes(),
+        ).toContain("tb-sticky-backdrop-filter");
     });
 
     it("renders the saved-view switcher and destructive delete confirmation", async () => {

@@ -245,6 +245,7 @@ export type TableResource<T extends TableItem = TableItem> = {
         paginationType?: "full" | "simple" | "cursor";
         reloadProps: string[];
         stickyHeader?: boolean;
+        stickyBackdropFilter?: boolean;
     };
     views?: TableViewsResource | null;
     exports?: TableExport[];

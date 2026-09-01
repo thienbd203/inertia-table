@@ -56,6 +56,27 @@ describe("Pagination", () => {
         expect(last.attributes("disabled")).toBeUndefined();
     });
 
+    it("uses a compact two-row layout on mobile", () => {
+        const { wrapper } = mountWithTableContext(Pagination);
+        const rowsPerPage = wrapper
+            .findAll("span")
+            .find((node) => node.text() === "Rows per page");
+        const pageStatus = wrapper
+            .findAll("span")
+            .find((node) => node.text() === "Page 1 of 2");
+
+        expect(wrapper.classes()).toContain("grid");
+        expect(rowsPerPage?.classes()).toContain("hidden");
+        expect(rowsPerPage?.classes()).toContain("sm:inline");
+        expect(pageStatus?.classes()).toContain("md:hidden");
+        expect(pageStatus?.element.parentElement?.classList).toContain(
+            "col-span-2",
+        );
+        expect(pageStatus?.element.parentElement?.classList).toContain(
+            "justify-between",
+        );
+    });
+
     it("disables the next and last buttons on the last page", () => {
         const { wrapper } = mountWithTableContext(Pagination, {
             results: {
@@ -105,6 +126,83 @@ describe("Pagination", () => {
         );
     });
 
+    it("renders a five-page window and navigates directly by page number", async () => {
+        const { wrapper } = mountWithTableContext(Pagination, {
+            results: {
+                data: [],
+                currentPage: 10,
+                from: 226,
+                lastPage: 20,
+                links: [],
+                perPage: 25,
+                to: 250,
+                total: 500,
+                selectableTotal: 500,
+            },
+        });
+
+        expect(wrapper.find('[aria-label="Go to page 7"]').exists()).toBe(
+            false,
+        );
+        expect(wrapper.find('[aria-label="Go to page 8"]').exists()).toBe(true);
+        expect(wrapper.find('[aria-label="Go to page 12"]').exists()).toBe(
+            true,
+        );
+        expect(wrapper.find('[aria-label="Go to page 13"]').exists()).toBe(
+            false,
+        );
+        expect(
+            wrapper
+                .get('[aria-label="Go to page 10"]')
+                .attributes("aria-current"),
+        ).toBe("page");
+
+        await wrapper.get('[aria-label="Go to page 10"]').trigger("click");
+        expect(visit).not.toHaveBeenCalled();
+
+        await wrapper.get('[aria-label="Go to page 12"]').trigger("click");
+
+        expect(visit.mock.calls[0][0]).toContain(
+            "table%5Btopics%5D%5Bpage%5D=12",
+        );
+    });
+
+    it("keeps the numbered window within the first and last page", () => {
+        const first = mountWithTableContext(Pagination, {
+            results: {
+                data: [],
+                currentPage: 1,
+                from: 1,
+                lastPage: 20,
+                links: [],
+                perPage: 25,
+                to: 25,
+                total: 500,
+                selectableTotal: 500,
+            },
+        }).wrapper;
+        const last = mountWithTableContext(Pagination, {
+            results: {
+                data: [],
+                currentPage: 20,
+                from: 476,
+                lastPage: 20,
+                links: [],
+                perPage: 25,
+                to: 500,
+                total: 500,
+                selectableTotal: 500,
+            },
+        }).wrapper;
+
+        expect(first.find('[aria-label="Go to page 1"]').exists()).toBe(true);
+        expect(first.find('[aria-label="Go to page 5"]').exists()).toBe(true);
+        expect(first.find('[aria-label="Go to page 6"]').exists()).toBe(false);
+        expect(last.find('[aria-label="Go to page 15"]').exists()).toBe(false);
+        expect(last.find('[aria-label="Go to page 16"]').exists()).toBe(true);
+        expect(last.find('[aria-label="Go to page 20"]').exists()).toBe(true);
+    });
+
     it("changes the page size through the rows-per-page select", async () => {
         const { wrapper } = mountWithTableContext(Pagination);
 
@@ -147,6 +245,7 @@ describe("Pagination", () => {
         expect(wrapper.text()).toContain("Page 2");
         expect(wrapper.find('[aria-label="First page"]').exists()).toBe(false);
         expect(wrapper.find('[aria-label="Last page"]').exists()).toBe(false);
+        expect(wrapper.find('[aria-label^="Go to page"]').exists()).toBe(false);
 
         await wrapper.get('[aria-label="Next page"]').trigger("click");
 

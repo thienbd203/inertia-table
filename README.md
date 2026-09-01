@@ -71,6 +71,9 @@ return [
     'per_page_options' => [10, 25, 50, 100],
     'pagination_type' => 'full',
     'debounce' => 300,
+    'sticky' => [
+        'backdrop_filter' => true,
+    ],
     'action_path' => '_inertia-table/actions',
     'export_path' => '_inertia-table/exports',
     'relationship_sorter' => \Musing\InertiaTable\Sorters\PowerJoinsRelationshipSorter::class,
@@ -253,7 +256,8 @@ return inertia('Admin/Topics/Index', [
 ```
 
 `Table::build()` also accepts `search`, `pagination`, `paginationType`,
-`debounceTime`, `withQueryBuilder`, `emptyState` and `stickyHeader`. Set
+`debounceTime`, `withQueryBuilder`, `emptyState`, `stickyHeader` and
+`stickyBackdropFilter`. Set
 `pagination: false` to return the complete normalized result and remove page
 controls. Anonymous
 tables intentionally do not declare actions, exports or Saved Views; use a
@@ -272,11 +276,11 @@ protected ?PaginationType $paginationType = PaginationType::Simple;
 TopicsTable::make()->paginationType(PaginationType::Cursor);
 ```
 
-| Mode     | Query behavior                         | Renderer controls                    |
-| -------- | -------------------------------------- | ------------------------------------ |
-| `Full`   | Runs the normal exact `COUNT(*)`       | First, previous, next and last page  |
-| `Simple` | Fetches one extra row; no result count | Previous and next, with page number  |
-| `Cursor` | Keyset pagination; no page/count query | Previous and next with opaque cursor |
+| Mode     | Query behavior                         | Renderer controls                                       |
+| -------- | -------------------------------------- | ------------------------------------------------------- |
+| `Full`   | Runs the normal exact `COUNT(*)`       | First, previous, five-page number window, next and last |
+| `Simple` | Fetches one extra row; no result count | Previous and next, with page number                     |
+| `Cursor` | Keyset pagination; no page/count query | Previous and next with opaque cursor                    |
 
 Cursor pagination requires a declared default or requested sort on a plain,
 non-null base-table column. The package appends the model's qualified primary
@@ -383,6 +387,32 @@ final class TopicsTable extends Table
 
 TopicsTable::make()->stickyHeader();
 ```
+
+Sticky cells use a backdrop blur by default. Disable it globally when large
+tables or many pinned columns make repainting expensive:
+
+```php
+// config/inertia-table.php
+'sticky' => [
+    'backdrop_filter' => false,
+],
+```
+
+Override the global value for one table with a property or the fluent API:
+
+```php
+final class TopicsTable extends Table
+{
+    protected ?bool $stickyBackdropFilter = false;
+}
+
+TopicsTable::make()->stickyBackdropFilter(false);
+```
+
+When enabled, customize the CSS filter with
+`--tb-sticky-backdrop-filter` (the default is `blur(4px)`). Resources produced
+by older package versions do not include the option and remain enabled for
+backward compatibility.
 
 `stickable()` lets the user pin or unpin a column from its header menu.
 `sticky()` makes the column permanently pinned and works with every column

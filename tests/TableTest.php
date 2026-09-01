@@ -321,6 +321,7 @@ it('serializes a versioned table resource', function () {
             'paginationType' => 'full',
             'reloadProps' => [],
             'stickyHeader' => false,
+            'stickyBackdropFilter' => true,
         ])
         ->state->sort->toBe('name')
         ->state->columns->toBe([
@@ -378,6 +379,27 @@ it('normalizes sticky header and pinned column state through declarations', func
             'left' => ['id', 'name'],
             'right' => ['__actions'],
         ]);
+});
+
+it('configures the sticky backdrop filter globally and per table', function () {
+    config()->set('inertia-table.sticky.backdrop_filter', false);
+
+    $global = (new TopicsTable)->resolve(tableRequest())->toArray();
+    $enabled = (new TopicsTable)
+        ->stickyBackdropFilter()
+        ->resolve(tableRequest())
+        ->toArray();
+
+    config()->set('inertia-table.sticky.backdrop_filter', true);
+
+    $disabled = (new TopicsTable)
+        ->stickyBackdropFilter(false)
+        ->resolve(tableRequest())
+        ->toArray();
+
+    expect($global['options']['stickyBackdropFilter'])->toBeFalse()
+        ->and($enabled['options']['stickyBackdropFilter'])->toBeTrue()
+        ->and($disabled['options']['stickyBackdropFilter'])->toBeFalse();
 });
 
 it('serializes row eligibility and the exact selectable result count', function () {

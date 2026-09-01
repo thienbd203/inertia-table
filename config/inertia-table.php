@@ -9,6 +9,9 @@ return [
     'per_page_options' => [10, 25, 50, 100],
     'pagination_type' => 'full',
     'debounce' => 300,
+    'sticky' => [
+        'backdrop_filter' => true,
+    ],
     'action_path' => '_inertia-table/actions',
     'export_path' => '_inertia-table/exports',
     'exporters' => [

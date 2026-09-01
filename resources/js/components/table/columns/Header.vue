@@ -234,7 +234,9 @@ function canTogglePin(attribute: string): boolean {
                             </UiDropdownMenuItem>
                         </UiDropdownMenuContent>
                     </UiDropdownMenu>
-                    <span v-else>{{ column.header }}</span>
+                    <span v-else class="font-semibold">
+                        {{ column.header }}
+                    </span>
                 </SlotOutlet>
             </UiTableHead>
         </UiTableRow>

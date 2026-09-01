@@ -18,6 +18,22 @@ const paginationType = computed(
     () => resource.value.options.paginationType ?? "full",
 );
 const currentPage = computed(() => resource.value.results.currentPage ?? 1);
+const pageNumbers = computed(() => {
+    if (paginationType.value !== "full") return [];
+
+    const lastPage = Math.max(resource.value.results.lastPage ?? 1, 1);
+    const windowSize = 5;
+    const activePage = Math.min(Math.max(currentPage.value, 1), lastPage);
+    let startPage = Math.max(activePage - Math.floor(windowSize / 2), 1);
+    const endPage = Math.min(startPage + windowSize - 1, lastPage);
+
+    startPage = Math.max(endPage - windowSize + 1, 1);
+
+    return Array.from(
+        { length: endPage - startPage + 1 },
+        (_, index) => startPage + index,
+    );
+});
 const hasPreviousPage = computed(
     () =>
         resource.value.results.hasPreviousPage ??
@@ -56,17 +72,27 @@ function nextPage(): void {
 
     table.setPage(currentPage.value + 1);
 }
+
+function goToPage(page: number): void {
+    if (page === currentPage.value) return;
+
+    table.setPage(page);
+}
 </script>
 
 <template>
     <div
-        class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+        class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 py-4 sm:flex sm:flex-wrap sm:gap-2"
         :data-pagination-type="paginationType"
     >
-        <span class="text-sm">{{ selectedRowsLabel }}</span>
+        <span class="truncate text-sm sm:me-auto">
+            {{ selectedRowsLabel }}
+        </span>
 
-        <div class="flex flex-wrap items-center gap-2 sm:justify-end">
-            <span class="text-muted-foreground text-sm whitespace-nowrap">
+        <div class="flex items-center gap-2">
+            <span
+                class="text-muted-foreground hidden text-sm whitespace-nowrap sm:inline"
+            >
                 {{ i18n.t("rowsPerPage") }}
             </span>
             <NativeSelect
@@ -82,10 +108,14 @@ function nextPage(): void {
                     {{ perPage }}
                 </NativeSelectOption>
             </NativeSelect>
+        </div>
 
+        <div
+            class="col-span-2 flex w-full items-center justify-between gap-2 sm:col-auto sm:w-auto sm:justify-end"
+        >
             <span
                 v-if="paginationType === 'full'"
-                class="ms-2 text-sm whitespace-nowrap"
+                class="text-sm whitespace-nowrap md:hidden"
             >
                 {{
                     i18n.t("pageOf", {
@@ -96,49 +126,70 @@ function nextPage(): void {
             </span>
             <span
                 v-else-if="paginationType === 'simple'"
-                class="ms-2 text-sm whitespace-nowrap"
+                class="text-sm whitespace-nowrap"
             >
                 {{ i18n.t("page", { page: currentPage }) }}
             </span>
 
-            <UiButton
-                v-if="paginationType === 'full'"
-                variant="outline"
-                size="icon-sm"
-                :aria-label="i18n.t('firstPage')"
-                :disabled="!hasPreviousPage"
-                @click="table.setPage(1)"
-            >
-                <ChevronsLeft aria-hidden="true" />
-            </UiButton>
-            <UiButton
-                variant="outline"
-                size="icon-sm"
-                :aria-label="i18n.t('previousPage')"
-                :disabled="!hasPreviousPage"
-                @click="previousPage"
-            >
-                <ChevronLeft aria-hidden="true" />
-            </UiButton>
-            <UiButton
-                variant="outline"
-                size="icon-sm"
-                :aria-label="i18n.t('nextPage')"
-                :disabled="!hasNextPage"
-                @click="nextPage"
-            >
-                <ChevronRight aria-hidden="true" />
-            </UiButton>
-            <UiButton
-                v-if="paginationType === 'full'"
-                variant="outline"
-                size="icon-sm"
-                :aria-label="i18n.t('lastPage')"
-                :disabled="!hasNextPage"
-                @click="table.setPage(resource.results.lastPage ?? 1)"
-            >
-                <ChevronsRight aria-hidden="true" />
-            </UiButton>
+            <div class="ms-auto flex items-center gap-2">
+                <UiButton
+                    v-if="paginationType === 'full'"
+                    variant="outline"
+                    size="icon-sm"
+                    :aria-label="i18n.t('firstPage')"
+                    :disabled="!hasPreviousPage"
+                    @click="table.setPage(1)"
+                >
+                    <ChevronsLeft aria-hidden="true" />
+                </UiButton>
+                <UiButton
+                    variant="outline"
+                    size="icon-sm"
+                    :aria-label="i18n.t('previousPage')"
+                    :disabled="!hasPreviousPage"
+                    @click="previousPage"
+                >
+                    <ChevronLeft aria-hidden="true" />
+                </UiButton>
+                <nav
+                    v-if="paginationType === 'full'"
+                    class="hidden items-center gap-1 md:flex"
+                    :aria-label="i18n.t('pagination')"
+                >
+                    <UiButton
+                        v-for="page in pageNumbers"
+                        :key="page"
+                        :variant="page === currentPage ? 'default' : 'outline'"
+                        size="icon-sm"
+                        :aria-label="i18n.t('goToPage', { page })"
+                        :aria-current="
+                            page === currentPage ? 'page' : undefined
+                        "
+                        @click="goToPage(page)"
+                    >
+                        {{ page }}
+                    </UiButton>
+                </nav>
+                <UiButton
+                    variant="outline"
+                    size="icon-sm"
+                    :aria-label="i18n.t('nextPage')"
+                    :disabled="!hasNextPage"
+                    @click="nextPage"
+                >
+                    <ChevronRight aria-hidden="true" />
+                </UiButton>
+                <UiButton
+                    v-if="paginationType === 'full'"
+                    variant="outline"
+                    size="icon-sm"
+                    :aria-label="i18n.t('lastPage')"
+                    :disabled="!hasNextPage"
+                    @click="table.setPage(resource.results.lastPage ?? 1)"
+                >
+                    <ChevronsRight aria-hidden="true" />
+                </UiButton>
+            </div>
         </div>
     </div>
 </template>

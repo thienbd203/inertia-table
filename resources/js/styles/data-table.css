@@ -30,10 +30,17 @@
     position: sticky;
     background-color: var(
         --tb-sticky-background,
+        var(--color-background, Canvas)
+    );
+}
+
+.tb-sticky-backdrop-filter :is(.tb-sticky-cell, .tb-sticky-header-cell) {
+    background-color: var(
+        --tb-sticky-background,
         color-mix(in srgb, var(--color-background, Canvas) 88%, transparent)
     );
-    -webkit-backdrop-filter: blur(var(--tb-sticky-backdrop-blur, 4px));
-    backdrop-filter: blur(var(--tb-sticky-backdrop-blur, 4px));
+    -webkit-backdrop-filter: var(--tb-sticky-backdrop-filter, blur(4px));
+    backdrop-filter: var(--tb-sticky-backdrop-filter, blur(4px));
 }
 
 .tb-sticky-header-container {
