@@ -677,6 +677,31 @@ describe("DataTable shadcn renderer", () => {
         );
     });
 
+    it("aligns cell icons and labels at a consistent size", () => {
+        const resource = topicResource();
+        resource.columns[1] = {
+            ...resource.columns[1],
+            trueIcon: "Star",
+            trueLabel: "Featured",
+        };
+        const TestIcon = () => h("svg", { "data-test-icon": "star" });
+
+        const wrapper = mount(DataTable, {
+            props: { resource, iconResolver: () => TestIcon },
+            attachTo: document.body,
+        });
+        const icon = wrapper.get('[data-test-icon="star"]');
+        const content = icon.element.parentElement;
+
+        expect(icon.classes()).toEqual(
+            expect.arrayContaining(["tb-cell-icon", "size-4", "shrink-0"]),
+        );
+        expect(content?.classList.contains("inline-flex")).toBe(true);
+        expect(content?.classList.contains("items-center")).toBe(true);
+        expect(content?.classList.contains("gap-1")).toBe(true);
+        expect(content?.textContent).toContain("Featured");
+    });
+
     it("renders a server-defined genuine empty state with actions and data attributes", () => {
         const resource = topicResource();
         resource.results = {

@@ -40,6 +40,14 @@
     max-height: var(--tb-sticky-header-max-height, 70vh);
 }
 
+[data-slot="table-container"] {
+    isolation: isolate;
+    clip-path: inset(0 round var(--radius-md, 0.625rem));
+    outline: 1px solid
+        var(--tb-table-border-color, var(--color-border, rgb(0 0 0 / 12%)));
+    outline-offset: -1px;
+}
+
 .tb-table {
     border-collapse: separate;
     border-spacing: 0;
@@ -60,16 +68,16 @@
 }
 
 .tb-sticky-cell {
-    z-index: 10;
+    z-index: 1;
 }
 
 .tb-sticky-header-cell {
     top: 0;
-    z-index: 20;
+    z-index: 2;
 }
 
 .tb-sticky-cell.tb-sticky-header-cell {
-    z-index: 30;
+    z-index: 3;
 }
 
 [data-slot="table-container"][data-scrolled-from-start]

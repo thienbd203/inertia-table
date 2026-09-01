@@ -61,7 +61,7 @@ onBeforeUnmount(() => {
         :data-scrolled-from-end="scrolledFromEnd ? '' : undefined"
         :class="
             cn(
-                'relative w-full overflow-auto border rounded-md mt-4',
+                'relative isolate mt-4 w-full overflow-auto rounded-md border',
                 props.containerClass,
             )
         "
