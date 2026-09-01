@@ -43,9 +43,6 @@
 [data-slot="table-container"] {
     isolation: isolate;
     clip-path: inset(0 round var(--radius-md, 0.625rem));
-    outline: 1px solid
-        var(--tb-table-border-color, var(--color-border, rgb(0 0 0 / 12%)));
-    outline-offset: -1px;
 }
 
 .tb-table {
