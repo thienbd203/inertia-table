@@ -45,7 +45,11 @@ export function tableUrl<T extends TableItem>(
         params.set(stateKey(table, "sort"), "");
     }
 
-    if (state.page > 1) {
+    if (resource.options.paginationType === "cursor") {
+        if (state.cursor) {
+            params.set(stateKey(table, "cursor"), state.cursor);
+        }
+    } else if (state.page > 1) {
         params.set(stateKey(table, "page"), String(state.page));
     }
 

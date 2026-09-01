@@ -69,6 +69,7 @@ php artisan vendor:publish --tag=inertia-table-config
 return [
     'per_page' => 25,
     'per_page_options' => [10, 25, 50, 100],
+    'pagination_type' => 'full',
     'debounce' => 300,
     'action_path' => '_inertia-table/actions',
     'export_path' => '_inertia-table/exports',
@@ -132,6 +133,7 @@ use Musing\InertiaTable\Columns\BadgeColumn;
 use Musing\InertiaTable\Columns\NumberColumn;
 use Musing\InertiaTable\Columns\TextColumn;
 use Musing\InertiaTable\Filters\SetFilter;
+use Musing\InertiaTable\PaginationType;
 use Musing\InertiaTable\Table;
 use Musing\InertiaTable\Variant;
 
@@ -143,6 +145,8 @@ final class TopicsTable extends Table
     protected ?int $perPage = 50;
 
     protected ?array $perPageOptions = [25, 50, 100];
+
+    protected ?PaginationType $paginationType = PaginationType::Full;
 
     public function query(): Builder
     {
@@ -248,11 +252,41 @@ return inertia('Admin/Topics/Index', [
 ]);
 ```
 
-`Table::build()` also accepts `search`, `pagination`, `debounceTime`,
-`withQueryBuilder`, `emptyState` and `stickyHeader`. Set `pagination: false` to
-return the complete normalized result and remove page controls. Anonymous
+`Table::build()` also accepts `search`, `pagination`, `paginationType`,
+`debounceTime`, `withQueryBuilder`, `emptyState` and `stickyHeader`. Set
+`pagination: false` to return the complete normalized result and remove page
+controls. Anonymous
 tables intentionally do not declare actions, exports or Saved Views; use a
 generated class when server-managed behavior or persisted state is required.
+
+### Pagination modes
+
+Choose a pagination strategy globally with `pagination_type`, per table with a
+property, or at runtime with `paginationType()`:
+
+```php
+use Musing\InertiaTable\PaginationType;
+
+protected ?PaginationType $paginationType = PaginationType::Simple;
+
+TopicsTable::make()->paginationType(PaginationType::Cursor);
+```
+
+| Mode     | Query behavior                         | Renderer controls                    |
+| -------- | -------------------------------------- | ------------------------------------ |
+| `Full`   | Runs the normal exact `COUNT(*)`       | First, previous, next and last page  |
+| `Simple` | Fetches one extra row; no result count | Previous and next, with page number  |
+| `Cursor` | Keyset pagination; no page/count query | Previous and next with opaque cursor |
+
+Cursor pagination requires a declared default or requested sort on a plain,
+non-null base-table column. The package appends the model's qualified primary
+key as a deterministic tie-breaker. Relationship sorts and raw/expression sorts
+are rejected because they cannot safely reconstruct cursor boundaries.
+
+Exact all-matching selection is intentionally preserved in every mode. A table
+with bulk actions or a selected-scope export still runs a selectable-count query
+so the header checkbox and confirmation count stay honest; tables without those
+features get the count-query savings of simple or cursor pagination.
 
 ## Internationalization
 

@@ -96,6 +96,22 @@ describe("tableUrl", () => {
         ).toEqual(["featured", "pending"]);
     });
 
+    it("serializes cursor state instead of page state for cursor pagination", () => {
+        const resource = topicResource();
+        resource.options.paginationType = "cursor";
+        const url = tableUrl("/admin?table%5Btopics%5D%5Bpage%5D=9", resource, {
+            ...resource.state,
+            page: 9,
+            cursor: "opaque-token",
+        });
+        const parsed = new URL(url, "http://toolbelt.local");
+
+        expect(parsed.searchParams.get("table[topics][cursor]")).toBe(
+            "opaque-token",
+        );
+        expect(parsed.searchParams.has("table[topics][page]")).toBe(false);
+    });
+
     it("keeps selected views isolated and serializes explicit disabled state", () => {
         const resource = topicResource();
         const url = tableUrl(

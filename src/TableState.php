@@ -4,6 +4,7 @@ namespace Musing\InertiaTable;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Cursor;
 
 /** @implements Arrayable<string, mixed> */
 final readonly class TableState implements Arrayable
@@ -22,6 +23,7 @@ final readonly class TableState implements Arrayable
         public int $perPage,
         public int|string|null $view = null,
         public array $pinnedColumns = ['left' => [], 'right' => []],
+        public ?string $cursor = null,
     ) {}
 
     /**
@@ -74,18 +76,24 @@ final readonly class TableState implements Arrayable
                 ? $requestedPinnedColumns['right']
                 : $defaultPinnedColumns['right'],
         ];
+        $requestedCursor = is_string($input['cursor'] ?? null)
+            ? $input['cursor']
+            : null;
+        $cursor = Cursor::fromEncoded($requestedCursor) !== null
+            ? $requestedCursor
+            : null;
 
-        return new self($search, $sort, $filters, $columns, $page, $perPage, $view, $pinnedColumns);
+        return new self($search, $sort, $filters, $columns, $page, $perPage, $view, $pinnedColumns, $cursor);
     }
 
     public function withSort(?string $sort): self
     {
-        return new self($this->search, $sort, $this->filters, $this->columns, $this->page, $this->perPage, $this->view, $this->pinnedColumns);
+        return new self($this->search, $sort, $this->filters, $this->columns, $this->page, $this->perPage, $this->view, $this->pinnedColumns, $this->cursor);
     }
 
     public function withSearch(string $search): self
     {
-        return new self($search, $this->sort, $this->filters, $this->columns, $this->page, $this->perPage, $this->view, $this->pinnedColumns);
+        return new self($search, $this->sort, $this->filters, $this->columns, $this->page, $this->perPage, $this->view, $this->pinnedColumns, $this->cursor);
     }
 
     /**
@@ -93,24 +101,34 @@ final readonly class TableState implements Arrayable
      */
     public function withFilters(array $filters): self
     {
-        return new self($this->search, $this->sort, $filters, $this->columns, $this->page, $this->perPage, $this->view, $this->pinnedColumns);
+        return new self($this->search, $this->sort, $filters, $this->columns, $this->page, $this->perPage, $this->view, $this->pinnedColumns, $this->cursor);
     }
 
     /** @param array<string, bool> $columns */
     public function withColumns(array $columns): self
     {
-        return new self($this->search, $this->sort, $this->filters, $columns, $this->page, $this->perPage, $this->view, $this->pinnedColumns);
+        return new self($this->search, $this->sort, $this->filters, $columns, $this->page, $this->perPage, $this->view, $this->pinnedColumns, $this->cursor);
     }
 
     public function withView(int|string|null $view): self
     {
-        return new self($this->search, $this->sort, $this->filters, $this->columns, $this->page, $this->perPage, $view, $this->pinnedColumns);
+        return new self($this->search, $this->sort, $this->filters, $this->columns, $this->page, $this->perPage, $view, $this->pinnedColumns, $this->cursor);
     }
 
     /** @param array{left: array<int, string>, right: array<int, string>} $pinnedColumns */
     public function withPinnedColumns(array $pinnedColumns): self
     {
-        return new self($this->search, $this->sort, $this->filters, $this->columns, $this->page, $this->perPage, $this->view, $pinnedColumns);
+        return new self($this->search, $this->sort, $this->filters, $this->columns, $this->page, $this->perPage, $this->view, $pinnedColumns, $this->cursor);
+    }
+
+    public function withPage(int $page): self
+    {
+        return new self($this->search, $this->sort, $this->filters, $this->columns, $page, $this->perPage, $this->view, $this->pinnedColumns, $this->cursor);
+    }
+
+    public function withCursor(?string $cursor): self
+    {
+        return new self($this->search, $this->sort, $this->filters, $this->columns, $this->page, $this->perPage, $this->view, $this->pinnedColumns, $cursor);
     }
 
     public function toArray(): array
@@ -124,6 +142,7 @@ final readonly class TableState implements Arrayable
             'perPage' => $this->perPage,
             'view' => $this->view,
             'pinnedColumns' => $this->pinnedColumns,
+            'cursor' => $this->cursor,
         ];
     }
 }

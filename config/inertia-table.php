@@ -7,6 +7,7 @@ use Musing\InertiaTable\Sorters\PowerJoinsRelationshipSorter;
 return [
     'per_page' => 25,
     'per_page_options' => [10, 25, 50, 100],
+    'pagination_type' => 'full',
     'debounce' => 300,
     'action_path' => '_inertia-table/actions',
     'export_path' => '_inertia-table/exports',

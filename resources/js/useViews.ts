@@ -72,6 +72,7 @@ export function useViews<T extends TableItem>(table: UseTable<T>) {
                 ? (view.state.search ?? "")
                 : current.search,
             page: 1,
+            cursor: null,
             view: view.id,
         });
     }

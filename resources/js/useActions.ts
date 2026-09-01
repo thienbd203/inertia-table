@@ -76,7 +76,8 @@ export function useActions<T extends TableItem>(
     const selectableTotal = computed(
         () =>
             table.resource.value.results.selectableTotal ??
-            table.resource.value.results.total,
+            table.resource.value.results.total ??
+            0,
     );
 
     const selectedItems = computed(() =>

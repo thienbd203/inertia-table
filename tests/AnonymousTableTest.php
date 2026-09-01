@@ -3,12 +3,14 @@
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Musing\InertiaTable\AnonymousTable;
 use Musing\InertiaTable\Columns\NumberColumn;
 use Musing\InertiaTable\Columns\TextColumn;
 use Musing\InertiaTable\EmptyState;
 use Musing\InertiaTable\Filters\BooleanFilter;
+use Musing\InertiaTable\PaginationType;
 use Musing\InertiaTable\Table;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -105,6 +107,53 @@ it('clones an Eloquent builder before resolving an anonymous table', function ()
     expect($first['results']['total'])->toBe(2)
         ->and($second['results']['total'])->toBe(2)
         ->and($builder->getQuery()->orders)->toBeNull();
+});
+
+it('configures cursor pagination through the anonymous table builder', function () {
+    AnonymousTopicRecord::query()->create(['name' => 'Alpha', 'score' => 10]);
+    AnonymousTopicRecord::query()->create(['name' => 'Beta', 'score' => 20]);
+    $table = Table::build(
+        resource: AnonymousTopicRecord::class,
+        columns: [NumberColumn::make('score')->sortable()],
+        defaultSort: 'score',
+        defaultPerPage: 1,
+        perPageOptions: [1],
+        paginationType: PaginationType::Cursor,
+    );
+
+    $resource = $table->resolve(Request::create('/', 'GET'))->toArray();
+
+    expect($resource['options']['paginationType'])->toBe('cursor')
+        ->and($resource['results']['total'])->toBeNull()
+        ->and($resource['results']['nextCursor'])->not->toBeNull();
+});
+
+it('skips the paginator count query in simple and cursor modes', function () {
+    AnonymousTopicRecord::query()->create(['name' => 'Alpha', 'score' => 10]);
+    AnonymousTopicRecord::query()->create(['name' => 'Beta', 'score' => 20]);
+
+    $resolveWith = function (PaginationType $type): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        Table::build(
+            resource: AnonymousTopicRecord::class,
+            columns: [NumberColumn::make('score')->sortable()],
+            defaultSort: 'score',
+            defaultPerPage: 1,
+            perPageOptions: [1],
+            paginationType: $type,
+        )->resolve(Request::create('/', 'GET'));
+
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $count;
+    };
+
+    expect($resolveWith(PaginationType::Full))->toBe(2)
+        ->and($resolveWith(PaginationType::Simple))->toBe(1)
+        ->and($resolveWith(PaginationType::Cursor))->toBe(1);
 });
 
 it('renders the anonymous empty state only when its base resource is empty', function () {

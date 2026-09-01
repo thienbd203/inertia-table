@@ -51,6 +51,7 @@ final class AnonymousTable extends Table
         ?EmptyState $emptyState = null,
         ?bool $stickyHeader = null,
         ?int $defaultPerPage = null,
+        ?PaginationType $paginationType = null,
     ) {
         if (is_string($resource) && ! is_subclass_of($resource, Model::class)) {
             throw new LogicException('Anonymous table resources must be an Eloquent model class or builder.');
@@ -104,6 +105,7 @@ final class AnonymousTable extends Table
         $this->tableEmptyState = $emptyState;
         $this->stickyHeader = $stickyHeader;
         $this->perPage = $defaultPerPage;
+        $this->paginationType = $paginationType;
     }
 
     public function query(): Builder

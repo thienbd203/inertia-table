@@ -99,6 +99,7 @@ type TableResource<T> = {
     options: {
         debounceTime: number;
         perPage: number[];
+        paginationType: "full" | "simple" | "cursor";
         reloadProps: string[];
         stickyHeader: boolean;
     };
@@ -180,6 +181,13 @@ once a table needs those features. Disabling pagination changes
 `capabilities.paginated` to false, returns a one-page result envelope and makes
 the renderer and headless page controls inert.
 
+Paginated tables select `full`, `simple`, or `cursor` mode globally or per table.
+Full pagination exposes exact totals and first/last navigation. Simple pagination
+omits totals but retains a numeric page. Cursor pagination stores an opaque
+cursor instead of a page in the table's URL namespace and requires a plain,
+non-null base-table sort. A qualified primary-key order is appended as a stable
+tie-breaker. Relationship and expression sorts are rejected in cursor mode.
+
 ### Filter resource
 
 ```ts
@@ -248,6 +256,7 @@ type TableState = {
     perPage: number;
     view?: string | number | null;
     pinnedColumns: { left: string[]; right: string[] };
+    cursor?: string | null;
 };
 ```
 
@@ -341,6 +350,10 @@ table[topics][page]=2
 table[topics][perPage]=30
 ```
 
+Cursor-mode tables replace `page` with `table[topics][cursor]=<opaque-token>`.
+Search, sort, filter, per-page, and Saved View changes clear that token before
+navigation because each changes the identity or ordering of the result set.
+
 Unknown attributes, clauses, sorts, columns, actions, and per-page values are ignored or replaced with server defaults. Raw request values must never be passed directly to `orderBy`, filter callbacks, or action handlers.
 
 ## Spatie Query Builder integration
@@ -426,6 +439,7 @@ Included:
 - allowlisted global search;
 - text, boolean, and select filters with a default clause;
 - full and simple pagination;
+- cursor pagination with deterministic base-table sorting;
 - column visibility;
 - explicit row selection and all-results selection across pagination;
 - server-declared row and bulk actions;
@@ -441,7 +455,6 @@ Included:
 
 Deferred:
 
-- cursor pagination;
 - React renderer;
 - virtualized rows;
 - persisted selection across search/filter changes.

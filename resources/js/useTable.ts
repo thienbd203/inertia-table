@@ -68,7 +68,7 @@ export function useTable<T extends TableItem>(
         search.value = value;
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-            patchState({ search: value.trim(), page: 1 });
+            patchState({ search: value.trim(), page: 1, cursor: null });
         }, toValue(resource).options.debounceTime);
     }
 
@@ -90,6 +90,7 @@ export function useTable<T extends TableItem>(
                         ? `-${attribute}`
                         : attribute,
             page: 1,
+            cursor: null,
         });
     }
 
@@ -121,7 +122,7 @@ export function useTable<T extends TableItem>(
             };
         }
 
-        patchState({ filters, page: 1 });
+        patchState({ filters, page: 1, cursor: null });
     }
 
     function removeFilter(attribute: string) {
@@ -135,7 +136,7 @@ export function useTable<T extends TableItem>(
             clause: definition.clauses[0] ?? "equals",
             value: null,
         };
-        patchState({ filters, page: 1 });
+        patchState({ filters, page: 1, cursor: null });
     }
 
     function clearFilters() {
@@ -149,7 +150,7 @@ export function useTable<T extends TableItem>(
                 },
             ]),
         );
-        patchState({ filters, page: 1 });
+        patchState({ filters, page: 1, cursor: null });
     }
 
     function clearAll() {
@@ -165,7 +166,7 @@ export function useTable<T extends TableItem>(
                 },
             ]),
         );
-        patchState({ search: "", filters, page: 1 });
+        patchState({ search: "", filters, page: 1, cursor: null });
     }
 
     function toggleColumn(attribute: string) {
@@ -266,15 +267,30 @@ export function useTable<T extends TableItem>(
     }
 
     function setPage(page: number) {
-        if (!toValue(resource).capabilities.paginated) return;
-        if (page < 1 || page > toValue(resource).results.lastPage) return;
+        const current = toValue(resource);
+        if (!current.capabilities.paginated) return;
+        if (current.options.paginationType === "cursor") return;
+        if (page < 1) return;
+        if (
+            current.results.lastPage !== null &&
+            page > current.results.lastPage
+        )
+            return;
         patchState({ page });
+    }
+
+    function setCursor(cursor: string | null) {
+        const current = toValue(resource);
+        if (!current.capabilities.paginated) return;
+        if (current.options.paginationType !== "cursor") return;
+        if (!cursor) return;
+        patchState({ cursor, page: 1 });
     }
 
     function setPerPage(perPage: number) {
         if (!toValue(resource).capabilities.paginated) return;
         if (!toValue(resource).options.perPage.includes(perPage)) return;
-        patchState({ perPage, page: 1 });
+        patchState({ perPage, page: 1, cursor: null });
     }
 
     const state = computed(() => toValue(resource).state);
@@ -311,6 +327,7 @@ export function useTable<T extends TableItem>(
         resource: computed(() => toValue(resource)),
         search,
         setFilter,
+        setCursor,
         setPage,
         setPerPage,
         setSearch,

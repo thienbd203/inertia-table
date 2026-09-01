@@ -104,6 +104,7 @@ export type TableState = {
     perPage: number;
     view?: TableKey | null;
     pinnedColumns?: { left: string[]; right: string[] };
+    cursor?: string | null;
 };
 
 export type TableViewState = {
@@ -202,14 +203,18 @@ export type PaginationLink = {
 
 export type TableResults<T extends TableItem> = {
     data: T[];
-    currentPage: number;
+    currentPage: number | null;
     from: number | null;
-    lastPage: number;
+    lastPage: number | null;
     links: PaginationLink[];
     perPage: number;
     to: number | null;
-    total: number;
+    total: number | null;
     selectableTotal?: number;
+    hasPreviousPage?: boolean;
+    hasNextPage?: boolean;
+    previousCursor?: string | null;
+    nextCursor?: string | null;
 };
 
 export type TableResource<T extends TableItem = TableItem> = {
@@ -237,6 +242,7 @@ export type TableResource<T extends TableItem = TableItem> = {
     options: {
         debounceTime: number;
         perPage: number[];
+        paginationType?: "full" | "simple" | "cursor";
         reloadProps: string[];
         stickyHeader?: boolean;
     };

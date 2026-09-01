@@ -201,7 +201,8 @@ provideTableContext({
             <SlotOutlet
                 v-if="
                     resource.capabilities.paginated &&
-                    resource.results.total > 0
+                    (resource.results.data.length > 0 ||
+                        resource.results.hasPreviousPage)
                 "
                 name="footer"
             >

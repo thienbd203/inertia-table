@@ -7,7 +7,10 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Cursor;
+use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 use LogicException;
 use Musing\InertiaTable\Actions\Action;
 use Musing\InertiaTable\Columns\Column;
@@ -31,6 +34,8 @@ abstract class Table implements Arrayable
     protected ?bool $stickyHeader = null;
 
     protected bool $pagination = true;
+
+    protected ?PaginationType $paginationType = null;
 
     protected ?int $debounceTime = null;
 
@@ -74,6 +79,7 @@ abstract class Table implements Arrayable
         ?EmptyState $emptyState = null,
         ?bool $stickyHeader = null,
         ?int $defaultPerPage = null,
+        ?PaginationType $paginationType = null,
     ): AnonymousTable {
         return new AnonymousTable(
             resource: $resource,
@@ -90,6 +96,7 @@ abstract class Table implements Arrayable
             emptyState: $emptyState,
             stickyHeader: $stickyHeader,
             defaultPerPage: $defaultPerPage,
+            paginationType: $paginationType,
         );
     }
 
@@ -158,6 +165,23 @@ abstract class Table implements Arrayable
         return $this;
     }
 
+    public function paginationType(PaginationType $type): static
+    {
+        $this->paginationType = $type;
+
+        return $this;
+    }
+
+    public function resolvedPaginationType(): PaginationType
+    {
+        if ($this->paginationType instanceof PaginationType) {
+            return $this->paginationType;
+        }
+
+        return PaginationType::tryFrom((string) config('inertia-table.pagination_type', 'full'))
+            ?? PaginationType::Full;
+    }
+
     public function resolve(?Request $request = null): TableResource
     {
         $request ??= request();
@@ -179,6 +203,8 @@ abstract class Table implements Arrayable
         if ($resolvedViews !== null) {
             $state = $state->withView($resolvedViews['resource']['selected']);
         }
+        $paginationType = $this->resolvedPaginationType();
+        $state = $this->normalizePaginationState($state, $columns, $paginationType);
         $query = $this->buildQuery($request, $state, $columns, $filters);
 
         $bulkActions = collect($actions)
@@ -238,6 +264,7 @@ abstract class Table implements Arrayable
             options: [
                 'debounceTime' => $this->debounceTime ?? (int) config('inertia-table.debounce', 300),
                 'perPage' => $perPageOptions,
+                'paginationType' => $paginationType->value,
                 'reloadProps' => $this->reloadProps,
                 'stickyHeader' => $this->stickyHeader ?? false,
             ],
@@ -718,10 +745,7 @@ abstract class Table implements Arrayable
             $total = $models->count();
 
             return [
-                'data' => $models
-                    ->map(fn (Model $model) => $this->serializeRow($model, $columns, $actions))
-                    ->values()
-                    ->all(),
+                'data' => $this->serializeModels($models, $columns, $actions),
                 'currentPage' => 1,
                 'from' => $total > 0 ? 1 : null,
                 'lastPage' => 1,
@@ -730,9 +754,32 @@ abstract class Table implements Arrayable
                 'to' => $total > 0 ? $total : null,
                 'total' => $total,
                 'selectableTotal' => $selectableTotal,
+                'hasPreviousPage' => false,
+                'hasNextPage' => false,
+                'previousCursor' => null,
+                'nextCursor' => null,
             ];
         }
 
+        return match ($this->resolvedPaginationType()) {
+            PaginationType::Full => $this->paginateFully($query, $state, $columns, $actions, $selectableTotal),
+            PaginationType::Simple => $this->paginateSimply($query, $state, $columns, $actions, $selectableTotal),
+            PaginationType::Cursor => $this->paginateByCursor($query, $state, $columns, $actions, $selectableTotal),
+        };
+    }
+
+    /**
+     * @param  array<int, Column>  $columns
+     * @param  array<int, Action>  $actions
+     * @return array<string, mixed>
+     */
+    private function paginateFully(
+        QueryBuilder $query,
+        TableState $state,
+        array $columns,
+        array $actions,
+        int $selectableTotal,
+    ): array {
         $paginator = $query->paginate(
             perPage: $state->perPage,
             pageName: "table[{$this->name()}][page]",
@@ -740,10 +787,7 @@ abstract class Table implements Arrayable
         )->withQueryString();
 
         return [
-            'data' => collect($paginator->items())
-                ->map(fn (Model $model) => $this->serializeRow($model, $columns, $actions))
-                ->values()
-                ->all(),
+            'data' => $this->serializeModels($paginator->items(), $columns, $actions),
             'currentPage' => $paginator->currentPage(),
             'from' => $paginator->firstItem(),
             'lastPage' => $paginator->lastPage(),
@@ -752,7 +796,154 @@ abstract class Table implements Arrayable
             'to' => $paginator->lastItem(),
             'total' => $paginator->total(),
             'selectableTotal' => $selectableTotal,
+            'hasPreviousPage' => ! $paginator->onFirstPage(),
+            'hasNextPage' => $paginator->hasMorePages(),
+            'previousCursor' => null,
+            'nextCursor' => null,
         ];
+    }
+
+    /**
+     * @param  array<int, Column>  $columns
+     * @param  array<int, Action>  $actions
+     * @return array<string, mixed>
+     */
+    private function paginateSimply(
+        QueryBuilder $query,
+        TableState $state,
+        array $columns,
+        array $actions,
+        int $selectableTotal,
+    ): array {
+        /** @var Paginator<int, Model> $paginator */
+        $paginator = $query->simplePaginate(
+            perPage: $state->perPage,
+            pageName: "table[{$this->name()}][page]",
+            page: $state->page,
+        )->withQueryString();
+
+        return [
+            'data' => $this->serializeModels($paginator->items(), $columns, $actions),
+            'currentPage' => $paginator->currentPage(),
+            'from' => $paginator->firstItem(),
+            'lastPage' => null,
+            'links' => [],
+            'perPage' => $paginator->perPage(),
+            'to' => $paginator->lastItem(),
+            'total' => null,
+            'selectableTotal' => $selectableTotal,
+            'hasPreviousPage' => ! $paginator->onFirstPage(),
+            'hasNextPage' => $paginator->hasMorePages(),
+            'previousCursor' => null,
+            'nextCursor' => null,
+        ];
+    }
+
+    /**
+     * @param  array<int, Column>  $columns
+     * @param  array<int, Action>  $actions
+     * @return array<string, mixed>
+     */
+    private function paginateByCursor(
+        QueryBuilder $query,
+        TableState $state,
+        array $columns,
+        array $actions,
+        int $selectableTotal,
+    ): array {
+        $this->stabilizeCursorOrder($query);
+
+        /** @var CursorPaginator<int, Model> $paginator */
+        $paginator = $query->cursorPaginate(
+            perPage: $state->perPage,
+            cursorName: "table[{$this->name()}][cursor]",
+            cursor: Cursor::fromEncoded($state->cursor),
+        )->withQueryString();
+
+        return [
+            'data' => $this->serializeModels($paginator->items(), $columns, $actions),
+            'currentPage' => null,
+            'from' => null,
+            'lastPage' => null,
+            'links' => [],
+            'perPage' => $paginator->perPage(),
+            'to' => null,
+            'total' => null,
+            'selectableTotal' => $selectableTotal,
+            'hasPreviousPage' => ! $paginator->onFirstPage(),
+            'hasNextPage' => $paginator->hasMorePages(),
+            'previousCursor' => $paginator->previousCursor()?->encode(),
+            'nextCursor' => $paginator->nextCursor()?->encode(),
+        ];
+    }
+
+    /**
+     * @param  iterable<int, Model>  $models
+     * @param  array<int, Column>  $columns
+     * @param  array<int, Action>  $actions
+     * @return array<int, array<string, mixed>>
+     */
+    private function serializeModels(iterable $models, array $columns, array $actions): array
+    {
+        return collect($models)
+            ->map(fn (Model $model) => $this->serializeRow($model, $columns, $actions))
+            ->values()
+            ->all();
+    }
+
+    /** @param array<int, Column> $columns */
+    private function normalizePaginationState(
+        TableState $state,
+        array $columns,
+        PaginationType $type,
+    ): TableState {
+        if (! $this->pagination || $type !== PaginationType::Cursor) {
+            return $state->withCursor(null);
+        }
+
+        if ($state->sort === null) {
+            throw new LogicException('Cursor pagination requires a default or requested sort.');
+        }
+
+        $attribute = ltrim($state->sort, '-');
+        $column = collect($columns)->first(
+            fn (Column $column) => $column->attribute === $attribute && $column->isSortable(),
+        );
+
+        if (! $column instanceof Column || str_contains($attribute, '.')) {
+            throw new LogicException('Cursor pagination only supports sortable columns on the base table.');
+        }
+
+        return $state->withPage(1);
+    }
+
+    private function stabilizeCursorOrder(QueryBuilder $query): void
+    {
+        $eloquent = $query->getEloquentBuilder();
+        $key = $eloquent->getModel()->getKeyName();
+        $qualifiedKey = $eloquent->getModel()->qualifyColumn($key);
+        $orders = $eloquent->getQuery()->orders ?? [];
+        $ordersByKey = false;
+
+        foreach ($orders as $order) {
+            $column = is_array($order) && isset($order['direction'])
+                ? ($order['column'] ?? null)
+                : null;
+
+            if (! is_string($column)) {
+                throw new LogicException('Cursor pagination requires plain column sorts; raw or expression sorts are not supported.');
+            }
+
+            if (in_array($column, [$key, $qualifiedKey], true)) {
+                $ordersByKey = true;
+            }
+        }
+
+        if ($ordersByKey) {
+            return;
+        }
+
+        $eloquent->orderBy($qualifiedKey);
     }
 
     /**

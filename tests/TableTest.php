@@ -21,6 +21,7 @@ use Musing\InertiaTable\Filters\NumericFilter;
 use Musing\InertiaTable\Filters\SelectFilter;
 use Musing\InertiaTable\Filters\SetFilter;
 use Musing\InertiaTable\Filters\TextFilter;
+use Musing\InertiaTable\PaginationType;
 use Musing\InertiaTable\SortDirection;
 use Musing\InertiaTable\Table;
 use Musing\InertiaTable\Url;
@@ -149,6 +150,61 @@ class CustomPerPageTopicsTable extends TopicsTable
     protected ?array $perPageOptions = [1, 2];
 }
 
+class SimplePaginationTopicsTable extends TopicsTable
+{
+    protected ?string $name = 'topics';
+
+    protected ?int $perPage = 1;
+
+    protected ?PaginationType $paginationType = PaginationType::Simple;
+
+    /** @var array<int, int> */
+    protected ?array $perPageOptions = [1];
+}
+
+class CursorPaginationTopicsTable extends TopicsTable
+{
+    protected ?string $name = 'topics';
+
+    protected ?string $defaultSort = 'score';
+
+    protected ?int $perPage = 1;
+
+    protected ?PaginationType $paginationType = PaginationType::Cursor;
+
+    /** @var array<int, int> */
+    protected ?array $perPageOptions = [1];
+}
+
+class UnsortedCursorPaginationTopicsTable extends CursorPaginationTopicsTable
+{
+    protected ?string $defaultSort = null;
+}
+
+class RelationshipSortedCursorPaginationTopicsTable extends CursorPaginationTopicsTable
+{
+    protected ?string $defaultSort = 'author.name';
+
+    public function columns(): array
+    {
+        return [TextColumn::make('author.name')->sortable()];
+    }
+}
+
+class ExpressionSortedCursorPaginationTopicsTable extends CursorPaginationTopicsTable
+{
+    protected ?string $defaultSort = 'score';
+
+    public function columns(): array
+    {
+        return [
+            NumberColumn::make('score')
+                ->sortable()
+                ->sortUsingPriority([30, 20, 10]),
+        ];
+    }
+}
+
 class SelectableTopicsTable extends TopicsTable
 {
     protected ?string $name = 'topics';
@@ -248,6 +304,7 @@ it('serializes a versioned table resource', function () {
         ->options->toBe([
             'debounceTime' => 300,
             'perPage' => [10, 25, 50, 100],
+            'paginationType' => 'full',
             'reloadProps' => [],
             'stickyHeader' => false,
         ])
@@ -480,6 +537,92 @@ it('lets a table override the global per-page default and options', function () 
     expect($default['options']['perPage'])->toBe([1, 2])
         ->and($default['results']['perPage'])->toBe(1)
         ->and($rejected['results']['perPage'])->toBe(1);
+});
+
+it('supports simple pagination without an exact result count', function () {
+    $first = (new SimplePaginationTopicsTable)->resolve(tableRequest())->toArray();
+    $second = (new SimplePaginationTopicsTable)->resolve(tableRequest(['page' => 2]))->toArray();
+
+    expect($first['options']['paginationType'])->toBe('simple')
+        ->and($first['results'])
+        ->currentPage->toBe(1)
+        ->lastPage->toBeNull()
+        ->total->toBeNull()
+        ->selectableTotal->toBe(3)
+        ->hasPreviousPage->toBeFalse()
+        ->hasNextPage->toBeTrue()
+        ->and(array_column($first['results']['data'], 'name'))->toBe(['Alpha'])
+        ->and($second['results'])
+        ->currentPage->toBe(2)
+        ->hasPreviousPage->toBeTrue()
+        ->hasNextPage->toBeTrue()
+        ->and(array_column($second['results']['data'], 'name'))->toBe(['Beta']);
+});
+
+it('supports stable forward and backward cursor pagination', function () {
+    TopicRecord::query()->create(['name' => 'Delta', 'score' => 20]);
+
+    $table = new CursorPaginationTopicsTable;
+    $first = $table->resolve(tableRequest())->toArray();
+    $second = $table->resolve(tableRequest([
+        'cursor' => $first['results']['nextCursor'],
+    ]))->toArray();
+    $third = $table->resolve(tableRequest([
+        'cursor' => $second['results']['nextCursor'],
+    ]))->toArray();
+    $back = $table->resolve(tableRequest([
+        'cursor' => $second['results']['previousCursor'],
+    ]))->toArray();
+
+    expect($first['options']['paginationType'])->toBe('cursor')
+        ->and($first['results'])
+        ->currentPage->toBeNull()
+        ->lastPage->toBeNull()
+        ->total->toBeNull()
+        ->selectableTotal->toBe(4)
+        ->previousCursor->toBeNull()
+        ->nextCursor->not->toBeNull()
+        ->and(array_column($first['results']['data'], 'name'))->toBe(['Alpha'])
+        ->and(array_column($second['results']['data'], 'name'))->toBe(['Gamma'])
+        ->and(array_column($third['results']['data'], 'name'))->toBe(['Delta'])
+        ->and(array_column($back['results']['data'], 'name'))->toBe(['Alpha'])
+        ->and($second['state']['page'])->toBe(1)
+        ->and($second['state']['cursor'])->toBe($first['results']['nextCursor']);
+});
+
+it('ignores invalid cursor tokens and starts from the first result', function () {
+    $resource = (new CursorPaginationTopicsTable)->resolve(tableRequest([
+        'cursor' => 'not-a-valid-cursor',
+        'page' => 99,
+    ]))->toArray();
+
+    expect($resource['state']['cursor'])->toBeNull()
+        ->and($resource['state']['page'])->toBe(1)
+        ->and(array_column($resource['results']['data'], 'name'))->toBe(['Alpha']);
+});
+
+it('requires a base-table sort for cursor pagination', function () {
+    expect(fn () => (new UnsortedCursorPaginationTopicsTable)->resolve(tableRequest()))
+        ->toThrow(LogicException::class, 'requires a default or requested sort')
+        ->and(fn () => (new RelationshipSortedCursorPaginationTopicsTable)->resolve(tableRequest()))
+        ->toThrow(LogicException::class, 'base table')
+        ->and(fn () => (new ExpressionSortedCursorPaginationTopicsTable)->resolve(tableRequest()))
+        ->toThrow(LogicException::class, 'plain column sorts');
+});
+
+it('can configure the pagination type globally or fluently', function () {
+    config()->set('inertia-table.pagination_type', 'simple');
+
+    $global = (new CustomPerPageTopicsTable)->resolve(tableRequest())->toArray();
+    $fluent = (new CustomPerPageTopicsTable)
+        ->paginationType(PaginationType::Full)
+        ->resolve(tableRequest())
+        ->toArray();
+
+    expect($global['options']['paginationType'])->toBe('simple')
+        ->and($global['results']['total'])->toBeNull()
+        ->and($fluent['options']['paginationType'])->toBe('full')
+        ->and($fluent['results']['total'])->toBe(3);
 });
 
 it('declares extra inertia props to reload', function () {

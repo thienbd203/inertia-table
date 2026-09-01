@@ -105,6 +105,7 @@ export function topicResource(
             page: 1,
             perPage: 25,
             pinnedColumns: { left: [], right: [] },
+            cursor: null,
         },
         results: {
             data: [
@@ -167,6 +168,7 @@ export function topicResource(
             reloadProps: ["featuredCount"],
             debounceTime: 300,
             perPage: [10, 25, 50],
+            paginationType: "full",
             stickyHeader: false,
         },
         ...overrides,

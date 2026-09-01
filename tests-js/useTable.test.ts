@@ -177,6 +177,25 @@ describe("useTable", () => {
         expect(visit).not.toHaveBeenCalled();
     });
 
+    it("navigates with cursors and resets them when result identity changes", () => {
+        const { resource, table } = mountTable();
+        resource.value.options.paginationType = "cursor";
+        resource.value.state.cursor = "current-token";
+
+        table.setCursor("next-token");
+        let url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        expect(url.searchParams.get("table[topics][cursor]")).toBe(
+            "next-token",
+        );
+        expect(url.searchParams.has("table[topics][page]")).toBe(false);
+
+        visit.mockReset();
+        table.setSort("name", "desc");
+        url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        expect(url.searchParams.has("table[topics][cursor]")).toBe(false);
+        expect(url.searchParams.get("table[topics][sort]")).toBe("-name");
+    });
+
     it("tracks only navigation initiated by its own table instance", () => {
         const first = mountTable();
         const second = mountTable();
