@@ -39,8 +39,11 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: npm
 
+      - name: Setup npm
+        run: npm install --global npm@10.9.7 --no-audit --no-fund
+
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Verify tag matches package version
         run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
