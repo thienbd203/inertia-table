@@ -20,11 +20,13 @@ export function useViews<T extends TableItem>(table: UseTable<T>) {
     function persistableState(): TableViewState {
         const state = table.state.value;
         const persisted: TableViewState = {
-            schemaVersion: 1,
+            schemaVersion: 2,
             sort: state.sort,
             filters: state.filters,
             columns: state.columns,
             pinnedColumns: state.pinnedColumns ?? { left: [], right: [] },
+            columnOrder: state.columnOrder,
+            columnWidths: state.columnWidths,
             perPage: state.perPage,
         };
 
@@ -67,6 +69,8 @@ export function useViews<T extends TableItem>(table: UseTable<T>) {
             filters: view.state.filters,
             columns: view.state.columns,
             pinnedColumns: view.state.pinnedColumns,
+            columnOrder: view.state.columnOrder ?? current.columnOrder,
+            columnWidths: view.state.columnWidths ?? current.columnWidths,
             perPage: view.state.perPage,
             search: resource.value?.includeSearch
                 ? (view.state.search ?? "")

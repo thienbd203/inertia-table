@@ -61,6 +61,8 @@ it('builds an anonymous table from a model class using the public options', func
         stickyHeader: true,
         defaultPerPage: 2,
         stickyBackdropFilter: false,
+        columnResizing: false,
+        columnReordering: false,
     );
 
     $resource = $table->resolve(Request::create('/', 'GET'))->toArray();
@@ -77,6 +79,8 @@ it('builds an anonymous table from a model class using the public options', func
             'perPage' => [2, 5],
             'stickyHeader' => true,
             'stickyBackdropFilter' => false,
+            'columnResizing' => false,
+            'columnReordering' => false,
         ])
         ->and($resource['state']['sort'])->toBe('-score')
         ->and($resource['state']['perPage'])->toBe(2)

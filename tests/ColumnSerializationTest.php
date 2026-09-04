@@ -41,6 +41,34 @@ it('serializes user-toggleable and permanently sticky columns', function () {
         ->toMatchArray(['stickable' => true, 'sticky' => true]);
 });
 
+it('serializes normalized column sizing and ordering declarations', function () {
+    $column = TextColumn::make('name')
+        ->width(280)
+        ->minWidth(180)
+        ->maxWidth(240)
+        ->resizable()
+        ->reorderable();
+
+    expect($column->toArray())->toMatchArray([
+        'width' => 240,
+        'minWidth' => 180,
+        'maxWidth' => 240,
+        'resizable' => true,
+        'reorderable' => true,
+    ])->and($column->clampWidth(100))->toBe(180)
+        ->and($column->clampWidth(900))->toBe(240)
+        ->and(TextColumn::make('wide')->minWidth(20000)->toArray()['minWidth'])->toBe(10000);
+});
+
+it('rejects invalid column sizing bounds', function () {
+    expect(fn () => TextColumn::make('name')->width(0))
+        ->toThrow(LogicException::class)
+        ->and(fn () => TextColumn::make('name')->minWidth(300)->maxWidth(200))
+        ->toThrow(LogicException::class)
+        ->and(ActionColumn::new()->toArray())
+        ->toMatchArray(['resizable' => false, 'reorderable' => false]);
+});
+
 it('can group row actions in a dropdown', function () {
     expect(ActionColumn::new()->asDropdown()->toArray())
         ->asDropdown->toBeTrue();

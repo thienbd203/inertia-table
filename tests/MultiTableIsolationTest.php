@@ -39,7 +39,7 @@ class IsolationPrimaryTable extends Table
 
     public function columns(): array
     {
-        return [TextColumn::make('name', 'Name')->searchable()->sortable()];
+        return [TextColumn::make('name', 'Name')->searchable()->sortable()->width(200)->minWidth(120)->maxWidth(300)->resizable()];
     }
 }
 
@@ -56,7 +56,7 @@ class IsolationSecondaryTable extends Table
 
     public function columns(): array
     {
-        return [TextColumn::make('name', 'Name')->searchable()->sortable()];
+        return [TextColumn::make('name', 'Name')->searchable()->sortable()->width(180)->minWidth(100)->maxWidth(240)->resizable()];
     }
 }
 
@@ -84,8 +84,8 @@ it('resolves two named tables on one request without leaking state between them'
     $request = Request::create('/dashboard', 'GET', [
         'foo' => 'bar',
         'table' => [
-            'primary' => ['search' => 'Alpha', 'sort' => '-name'],
-            'secondary' => ['search' => 'Beta'],
+            'primary' => ['search' => 'Alpha', 'sort' => '-name', 'columnWidths' => ['name' => 280]],
+            'secondary' => ['search' => 'Beta', 'columnWidths' => ['name' => 140]],
         ],
     ]);
 
@@ -94,8 +94,10 @@ it('resolves two named tables on one request without leaking state between them'
 
     expect(array_column($primary['results']['data'], 'name'))->toBe(['Primary Alpha'])
         ->and($primary['state']['sort'])->toBe('-name')
+        ->and($primary['state']['columnWidths'])->toBe(['name' => 280])
         ->and(array_column($secondary['results']['data'], 'name'))->toBe(['Secondary Beta'])
-        ->and($secondary['state']['sort'])->toBe('name');
+        ->and($secondary['state']['sort'])->toBe('name')
+        ->and($secondary['state']['columnWidths'])->toBe(['name' => 140]);
 });
 
 it('does not mutate the original request query string while resolving', function () {

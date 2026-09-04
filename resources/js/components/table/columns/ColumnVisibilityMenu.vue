@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { UiButton } from "@/components/ui/button";
-import { Eye } from "@lucide/vue";
+import { Eye, RotateCcw } from "@lucide/vue";
 import {
     UiDropdownMenu,
     UiDropdownMenuCheckboxItem,
     UiDropdownMenuContent,
+    UiDropdownMenuItem,
     UiDropdownMenuLabel,
     UiDropdownMenuSeparator,
     UiDropdownMenuTrigger,
@@ -14,12 +15,17 @@ import { useTableContext } from "@/context/tableContext";
 
 const { resource, table, i18n } = useTableContext();
 const columns = computed(() =>
-    resource.value.columns.filter((column) => column.toggleable),
+    table.orderedColumns.value.filter((column) => column.toggleable),
+);
+const hasLayout = computed(
+    () =>
+        resource.value.capabilities.hasResizableColumns === true ||
+        resource.value.capabilities.hasReorderableColumns === true,
 );
 </script>
 
 <template>
-    <UiDropdownMenu v-if="columns.length">
+    <UiDropdownMenu v-if="columns.length || hasLayout">
         <UiDropdownMenuTrigger>
             <UiButton variant="outline">
                 <Eye class="h-4 w-4" />
@@ -39,6 +45,13 @@ const columns = computed(() =>
             >
                 {{ column.header }}
             </UiDropdownMenuCheckboxItem>
+            <template v-if="hasLayout">
+                <UiDropdownMenuSeparator v-if="columns.length" />
+                <UiDropdownMenuItem @select="table.resetColumnLayout">
+                    <RotateCcw class="size-4" />
+                    {{ i18n.t("resetColumnLayout") }}
+                </UiDropdownMenuItem>
+            </template>
         </UiDropdownMenuContent>
     </UiDropdownMenu>
 </template>

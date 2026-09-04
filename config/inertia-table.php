@@ -12,6 +12,10 @@ return [
     'sticky' => [
         'backdrop_filter' => true,
     ],
+    'columns' => [
+        'resizable' => true,
+        'reorderable' => true,
+    ],
     'action_path' => '_inertia-table/actions',
     'actions' => [
         'queue' => [

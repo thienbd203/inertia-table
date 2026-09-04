@@ -10,6 +10,10 @@ All notable changes to `inertia-table` will be documented in this file.
   dispatch, actor/tenant restoration, chunk progress and signed status polling.
 - Vue queued-action lifecycle events, scoped polling and a dismissible progress
   dialog that reloads only declared Inertia props after completion.
+- Server-normalized column widths and order with pointer, touch and keyboard
+  controls, sticky-offset integration and per-table/global feature gates.
+- Saved View persistence for column layout and opt-in exports that follow the
+  visible user column order.
 
 ### Changed
 

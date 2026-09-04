@@ -112,6 +112,34 @@ it('reads nested pinned columns and falls back to declared defaults', function (
         ]);
 });
 
+it('normalizes column order and accepts only known positive widths', function () {
+    $state = TableState::fromRequest(
+        stateRequest([
+            'columnOrder' => ['score', 'removed', 'score'],
+            'columnWidths' => [
+                'name' => '320',
+                'score' => -1,
+                'removed' => 500,
+            ],
+        ]),
+        'topics',
+        null,
+        25,
+        [25],
+        ['name' => true, 'score' => true, '__actions' => true],
+        ['left' => [], 'right' => []],
+        ['name', 'score', '__actions'],
+        ['name' => 240, 'score' => 100],
+    );
+
+    expect($state->columnOrder)->toBe(['score', 'name', '__actions'])
+        ->and($state->columnWidths)->toBe(['name' => 320, 'score' => 100])
+        ->and($state->toArray())->toMatchArray([
+            'columnOrder' => ['score', 'name', '__actions'],
+            'columnWidths' => ['name' => 320, 'score' => 100],
+        ]);
+});
+
 it('parses an isolated saved view identifier', function () {
     $state = TableState::fromRequest(
         stateRequest(['view' => 'view-7']),

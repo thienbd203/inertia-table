@@ -23,6 +23,8 @@ describe("tableUrl", () => {
                     left: ["name"],
                     right: ["__actions"],
                 },
+                columnOrder: ["is_featured", "name", "__actions"],
+                columnWidths: { name: 320 },
                 page: 2,
                 perPage: 50,
             },
@@ -53,6 +55,12 @@ describe("tableUrl", () => {
         expect(
             parsed.searchParams.getAll("table[topics][pinnedColumns][right][]"),
         ).toEqual(["__actions"]);
+        expect(
+            parsed.searchParams.getAll("table[topics][columnOrder][]"),
+        ).toEqual(["is_featured", "name", "__actions"]);
+        expect(
+            parsed.searchParams.get("table[topics][columnWidths][name]"),
+        ).toBe("320");
     });
 
     it("omits empty and first-page values", () => {
@@ -144,5 +152,8 @@ describe("tableUrl", () => {
         expect(
             parsed.searchParams.getAll("table[topics][pinnedColumns][right][]"),
         ).toEqual([""]);
+        expect(
+            parsed.searchParams.get("table[topics][columnWidths][__reset]"),
+        ).toBe("1");
     });
 });

@@ -20,7 +20,7 @@ function savedView(overrides: Partial<TableView> = {}): TableView {
         id: 7,
         name: "Featured",
         state: {
-            schemaVersion: 1,
+            schemaVersion: 2,
             sort: "name",
             filters: {
                 status: {
@@ -35,6 +35,8 @@ function savedView(overrides: Partial<TableView> = {}): TableView {
                 __actions: true,
             },
             pinnedColumns: { left: [], right: [] },
+            columnOrder: ["name", "is_featured", "__actions"],
+            columnWidths: {},
             perPage: 25,
         },
         isDefault: true,
@@ -184,6 +186,38 @@ describe("useViews", () => {
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
         ).toEqual([""]);
+    });
+
+    it("persists column layout and restores it from a saved view", () => {
+        const resource = resourceWithViews();
+        resource.state.columnOrder = ["is_featured", "name", "__actions"];
+        resource.state.columnWidths = { name: 320 };
+        resource.views!.items[0].state.columnOrder = [
+            "name",
+            "is_featured",
+            "__actions",
+        ];
+        resource.views!.items[0].state.columnWidths = { name: 240 };
+        const { views } = mountViews(resource);
+
+        expect(views.isDirty.value).toBe(true);
+        expect(views.persistableState()).toMatchObject({
+            schemaVersion: 2,
+            columnOrder: ["is_featured", "name", "__actions"],
+            columnWidths: { name: 320 },
+        });
+
+        views.reset();
+        const url = new URL(
+            visit.mock.calls[0][0],
+            "http://inertia-table.local",
+        );
+        expect(url.searchParams.getAll("table[topics][columnOrder][]")).toEqual(
+            ["name", "is_featured", "__actions"],
+        );
+        expect(url.searchParams.get("table[topics][columnWidths][name]")).toBe(
+            "240",
+        );
     });
 
     it("uses independent signed endpoints and lock versions for mutations", () => {

@@ -75,6 +75,10 @@ return [
     'sticky' => [
         'backdrop_filter' => true,
     ],
+    'columns' => [
+        'resizable' => true,
+        'reorderable' => true,
+    ],
     'action_path' => '_inertia-table/actions',
     'actions' => [
         'queue' => [
@@ -382,6 +386,34 @@ ActionColumn::new()->asDropdown();
 `ActionColumn::asDropdown()` groups each row's actions behind one accessible
 menu trigger. Dynamic `action(<key>)` slots work in both the inline and dropdown
 renderers.
+
+### Column sizing and ordering
+
+Sizing and ordering are opt-in per column. Declared widths are pixel values;
+the server clamps both defaults and untrusted URL/Saved View state through the
+current minimum and maximum:
+
+```php
+TextColumn::make('name')
+    ->width(280)
+    ->minWidth(180)
+    ->maxWidth(480)
+    ->resizable()
+    ->reorderable();
+
+ActionColumn::new()->width(64);
+```
+
+Resize handles support pointer, touch and 10-pixel keyboard steps. Reorder
+handles support drag/touch and Left/Right Arrow keys. Hidden columns keep their
+layout preference, fixed columns keep their declared slot, and pinned columns
+can move only within their current pin side. Layout changes render locally and
+are debounced into the table's isolated URL state.
+
+Disable either interaction globally with `columns.resizable` or
+`columns.reorderable`, or for one table with `columnResizing(false)` and
+`columnReordering(false)`. The Columns menu can reset order and widths without
+resetting search, filters or selection.
 
 ### Sticky header and columns
 
@@ -890,7 +922,9 @@ NumberColumn::make('amount')
 ```
 
 Declared exportable columns are used by default. Call `visibleColumnsOnly()` on
-an export when it should follow the normalized column visibility state. Native
+an export when it should follow the normalized column visibility state while
+retaining declared order. Call `visibleColumnLayout()` to follow both visible
+columns and their normalized user order. Native
 CSV reads Eloquent models in eager-loaded chunks, streams each row immediately,
 emits UTF-8 with a BOM by default, and protects spreadsheet formula prefixes.
 The default chunk size is `inertia-table.exports.chunk_size` (1,000). Override it
@@ -1060,6 +1094,8 @@ Every table gets an isolated query-string namespace. Several table resources may
 &table[topics][filters][status][clause]=equals
 &table[topics][filters][status][value]=featured
 &table[topics][columns][created_at]=0
+&table[topics][columnOrder][]=name
+&table[topics][columnWidths][name]=320
 &table[topics][page]=2
 &table[topics][perPage]=25
 ```
@@ -1082,7 +1118,7 @@ public function views(): ?Views
 
 The toolbar then provides the view switcher and create, update, rename, delete,
 default and share operations allowed by the server. View state contains sort,
-filters, column visibility, pinned-column metadata and page size. Search remains
+filters, column visibility, order, widths, pinned-column metadata and page size. Search remains
 ephemeral unless `includeSearch()` is enabled:
 
 ```php

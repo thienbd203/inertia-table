@@ -98,5 +98,18 @@ export function tableUrl<T extends TableItem>(
         }
     }
 
+    for (const attribute of state.columnOrder ?? []) {
+        params.append(`${stateKey(table, "columnOrder")}[]`, attribute);
+    }
+
+    const columnWidths = state.columnWidths ?? {};
+    if (Object.keys(columnWidths).length === 0 && state.view != null) {
+        params.set(nestedKey(table, "columnWidths", "__reset"), "1");
+    }
+
+    for (const [attribute, width] of Object.entries(columnWidths)) {
+        params.set(nestedKey(table, "columnWidths", attribute), String(width));
+    }
+
     return `${url.pathname}${url.search}${url.hash}`;
 }

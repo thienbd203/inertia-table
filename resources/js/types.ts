@@ -31,6 +31,11 @@ export type TableColumn = {
     visibleByDefault: boolean;
     stickable?: boolean;
     sticky?: boolean;
+    width?: number | null;
+    minWidth?: number | null;
+    maxWidth?: number | null;
+    resizable?: boolean;
+    reorderable?: boolean;
     alignment: "left" | "center" | "right";
     wrap?: boolean;
     truncate?: number | null;
@@ -125,14 +130,18 @@ export type TableState = {
     view?: TableKey | null;
     pinnedColumns?: { left: string[]; right: string[] };
     cursor?: string | null;
+    columnOrder?: string[];
+    columnWidths?: Record<string, number>;
 };
 
 export type TableViewState = {
-    schemaVersion: 1;
+    schemaVersion: 1 | 2;
     sort: string | null;
     filters: Record<string, TableFilterState>;
     columns: Record<string, boolean>;
     pinnedColumns: { left: string[]; right: string[] };
+    columnOrder?: string[];
+    columnWidths?: Record<string, number>;
     perPage: number;
     search?: string;
 };
@@ -254,6 +263,8 @@ export type TableResource<T extends TableItem = TableItem> = {
         hasBulkActions?: boolean;
         hasToggleableColumns?: boolean;
         hasStickableColumns?: boolean;
+        hasResizableColumns?: boolean;
+        hasReorderableColumns?: boolean;
         hasExports?: boolean;
         hasEmptyState?: boolean;
     };
@@ -266,6 +277,8 @@ export type TableResource<T extends TableItem = TableItem> = {
         reloadProps: string[];
         stickyHeader?: boolean;
         stickyBackdropFilter?: boolean;
+        columnResizing?: boolean;
+        columnReordering?: boolean;
     };
     views?: TableViewsResource | null;
     exports?: TableExport[];

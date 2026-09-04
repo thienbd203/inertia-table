@@ -57,6 +57,84 @@
     border-spacing: 0;
 }
 
+.tb-table :is([data-slot="table-head"], [data-slot="table-cell"]) {
+    box-sizing: border-box;
+}
+
+.tb-resizable-column:not(.tb-sticky-cell),
+.tb-reorderable-column:not(.tb-sticky-cell) {
+    position: relative;
+}
+
+.tb-column-header-content {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--tb-column-header-gap, 0.125rem);
+}
+
+[data-slot="table-head"][data-alignment="center"] > .tb-column-header-content {
+    justify-content: center;
+}
+
+[data-slot="table-head"][data-alignment="right"] > .tb-column-header-content {
+    justify-content: flex-end;
+}
+
+.tb-column-resize-handle {
+    position: absolute;
+    z-index: 1;
+    inset-block: 0;
+    inset-inline-end: calc(var(--tb-resize-handle-hit-area, 0.5rem) / -2);
+    width: var(--tb-resize-handle-hit-area, 0.5rem);
+    cursor: col-resize;
+    touch-action: none;
+    user-select: none;
+}
+
+.tb-column-resize-handle::after {
+    position: absolute;
+    inset-block: var(--tb-resize-handle-inset, 0.25rem);
+    inset-inline-start: calc(50% - var(--tb-resize-handle-width, 1px) / 2);
+    width: var(--tb-resize-handle-width, 1px);
+    content: "";
+    background: transparent;
+}
+
+.tb-column-resize-handle:is(:hover, :focus-visible, :active)::after {
+    background: var(--tb-resize-handle-color, var(--color-ring, currentColor));
+}
+
+.tb-column-resize-handle:focus-visible {
+    outline: none;
+}
+
+.tb-column-reorder-handle {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--tb-reorder-handle-size, 1.25rem);
+    height: var(--tb-reorder-handle-size, 1.25rem);
+    cursor: grab;
+    color: var(--color-muted-foreground, currentColor);
+    touch-action: none;
+}
+
+.tb-column-reorder-handle:active {
+    cursor: grabbing;
+}
+
+.tb-column-reorder-handle > svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+[data-slot="table-head"][data-drop-target] {
+    box-shadow: inset 2px 0 0
+        var(--tb-column-drop-color, var(--color-ring, currentColor));
+}
+
 .tb-table
     [data-slot="table-row"]
     > :is([data-slot="table-head"], [data-slot="table-cell"]) {

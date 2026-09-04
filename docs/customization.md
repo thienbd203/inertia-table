@@ -57,6 +57,14 @@ releases. Server row attributes belong in
 `dataAttributesForModel()`; names are normalized to `data-*`, scalar-only and
 cannot replace package-owned selection or navigation attributes.
 
+Column layout exposes `tb-resizable-column`, `tb-reorderable-column`,
+`tb-column-resize-handle`, `tb-column-reorder-handle` and
+`tb-column-header-content`. Resize/reorder affordances can be tuned with
+`--tb-resize-handle-hit-area`, `--tb-resize-handle-width`,
+`--tb-resize-handle-inset`, `--tb-resize-handle-color`,
+`--tb-reorder-handle-size`, `--tb-column-header-gap` and
+`--tb-column-drop-color`.
+
 For a fully application-owned renderer, compose `useTable()`, `useActions()`,
 `useViews()` and `useExports()` against the typed `TableResource`. Keep the
 server resource authoritative instead of deriving searchable, selectable or

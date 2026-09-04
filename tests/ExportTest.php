@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Musing\InertiaTable\Columns\ActionColumn;
 use Musing\InertiaTable\Columns\BooleanColumn;
+use Musing\InertiaTable\Columns\Column;
 use Musing\InertiaTable\Columns\DateColumn;
 use Musing\InertiaTable\Columns\NumberColumn;
 use Musing\InertiaTable\Columns\TextColumn;
@@ -51,13 +52,14 @@ class ExportTopicsTable extends Table
     public function columns(): array
     {
         return [
-            NumberColumn::make('id', 'ID')->sortable(),
+            NumberColumn::make('id', 'ID')->sortable()->reorderable(),
             TextColumn::make('name', 'Name')
                 ->searchable()
+                ->reorderable()
                 ->exportAs(fn (string $value, ExportTopicRecord $topic) => "{$value} #{$topic->getKey()}"),
-            BooleanColumn::make('active', 'Active'),
-            DateColumn::make('published_at', 'Published')->format('Y-m-d'),
-            TextColumn::make('note', 'Note'),
+            BooleanColumn::make('active', 'Active')->reorderable(),
+            DateColumn::make('published_at', 'Published')->format('Y-m-d')->reorderable(),
+            TextColumn::make('note', 'Note')->reorderable(),
             TextColumn::make('secret', 'Secret')->dontExport(),
             ActionColumn::new(),
         ];
@@ -369,6 +371,27 @@ it('normalizes filtered exports and honors visible columns only when requested',
 
     expect($rows[0])->toBe(['ID', 'Active', 'Published'])
         ->and(array_column(array_slice($rows, 1), 0))->toBe(['3', '2']);
+});
+
+it('follows visible user column layout only when explicitly requested', function () {
+    $table = new ExportTopicsTable;
+    $state = [
+        'columns' => ['note' => false],
+        'columnOrder' => ['active', 'name', 'id', 'published_at', 'note', 'secret', '__actions'],
+    ];
+    $declared = $table->columnsForExport(
+        Export::make('declared')->visibleColumnsOnly(),
+        $state,
+    );
+    $layout = $table->columnsForExport(
+        Export::make('layout')->visibleColumnLayout(),
+        $state,
+    );
+
+    expect(array_column(array_map(fn (Column $column) => $column->toArray(), $declared), 'attribute'))
+        ->toBe(['id', 'name', 'active', 'published_at'])
+        ->and(array_column(array_map(fn (Column $column) => $column->toArray(), $layout), 'attribute'))
+        ->toBe(['active', 'name', 'id', 'published_at']);
 });
 
 it('exports explicit and all-matching integer selections without clearing their scope', function () {

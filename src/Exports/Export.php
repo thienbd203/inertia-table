@@ -26,6 +26,8 @@ final class Export
 
     private bool $visibleColumnsOnly = false;
 
+    private bool $userColumnOrder = false;
+
     private bool $queued = false;
 
     private ?int $chunkSize = null;
@@ -147,6 +149,14 @@ final class Export
     public function visibleColumnsOnly(bool $visibleOnly = true): self
     {
         $this->visibleColumnsOnly = $visibleOnly;
+
+        return $this;
+    }
+
+    public function visibleColumnLayout(bool $follow = true): self
+    {
+        $this->visibleColumnsOnly = $follow;
+        $this->userColumnOrder = $follow;
 
         return $this;
     }
@@ -303,6 +313,11 @@ final class Export
     public function usesVisibleColumns(): bool
     {
         return $this->visibleColumnsOnly;
+    }
+
+    public function usesUserColumnOrder(): bool
+    {
+        return $this->userColumnOrder;
     }
 
     public function isQueued(): bool
