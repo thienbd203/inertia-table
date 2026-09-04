@@ -27,7 +27,7 @@ describe("tableUrl", () => {
                 perPage: 50,
             },
         );
-        const parsed = new URL(url, "http://toolbelt.local");
+        const parsed = new URL(url, "http://inertia-table.local");
 
         expect(parsed.searchParams.get("foo")).toBe("bar");
         expect(parsed.searchParams.get("table[authors][page]")).toBe("3");
@@ -64,7 +64,7 @@ describe("tableUrl", () => {
             page: 1,
             perPage: 25,
         });
-        const parsed = new URL(url, "http://toolbelt.local");
+        const parsed = new URL(url, "http://inertia-table.local");
 
         expect(parsed.searchParams.has("table[topics][search]")).toBe(false);
         expect(parsed.searchParams.has("table[topics][sort]")).toBe(false);
@@ -87,7 +87,7 @@ describe("tableUrl", () => {
             page: 1,
             perPage: 25,
         });
-        const parsed = new URL(url, "http://toolbelt.local");
+        const parsed = new URL(url, "http://inertia-table.local");
 
         expect(
             parsed.searchParams.getAll(
@@ -104,7 +104,7 @@ describe("tableUrl", () => {
             page: 9,
             cursor: "opaque-token",
         });
-        const parsed = new URL(url, "http://toolbelt.local");
+        const parsed = new URL(url, "http://inertia-table.local");
 
         expect(parsed.searchParams.get("table[topics][cursor]")).toBe(
             "opaque-token",
@@ -130,7 +130,7 @@ describe("tableUrl", () => {
                 },
             },
         );
-        const parsed = new URL(url, "http://toolbelt.local");
+        const parsed = new URL(url, "http://inertia-table.local");
 
         expect(parsed.searchParams.get("table[authors][view]")).toBe("4");
         expect(parsed.searchParams.get("table[topics][view]")).toBe("7");

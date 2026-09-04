@@ -100,7 +100,7 @@ describe("useTable", () => {
         resource.value.columns[1].stickable = true;
 
         table.togglePinnedColumn("is_featured");
-        let url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        let url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
         ).toEqual(["is_featured"]);
@@ -111,7 +111,7 @@ describe("useTable", () => {
             right: [],
         };
         table.togglePinnedColumn("is_featured");
-        url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
         ).toEqual(["name"]);
@@ -129,7 +129,7 @@ describe("useTable", () => {
         resource.value.state.columns.score = true;
 
         table.togglePinnedColumn("score");
-        let url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        let url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][right][]"),
         ).toEqual(["score"]);
@@ -140,7 +140,7 @@ describe("useTable", () => {
             right: ["score", "__actions"],
         };
         table.togglePinnedColumn("__actions");
-        url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][right][]"),
         ).toEqual(["score"]);
@@ -172,7 +172,7 @@ describe("useTable", () => {
         resource.value.state.cursor = "current-token";
 
         table.setCursor("next-token");
-        let url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        let url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(url.searchParams.get("table[topics][cursor]")).toBe(
             "next-token",
         );
@@ -180,7 +180,7 @@ describe("useTable", () => {
 
         visit.mockReset();
         table.setSort("name", "desc");
-        url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(url.searchParams.has("table[topics][cursor]")).toBe(false);
         expect(url.searchParams.get("table[topics][sort]")).toBe("-name");
     });

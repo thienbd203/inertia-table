@@ -1,6 +1,6 @@
 import type { TableItem, TableResource, TableState } from "./types";
 
-const BASE_URL = "http://toolbelt.local";
+const BASE_URL = "http://inertia-table.local";
 
 function stateKey(table: string, key: string): string {
     return `table[${table}][${key}]`;

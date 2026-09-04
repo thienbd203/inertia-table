@@ -2,6 +2,7 @@
 
 namespace Musing\InertiaTable\Tests;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Kirschbaum\PowerJoins\PowerJoinsServiceProvider;
 use Musing\InertiaTable\InertiaTableServiceProvider;
@@ -13,6 +14,15 @@ class TestCase extends Orchestra
     {
         parent::setUp();
         Schema::dropAllTables();
+    }
+
+    protected function tearDown(): void
+    {
+        try {
+            DB::purge('testing');
+        } finally {
+            parent::tearDown();
+        }
     }
 
     protected function getPackageProviders($app)

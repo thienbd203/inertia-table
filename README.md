@@ -7,7 +7,7 @@
 
 **Server-driven data tables for Laravel and Inertia.js.** Define the table once in PHP—columns, sorting, search, filters and actions—and render it in Vue with one component.
 
-Toolbelt keeps the server authoritative. The browser can only request capabilities declared by the table, URL state is namespaced per table, and query execution is powered by [Spatie Laravel Query Builder](https://spatie.be/docs/laravel-query-builder/v7/introduction).
+Musing Inertia Table keeps the server authoritative. The browser can only request capabilities declared by the table, URL state is namespaced per table, and query execution is powered by [Spatie Laravel Query Builder](https://spatie.be/docs/laravel-query-builder/v7/introduction).
 
 > [!WARNING]
 > The package is actively developed before `v1.0`. Please expect API changes between minor releases.
@@ -55,7 +55,7 @@ npm version 0.1.1 --no-git-tag-version
 git add package.json package-lock.json
 git commit -m "chore: release v0.1.1"
 git tag v0.1.1
-git push origin main --follow-tags
+git push origin master --follow-tags
 ```
 
 Publish configuration only when you want to change pagination or debounce defaults:
@@ -991,7 +991,7 @@ Every table gets an isolated query-string namespace. Several table resources may
 &table[topics][perPage]=25
 ```
 
-Toolbelt translates this state to Spatie's query contract internally. Invalid columns, sorts, clauses, filter values and page sizes are ignored or replaced by safe defaults before the query executes.
+Musing Inertia Table translates this state to Spatie's query contract internally. Invalid columns, sorts, clauses, filter values and page sizes are ignored or replaced by safe defaults before the query executes.
 
 ## Saved views
 
@@ -1066,5 +1066,8 @@ The design and resource contract are described in
 are documented in [docs/api-stability.md](docs/api-stability.md).
 
 ## License
+
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Report
+security issues through the process in [SECURITY.md](SECURITY.md).
 
 The MIT License. See [LICENSE.md](LICENSE.md).

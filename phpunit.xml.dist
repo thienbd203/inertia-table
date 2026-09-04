@@ -16,7 +16,7 @@
     backupStaticProperties="false"
 >
     <testsuites>
-        <testsuite name="Toolbelt Test Suite">
+        <testsuite name="Musing Inertia Table Test Suite">
             <directory>tests</directory>
         </testsuite>
     </testsuites>

@@ -6,7 +6,7 @@ Status: resource schema v2 implemented; public APIs are stabilizing for v1.0.
 
 Musing Inertia Table is a server-driven table framework for Laravel and Inertia.js. A PHP table definition is the source of truth for query capabilities and serialized UI metadata. The frontend owns interaction state and rendering, but it may only request operations explicitly declared by the server.
 
-Spatie Laravel Query Builder v7 is the query execution engine. Toolbelt owns the namespaced URL contract, table resource, state validation, action protocol, and frontend integrations.
+Spatie Laravel Query Builder v7 is the query execution engine. Musing Inertia Table owns the namespaced URL contract, table resource, state validation, action protocol, and frontend integrations.
 
 ## Design principles
 
@@ -55,7 +55,7 @@ Responsibilities:
 
 - compose `useTable()` and `useActions()`;
 - render source components based on shadcn-vue and Reka UI;
-- expose stable Toolbelt CSS hooks and documented Vue slots;
+- expose stable package CSS hooks and documented Vue slots;
 - use the consumer's shadcn CSS variables and Tailwind theme;
 - provide accessible keyboard and screen-reader behavior.
 
@@ -362,9 +362,9 @@ Unknown attributes, clauses, sorts, columns, actions, and per-page values are ig
 - filters compile to `AllowedFilter` instances;
 - global search compiles to one callback filter over an explicit attribute allowlist;
 - custom sorts and filters are supplied as Spatie-compatible implementations or server callbacks;
-- Toolbelt converts namespaced table state to an isolated Spatie request internally;
+- Musing Inertia Table converts namespaced table state to an isolated Spatie request internally;
 - the application's global request query is not mutated;
-- pagination parameters are validated by Toolbelt before reaching the query.
+- pagination parameters are validated by Musing Inertia Table before reaching the query.
 
 Relationship search and filters use existence subqueries, avoiding duplicate base
 models for to-many matches. Sortable to-one paths delegate to the optional Power
@@ -376,7 +376,7 @@ the dependency-free escape hatch, while `sortUsingMap()` and
 `Table::withQueryBuilder()` receives the isolated package `QueryBuilder` for both
 stateful and all-row queries. Consequently results, explicit/all-matching
 selections, selectable totals, and synchronous/queued exports share the same
-application customization. If the base query or hook introduces joins, Toolbelt
+application customization. If the base query or hook introduces joins, Musing Inertia Table
 selects base-model columns and applies a distinct qualified primary key before
 pagination or iteration to stabilize model identity and counts.
 
@@ -428,7 +428,7 @@ The renderer will vendor only the shadcn-vue source components it directly needs
 
 Package-specific composition belongs in `components/table`, not `components/ui`. For example, `TablePagination.vue` may compose shadcn `Button` and `Select`, but it is not itself a shadcn primitive.
 
-Consumers must not need aliases such as `@/components/ui`. Required peer dependencies and Tailwind source scanning instructions are documented. Stable `tb-*` classes or `data-toolbelt-*` attributes are added for overrides without pretending they are upstream shadcn APIs.
+Consumers must not need aliases such as `@/components/ui`. Required peer dependencies and Tailwind source scanning instructions are documented. Stable `tb-*` classes and documented data attributes are added for overrides without pretending they are upstream shadcn APIs.
 
 ## v0.1 scope
 

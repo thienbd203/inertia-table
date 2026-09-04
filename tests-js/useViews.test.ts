@@ -107,7 +107,10 @@ describe("useViews", () => {
             expect.stringContaining("table%5Btopics%5D%5Bview%5D=7"),
             expect.objectContaining({ method: "get" }),
         );
-        const url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        const url = new URL(
+            visit.mock.calls[0][0],
+            "http://inertia-table.local",
+        );
         expect(url.searchParams.get("team")).toBe("one");
         expect(url.searchParams.get("table[topics][sort]")).toBe("name");
         expect(
@@ -171,7 +174,10 @@ describe("useViews", () => {
         });
 
         views.reset();
-        const url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        const url = new URL(
+            visit.mock.calls[0][0],
+            "http://inertia-table.local",
+        );
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][right][]"),
         ).toEqual(["__actions"]);
