@@ -19,6 +19,8 @@ final class LaravelExcelExporter implements Exporter
         Builder $query,
         array $columns,
     ): Response {
+        $this->rejectSummaryRows($export);
+
         if (! interface_exists('Maatwebsite\\Excel\\Concerns\\FromQuery')) {
             throw ValidationException::withMessages([
                 'export' => 'Install maatwebsite/excel before using XLSX or PDF table exports.',
@@ -63,6 +65,8 @@ final class LaravelExcelExporter implements Exporter
         string $disk,
         string $path,
     ): void {
+        $this->rejectSummaryRows($export);
+
         if (! interface_exists('Maatwebsite\\Excel\\Concerns\\FromQuery')) {
             throw ValidationException::withMessages([
                 'export' => 'Install maatwebsite/excel before using XLSX or PDF table exports.',
@@ -93,6 +97,15 @@ final class LaravelExcelExporter implements Exporter
         if ($stored !== true) {
             throw ValidationException::withMessages([
                 'export' => 'The Laravel Excel adapter could not store the queued export.',
+            ]);
+        }
+    }
+
+    private function rejectSummaryRows(Export $export): void
+    {
+        if ($export->includesSummaries()) {
+            throw ValidationException::withMessages([
+                'export' => 'Summary rows are currently supported only by the native CSV exporter.',
             ]);
         }
     }

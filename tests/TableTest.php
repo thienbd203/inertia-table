@@ -336,6 +336,7 @@ it('serializes a versioned table resource', function () {
             'hasStickableColumns' => false,
             'hasResizableColumns' => false,
             'hasReorderableColumns' => false,
+            'hasSummaries' => false,
             'hasEmptyState' => false,
         ])
         ->search->toBe(['name'])

@@ -11,7 +11,10 @@ use Musing\InertiaTable\Contracts\RelationshipSorter;
 use Musing\InertiaTable\Image;
 use Musing\InertiaTable\SortDirection;
 use Musing\InertiaTable\Sorters\PowerJoinsRelationshipSorter;
+use Musing\InertiaTable\Summaries\Summary;
+use Musing\InertiaTable\Summaries\SummaryAggregate;
 use Musing\InertiaTable\Support\RelationshipPath;
+use Musing\InertiaTable\Table;
 use Musing\InertiaTable\Url;
 use Spatie\QueryBuilder\AllowedSort;
 
@@ -83,6 +86,8 @@ class Column implements Arrayable
 
     /** @var array<string, mixed> */
     protected array $exportMeta = [];
+
+    protected ?Summary $summary = null;
 
     final public function __construct(
         public readonly string $attribute,
@@ -249,6 +254,34 @@ class Column implements Arrayable
     public function reorderable(bool $reorderable = true): static
     {
         $this->reorderable = $reorderable;
+
+        return $this;
+    }
+
+    public function summary(
+        string|SummaryAggregate $aggregate = SummaryAggregate::Sum,
+        ?string $attribute = null,
+    ): static {
+        $this->summary = Summary::aggregate($aggregate, $this->attribute, $attribute);
+
+        return $this;
+    }
+
+    /** @param Closure(Builder<Model>, self, Table): mixed $resolver */
+    public function summaryUsing(Closure $resolver): static
+    {
+        $this->summary = Summary::custom($resolver);
+
+        return $this;
+    }
+
+    public function summaryFormat(?string $format): static
+    {
+        if (! $this->summary instanceof Summary) {
+            throw new LogicException('summaryFormat() requires a summary definition.');
+        }
+
+        $this->summary->format($format);
 
         return $this;
     }
@@ -557,6 +590,11 @@ class Column implements Arrayable
         return $this->maxWidth;
     }
 
+    public function summaryDefinition(): ?Summary
+    {
+        return $this->summary;
+    }
+
     public function clampWidth(int $width): int
     {
         $width = $this->positiveWidth($width);
@@ -703,6 +741,7 @@ class Column implements Arrayable
             'maxWidth' => $this->maxWidth,
             'resizable' => $this->resizable,
             'reorderable' => $this->reorderable,
+            'summary' => $this->summary?->toArray(),
             'alignment' => $this->alignment->value,
             'wrap' => $this->wrap,
             'truncate' => $this->truncate,

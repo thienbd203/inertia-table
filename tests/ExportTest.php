@@ -82,6 +82,28 @@ class ExportTopicsTable extends Table
     }
 }
 
+class SummaryExportTopicsTable extends ExportTopicsTable
+{
+    public function columns(): array
+    {
+        return [
+            NumberColumn::make('id', 'ID')->summary('count'),
+            TextColumn::make('name', 'Name'),
+            BooleanColumn::make('active', 'Active')->summary('count_distinct'),
+            DateColumn::make('published_at', 'Published')->format('Y-m-d'),
+            TextColumn::make('note', 'Note'),
+        ];
+    }
+
+    public function exports(): array
+    {
+        return [
+            Export::make('summary', 'Summary CSV')->filtered()->withSummaries(),
+            Export::make('summary-xlsx', 'Summary Excel', type: 'xlsx')->withSummaries(),
+        ];
+    }
+}
+
 class ExportUuidRecord extends Model
 {
     protected $table = 'export_uuid_topics';
@@ -349,6 +371,23 @@ it('streams UTF-8 CSV with mapped values, escaping, dates, booleans, nulls, and 
         ->and($rows[3])->toBe(['3', 'Gamma #3', 'true', '2026-08-03', 'plain']);
 });
 
+it('appends opt-in summaries as a final native CSV row', function () {
+    $table = new SummaryExportTopicsTable;
+    $resource = exportResource($table);
+    $response = $this->post(exportEndpoint($table, 'summary'), [
+        'state' => [
+            'filters' => [
+                'active' => ['enabled' => true, 'clause' => 'is_true', 'value' => null],
+            ],
+        ],
+    ])->assertOk();
+    $rows = csvRows($response->streamedContent());
+
+    expect($resource['exports'][0]['includesSummaries'])->toBeTrue()
+        ->and($rows)->toHaveCount(4)
+        ->and($rows[array_key_last($rows)])->toBe(['2', '', '1', '', '']);
+});
+
 it('accepts a null selection for exports that do not require one', function () {
     $this->postJson(exportEndpoint(new ExportTopicsTable, 'all'), [
         'state' => [],
@@ -463,6 +502,12 @@ it('returns a clear validation error when the optional Laravel Excel adapter is 
         ->assertUnprocessable()
         ->assertJsonValidationErrors('export')
         ->assertJsonPath('errors.export.0', 'Install maatwebsite/excel before using XLSX or PDF table exports.');
+});
+
+it('rejects summary rows for exporters that do not support them', function () {
+    $this->postJson(exportEndpoint(new SummaryExportTopicsTable, 'summary-xlsx'), ['state' => []])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.export.0', 'Summary rows are currently supported only by the native CSV exporter.');
 });
 
 it('streams a large CSV query without materializing the entire result collection', function () {

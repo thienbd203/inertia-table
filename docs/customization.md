@@ -49,7 +49,8 @@ empty state or empty-state action.
 Use attribute slots such as `cell(name)`, `header(name)`, `filter(status)` and
 `image(avatar)` for targeted changes. Layout slots include `topbar`,
 `beforeSearch`, `afterSearch`, `beforeActions`, `afterActions`, `filters`,
-`table`, `thead`, `tbody`, `footer`, `loading`, `emptyState` and `confirmation`.
+`table`, `thead`, `tbody`, `summaryFooter`, `footer`, `loading`, `emptyState` and
+`confirmation`. Use `summary(attribute)` for one summary cell.
 
 Prefer documented `tb-*` classes and CSS custom properties for styling.
 Tailwind utility order and internal shadcn primitives may change in minor
@@ -64,6 +65,12 @@ Column layout exposes `tb-resizable-column`, `tb-reorderable-column`,
 `--tb-resize-handle-inset`, `--tb-resize-handle-color`,
 `--tb-reorder-handle-size`, `--tb-column-header-gap` and
 `--tb-column-drop-color`.
+
+Summary footers expose `tb-summary-footer`, `tb-summary-row`, and
+`tb-summary-value`. Their surface can be adjusted with
+`--tb-summary-background`, `--tb-summary-border-color`, and
+`--tb-summary-font-weight`; horizontally sticky summary cells retain the same
+sticky edge and backdrop hooks as headers and body cells.
 
 For a fully application-owned renderer, compose `useTable()`, `useActions()`,
 `useViews()` and `useExports()` against the typed `TableResource`. Keep the

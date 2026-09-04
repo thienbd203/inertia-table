@@ -6,6 +6,7 @@ import type { TableColumn, TableItem } from "@/types";
 import { Header } from "../columns";
 import { Body } from "../rows";
 import { SlotOutlet } from "../shared";
+import { SummaryFooter } from "../summary";
 
 const { resource, actions } = useTableContext();
 const emit = defineEmits<{
@@ -41,6 +42,12 @@ const canSelect = computed(
                         (item, column) => emit('rowClick', item, column)
                     "
                 />
+            </SlotOutlet>
+            <SlotOutlet
+                v-if="resource.capabilities.hasSummaries"
+                name="summaryFooter"
+            >
+                <SummaryFooter :can-select="canSelect" />
             </SlotOutlet>
         </UiTable>
     </SlotOutlet>

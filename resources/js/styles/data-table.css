@@ -149,6 +149,23 @@
     border-block-end: 0;
 }
 
+.tb-summary-footer > .tb-summary-row > [data-slot="table-cell"] {
+    border-block-start: 1px solid
+        var(--tb-summary-border-color, var(--color-border, rgb(0 0 0 / 10%)));
+    background-color: var(--tb-summary-background, var(--color-muted, Canvas));
+    font-weight: var(--tb-summary-font-weight, 600);
+}
+
+.tb-sticky-backdrop-filter
+    .tb-summary-footer
+    > .tb-summary-row
+    > .tb-sticky-cell {
+    background-color: var(
+        --tb-summary-background,
+        color-mix(in srgb, var(--color-muted, Canvas) 92%, transparent)
+    );
+}
+
 .tb-sticky-cell {
     z-index: 1;
 }

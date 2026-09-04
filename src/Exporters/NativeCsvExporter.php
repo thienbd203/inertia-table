@@ -29,9 +29,12 @@ final class NativeCsvExporter implements Exporter
         $metadata = $export->metadata();
         $delimiter = $this->delimiter($metadata['delimiter'] ?? ',');
         $includeBom = $metadata['bom'] ?? true;
+        $summaries = $export->includesSummaries()
+            ? $table->summariesForQuery($query, $columns)
+            : [];
 
         return response()->streamDownload(
-            function () use ($query, $columns, $delimiter, $includeBom, $export) {
+            function () use ($query, $columns, $delimiter, $includeBom, $export, $summaries) {
                 $stream = fopen('php://output', 'wb');
 
                 if ($stream === false) {
@@ -45,6 +48,7 @@ final class NativeCsvExporter implements Exporter
                     $delimiter,
                     $includeBom !== false,
                     $export->resolvedChunkSize(),
+                    $summaries,
                 );
             },
             $filename,
@@ -69,6 +73,9 @@ final class NativeCsvExporter implements Exporter
 
         try {
             $metadata = $export->metadata();
+            $summaries = $export->includesSummaries()
+                ? $table->summariesForQuery($query, $columns)
+                : [];
             $this->write(
                 $temporary,
                 $query,
@@ -76,6 +83,7 @@ final class NativeCsvExporter implements Exporter
                 $this->delimiter($metadata['delimiter'] ?? ','),
                 ($metadata['bom'] ?? true) !== false,
                 $export->resolvedChunkSize(),
+                $summaries,
             );
             rewind($temporary);
 
@@ -91,6 +99,7 @@ final class NativeCsvExporter implements Exporter
      * @param  resource  $stream
      * @param  Builder<Model>  $query
      * @param  array<int, Column>  $columns
+     * @param  array<string, mixed>  $summaries
      */
     private function write(
         $stream,
@@ -99,6 +108,7 @@ final class NativeCsvExporter implements Exporter
         string $delimiter,
         bool $includeBom,
         int $chunkSize,
+        array $summaries,
     ): void {
         if ($includeBom) {
             fwrite($stream, "\xEF\xBB\xBF");
@@ -118,6 +128,21 @@ final class NativeCsvExporter implements Exporter
                 array_map(
                     fn (Column $column) => $this->normalizeValue(
                         $column->resolveExportValue($model),
+                    ),
+                    $columns,
+                ),
+                $delimiter,
+                '"',
+                '',
+            );
+        }
+
+        if ($summaries !== []) {
+            fputcsv(
+                $stream,
+                array_map(
+                    fn (Column $column) => $this->normalizeValue(
+                        $summaries[$column->attribute] ?? null,
                     ),
                     $columns,
                 ),

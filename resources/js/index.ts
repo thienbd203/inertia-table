@@ -6,6 +6,7 @@ export { useStickyColumns } from "./useStickyColumns";
 export type { StickySide, UseStickyColumns } from "./useStickyColumns";
 export { useViews } from "./useViews";
 export { tableUrl } from "./url";
+export { formatSummaryValue } from "./helpers/summaries";
 export { setIconResolver } from "./icons";
 export type { IconResolver } from "./icons";
 export {

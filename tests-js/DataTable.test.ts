@@ -97,6 +97,7 @@ describe("DataTable shadcn renderer", () => {
     });
 
     afterEach(() => {
+        vi.useRealTimers();
         document.body.innerHTML = "";
     });
 
@@ -158,6 +159,57 @@ describe("DataTable shadcn renderer", () => {
         expect(
             wrapper.get('[data-slot="table-container"]').classes(),
         ).toContain("tb-sticky-backdrop-filter");
+    });
+
+    it("renders formatted summaries in visible and sticky columns", () => {
+        const resource = topicResource();
+        resource.capabilities.hasSummaries = true;
+        resource.columns[0].summary = {
+            type: "sum",
+            format: "#,##0.00",
+        };
+        resource.columns[1].summary = { type: "count", format: null };
+        resource.columns[0].stickable = true;
+        resource.state.columns.is_featured = false;
+        resource.state.pinnedColumns = { left: ["name"], right: [] };
+        resource.summaries = { name: "1234.5", is_featured: 2 };
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            slots: {
+                "summary(name)": ({ value, formatted }) =>
+                    h("strong", { "data-summary-slot": "" }, [
+                        `${value}:${formatted}`,
+                    ]),
+            },
+            attachTo: document.body,
+        });
+        const footer = wrapper.get('[data-slot="table-footer"]');
+        const name = footer.get('td[data-column="name"]');
+
+        expect(footer.findAll('td[data-column="is_featured"]')).toHaveLength(0);
+        expect(name.classes()).toContain("tb-sticky-cell");
+        expect(name.get("[data-summary-slot]").text()).toBe("1234.5:1,234.50");
+    });
+
+    it("hides stale summary values while a table navigation is pending", async () => {
+        vi.useFakeTimers();
+        const resource = topicResource();
+        resource.capabilities.hasSummaries = true;
+        resource.columns[0].summary = { type: "count", format: null };
+        resource.summaries = { name: 30 };
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        await wrapper.get('input[type="search"]').setValue("Alpha");
+        vi.advanceTimersByTime(300);
+        await wrapper.vm.$nextTick();
+
+        const footer = wrapper.get('[data-slot="table-footer"]');
+        expect(footer.text()).toContain("Loading");
+        expect(footer.text()).not.toContain("30");
     });
 
     it("resizes and reorders columns with keyboard-accessible handles", async () => {

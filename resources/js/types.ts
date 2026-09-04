@@ -36,6 +36,17 @@ export type TableColumn = {
     maxWidth?: number | null;
     resizable?: boolean;
     reorderable?: boolean;
+    summary?: {
+        type:
+            | "count"
+            | "count_distinct"
+            | "sum"
+            | "avg"
+            | "min"
+            | "max"
+            | "custom";
+        format?: string | null;
+    } | null;
     alignment: "left" | "center" | "right";
     wrap?: boolean;
     truncate?: number | null;
@@ -189,6 +200,7 @@ export type TableExport = {
     scope: "all" | "filtered" | "selected";
     requiresSelection: boolean;
     queued?: boolean;
+    includesSummaries?: boolean;
     endpoint: string;
     meta: Record<string, unknown>;
 };
@@ -265,6 +277,7 @@ export type TableResource<T extends TableItem = TableItem> = {
         hasStickableColumns?: boolean;
         hasResizableColumns?: boolean;
         hasReorderableColumns?: boolean;
+        hasSummaries?: boolean;
         hasExports?: boolean;
         hasEmptyState?: boolean;
     };
@@ -283,6 +296,7 @@ export type TableResource<T extends TableItem = TableItem> = {
     views?: TableViewsResource | null;
     exports?: TableExport[];
     emptyState?: TableEmptyState | null;
+    summaries?: Record<string, unknown>;
 };
 
 export type TableOptions<T extends TableItem> = {

@@ -19,6 +19,7 @@ Musing Inertia Table keeps the server authoritative. The browser can only reques
 - A ready-to-use Vue `<DataTable>` built from shadcn-vue-style source and Reka UI primitives.
 - Text, numeric, set, boolean and date filters, including single-date and date-range calendars.
 - Per-table query-string state, Inertia partial reloads, pagination, column visibility, sticky headers/columns and all-results selection across pages.
+- Server-side summary footers for the complete filtered dataset.
 - Scoped saved views with defaults, sharing, optimistic locking and live dirty-state feedback.
 - Managed row and bulk actions, including queued all-matching execution with progress.
 - Signed synchronous or queued exports for all, filtered or selected rows, plus optional XLSX/PDF adapters.
@@ -490,6 +491,46 @@ TextColumn::make('score')->sortable()->sortUsing(
 );
 ```
 
+### Filtered summary footer
+
+Summaries describe the complete normalized search/filter result, not only the
+current page. All built-in summaries on a table are resolved together in one
+SQL query:
+
+```php
+use Musing\InertiaTable\Summaries\SummaryAggregate;
+
+NumberColumn::make('id', 'Orders')
+    ->summary(SummaryAggregate::Count);
+
+NumberColumn::make('total', 'Total')
+    ->summary('sum')
+    ->summaryFormat('#,##0.00');
+
+NumberColumn::make('average', 'Average')
+    ->summary('avg', 'total');
+```
+
+The built-ins are `count`, `count_distinct`, `sum`, `avg`, `min`, and `max`.
+`count` counts filtered rows; the others use the column attribute unless a base
+column name is passed as the second argument. Relationship paths and SQL
+expressions stay explicit through a server-only callback:
+
+```php
+NumberColumn::make('paid_total', 'Paid total')
+    ->summaryUsing(
+        fn (Builder $query) => (clone $query)
+            ->where('status', 'paid')
+            ->sum('total'),
+    );
+```
+
+The default renderer aligns the footer with visible, resized, reordered, and
+pinned columns. Override the whole row with `summaryFooter`, or one cell with
+`summary(attribute)`; the cell slot receives `column`, `definition`, `value`,
+and `formatted`. During navigation the default footer hides stale values and
+shows a loading state.
+
 ### Badges and images
 
 ```php
@@ -942,6 +983,10 @@ Export::make('archive')
     ]));
 ```
 
+Call `withSummaries()` to append declared summary values as a final row aligned
+to exported columns. Summary rows are currently supported by the native CSV
+adapter, including queued CSV exports; values remain raw and machine-readable.
+
 Query modifiers run after the export scope, filters and sort are resolved. They
 may mutate the builder or return another Eloquent builder, which lets expensive
 table-only selects, counts or relationships be replaced for an export. Use
@@ -1037,7 +1082,7 @@ The default renderer is intended to cover normal tables. Use slots only for targ
 </DataTable>
 ```
 
-Useful slots include `topbar`, `beforeSearch`, `afterSearch`, `beforeActions`, `afterActions`, `filters`, `table`, `thead`, `tbody`, `footer`, `loading`, `emptyState`, `confirmation`, `queuedAction`, `cell(attribute)`, `header(attribute)`, `filter(attribute)`, `image(attribute)` and `image-fallback(attribute)`.
+Useful slots include `topbar`, `beforeSearch`, `afterSearch`, `beforeActions`, `afterActions`, `filters`, `table`, `thead`, `tbody`, `summaryFooter`, `footer`, `loading`, `emptyState`, `confirmation`, `queuedAction`, `cell(attribute)`, `header(attribute)`, `summary(attribute)`, `filter(attribute)`, `image(attribute)` and `image-fallback(attribute)`.
 
 Use `filter(attribute)` when an option source needs application-owned behavior such as remote search, pagination or creating a missing option. The slot receives `filter`, `state`, `value`, `update`, `setDisplayValue`, `close`, `table` and `actions`:
 

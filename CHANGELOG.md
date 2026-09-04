@@ -14,6 +14,11 @@ All notable changes to `inertia-table` will be documented in this file.
   controls, sticky-offset integration and per-table/global feature gates.
 - Saved View persistence for column layout and opt-in exports that follow the
   visible user column order.
+- Server-side `count`, `count_distinct`, `sum`, `avg`, `min`, `max`, and custom
+  summaries for the complete filtered dataset, combined into one built-in
+  aggregate query.
+- A sticky-aware summary footer with per-cell/whole-footer slots, loading state,
+  locale-aware formatting, and opt-in native CSV summary rows.
 
 ### Changed
 

@@ -6,6 +6,7 @@ use Musing\InertiaTable\Actions\Action;
 use Musing\InertiaTable\Columns\ActionColumn;
 use Musing\InertiaTable\Columns\BooleanColumn;
 use Musing\InertiaTable\Columns\DateTimeColumn;
+use Musing\InertiaTable\Columns\NumberColumn;
 use Musing\InertiaTable\Columns\TextColumn;
 
 function anonymousModel(): Model
@@ -67,6 +68,20 @@ it('rejects invalid column sizing bounds', function () {
         ->toThrow(LogicException::class)
         ->and(ActionColumn::new()->toArray())
         ->toMatchArray(['resizable' => false, 'reorderable' => false]);
+});
+
+it('validates summary declarations and keeps callbacks on the server', function () {
+    $custom = NumberColumn::make('score')->summaryUsing(fn () => 10);
+
+    expect(NumberColumn::make('amount')->summary('avg')->summaryFormat('#,##0.00')->toArray()['summary'])
+        ->toBe(['type' => 'avg', 'format' => '#,##0.00'])
+        ->and($custom->toArray()['summary'])->toBe(['type' => 'custom', 'format' => null])
+        ->and(fn () => NumberColumn::make('amount')->summary('median'))
+        ->toThrow(LogicException::class)
+        ->and(fn () => NumberColumn::make('relation.amount')->summary())
+        ->toThrow(LogicException::class)
+        ->and(fn () => NumberColumn::make('amount')->summaryFormat('0.00'))
+        ->toThrow(LogicException::class);
 });
 
 it('can group row actions in a dropdown', function () {
