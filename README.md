@@ -20,6 +20,7 @@ Musing Inertia Table keeps the server authoritative. The browser can only reques
 - Text, numeric, set, boolean and date filters, including single-date and date-range calendars.
 - Per-table query-string state, Inertia partial reloads, pagination, column visibility, sticky headers/columns and all-results selection across pages.
 - Scoped saved views with defaults, sharing, optimistic locking and live dirty-state feedback.
+- Managed row and bulk actions, including queued all-matching execution with progress.
 - Signed synchronous or queued exports for all, filtered or selected rows, plus optional XLSX/PDF adapters.
 - Presentation helpers for badges, dates, images, links, tooltips, alignment and Tailwind classes.
 - Slots and headless composables when the default renderer needs an escape hatch.
@@ -75,7 +76,18 @@ return [
         'backdrop_filter' => true,
     ],
     'action_path' => '_inertia-table/actions',
+    'actions' => [
+        'queue' => [
+            'connection' => null,
+            'queue' => null,
+            'delay' => 0,
+            'expires_after' => 86400,
+            'status_retention' => 86400,
+            'after_commit' => true,
+        ],
+    ],
     'export_path' => '_inertia-table/exports',
+    'exports' => ['chunk_size' => 1000],
     'relationship_sorter' => \Musing\InertiaTable\Sorters\PowerJoinsRelationshipSorter::class,
     'queue' => [
         'connection' => null,
@@ -677,6 +689,67 @@ Action::make('archive', 'Archive')
 
 Managed endpoints use Laravel's normal response contract consistently: returned `Response`/`Responsable` values pass through, successful handlers without one redirect back, unavailable actions return `403`, disabled row actions return validation errors, and unexpected exceptions remain visible to Laravel's exception handler.
 
+Large managed bulk actions can run on Laravel's queue. Define `bulk()` and the
+server handler before calling `queue()`:
+
+```php
+use Musing\InertiaTable\Actions\QueuedActionSnapshot;
+
+Action::make('archive', 'Archive')
+    ->bulk()
+    ->handle(fn (Topic $topic) => $topic->archive())
+    ->chunkSize(500)
+    ->queue(
+        connection: 'redis',
+        queue: 'table-actions',
+        delay: 0,
+        expiresAfter: 86_400,
+        afterCommit: true,
+    )
+    ->scopeAttributes(fn () => ['tenant' => tenant()->id])
+    ->tags(fn () => ['tenant:'.tenant()->id])
+    ->onCompleted(fn (QueuedActionSnapshot $snapshot, mixed $result) => /* notify */ null)
+    ->onFailure(fn (QueuedActionSnapshot $snapshot, \Throwable $exception) => /* report */ null);
+```
+
+The dispatcher snapshots the normalized explicit or all-matching selection,
+definition fingerprint, actor, locale and scalar application scope. It never
+serializes the request, table, query builder, model or definition closures. The
+worker restores that context, reruns authorization, verifies that the table and
+action definition have not changed, and rechecks row selectability and action
+availability. Per-model handlers update `processed`, `succeeded` and `skipped`
+once per chunk; set-based `handleSelection()` actions deliberately expose only
+lifecycle state because row-level progress would be misleading.
+
+Queue connection, name, delay, expiry and status retention fall back to
+`inertia-table.actions.queue`; dispatch waits for the current database
+transaction to commit by default. Use `context()` with an implementation of
+`ActionContext` to restore tenant state, `middleware()` for queue middleware,
+`chain()` for follow-up jobs, `redirectAfterDispatch()` for an application-owned
+operations page, and `failureMessage()` for safe user-facing failure copy.
+Repeated submissions with the same idempotency key reuse the existing operation;
+retrying a finished operation requires a new key.
+
+Queued actions use the application's default cache store for idempotency,
+execution locks and status polling. Configure a persistent store shared by the
+web and queue processes (for example Redis, Memcached, database or DynamoDB);
+the `array` store is process-local and is not suitable for queued actions.
+Queue delivery is still at-least-once: make action handlers idempotent and set
+the queue connection's `retry_after` or visibility timeout longer than the
+maximum duration of one action attempt. The execution lock prevents concurrent
+delivery but cannot roll back an external side effect after a worker crash.
+
+The Vue renderer clears selection only after the server has durably accepted the
+snapshot. It polls the signed, actor-scoped status endpoint and emits
+`action-queued`, `action-progress`, then the existing `action-success` or
+`action-error`. Completion reloads only the table prop and its declared
+`reloadProps`. The processing dialog may be closed without cancelling polling
+and opens again on completion, failure or expiry. Use the `queuedAction` slot or
+`useActions().updateQueuedAction()` for a custom notification/realtime UI.
+One queued operation is tracked per table instance; its action controls remain
+disabled until that operation reaches a terminal state or redirects to an
+application-owned operations page.
+
 The `Selection` query always starts from `Table::query()` and applies `selectableQuery()`. For an all-results selection, it rebuilds the query through the table's declared search/filter allowlist and applies the unchecked keys from `except`. Useful APIs are `query()`, `count()`, `get()`, `firstOrFail()` and memory-safe `each()`.
 
 Declare bulk eligibility at both query and row level. The query scope gives the frontend an exact `selectableTotal` without loading every model; the row check disables individual checkboxes. Keep both rules equivalent whenever possible:
@@ -930,7 +1003,7 @@ The default renderer is intended to cover normal tables. Use slots only for targ
 </DataTable>
 ```
 
-Useful slots include `topbar`, `beforeSearch`, `afterSearch`, `beforeActions`, `afterActions`, `filters`, `table`, `thead`, `tbody`, `footer`, `loading`, `emptyState`, `confirmation`, `cell(attribute)`, `header(attribute)`, `filter(attribute)`, `image(attribute)` and `image-fallback(attribute)`.
+Useful slots include `topbar`, `beforeSearch`, `afterSearch`, `beforeActions`, `afterActions`, `filters`, `table`, `thead`, `tbody`, `footer`, `loading`, `emptyState`, `confirmation`, `queuedAction`, `cell(attribute)`, `header(attribute)`, `filter(attribute)`, `image(attribute)` and `image-fallback(attribute)`.
 
 Use `filter(attribute)` when an option source needs application-owned behavior such as remote search, pagination or creating a missing option. The slot receives `filter`, `state`, `value`, `update`, `setDisplayValue`, `close`, `table` and `actions`:
 

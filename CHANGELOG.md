@@ -4,6 +4,18 @@ All notable changes to `inertia-table` will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Queued managed bulk actions with immutable selection snapshots, idempotent
+  dispatch, actor/tenant restoration, chunk progress and signed status polling.
+- Vue queued-action lifecycle events, scoped polling and a dismissible progress
+  dialog that reloads only declared Inertia props after completion.
+
+### Changed
+
+- Expanded release validation across supported PHP, Laravel, Inertia, Node and
+  database versions, with dependency audits before npm publishing.
+
 ## 0.7.0 - 2026-09-01
 
 ### Added

@@ -1,5 +1,6 @@
 import { onScopeDispose, ref } from "vue";
 import { router } from "@inertiajs/vue3";
+import { createIdempotencyKey, csrfHeaders, responseMessage } from "./http";
 import type {
     QueuedExportStatus,
     TableExport,
@@ -8,12 +9,6 @@ import type {
 } from "./types";
 import type { UseActions } from "./useActions";
 import type { UseTable } from "./useTable";
-
-function createIdempotencyKey(): string {
-    if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
-
-    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
 
 type ExportCallbacks = {
     onSuccess?: (definition: TableExport) => void;
@@ -67,7 +62,12 @@ export function useExports<T extends TableItem>(
             if (generation !== pollingGeneration) return;
 
             if (!response.ok) {
-                throw new Error(await responseMessage(response));
+                throw new Error(
+                    await responseMessage(
+                        response,
+                        "The export status could not be checked.",
+                    ),
+                );
             }
 
             const payload = (await response.json()) as {
@@ -162,7 +162,9 @@ export function useExports<T extends TableItem>(
             });
 
             if (!response.ok) {
-                throw new Error(await responseMessage(response));
+                throw new Error(
+                    await responseMessage(response, "The export failed."),
+                );
             }
 
             if (definition.queued) {
@@ -227,35 +229,6 @@ export function useExports<T extends TableItem>(
         queuedExport,
         updateQueuedExport,
     };
-}
-
-function csrfHeaders(): Record<string, string> | null {
-    const meta = document
-        .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-        ?.getAttribute("content");
-
-    if (meta) return { "X-CSRF-TOKEN": meta };
-
-    const cookie = document.cookie
-        .split("; ")
-        .find((value) => value.startsWith("XSRF-TOKEN="))
-        ?.slice("XSRF-TOKEN=".length);
-
-    return cookie ? { "X-XSRF-TOKEN": decodeURIComponent(cookie) } : null;
-}
-
-async function responseMessage(response: Response): Promise<string> {
-    try {
-        const payload = (await response.json()) as {
-            message?: string;
-            errors?: Record<string, string[]>;
-        };
-        const validation = Object.values(payload.errors ?? {}).flat()[0];
-
-        return validation ?? payload.message ?? "The export failed.";
-    } catch {
-        return `The export failed with status ${response.status}.`;
-    }
 }
 
 function responseFilename(response: Response): string | null {

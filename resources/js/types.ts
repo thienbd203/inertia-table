@@ -88,11 +88,31 @@ export type TableAction = {
         confirmLabel: string;
         cancelLabel: string;
     };
+    queued?: boolean;
     endpoint: {
         method: "get" | "post" | "put" | "patch" | "delete";
         url: string;
     } | null;
     meta: Record<string, unknown>;
+};
+
+export type QueuedActionStatus = {
+    id: string;
+    action: string;
+    label?: string;
+    status: "queued" | "processing" | "completed" | "failed" | "expired";
+    total?: number;
+    processed?: number | null;
+    succeeded?: number | null;
+    skipped?: number | null;
+    result?: unknown;
+    statusEndpoint?: string | null;
+    expiresAt?: number;
+    completedAt?: number;
+    failedAt?: number;
+    redirect?: string | null;
+    duplicate?: boolean;
+    message?: string | null;
 };
 
 export type TableState = {

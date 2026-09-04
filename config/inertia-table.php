@@ -13,6 +13,16 @@ return [
         'backdrop_filter' => true,
     ],
     'action_path' => '_inertia-table/actions',
+    'actions' => [
+        'queue' => [
+            'connection' => null,
+            'queue' => null,
+            'delay' => 0,
+            'expires_after' => 86400,
+            'status_retention' => 86400,
+            'after_commit' => true,
+        ],
+    ],
     'export_path' => '_inertia-table/exports',
     'exporters' => [
         'csv' => NativeCsvExporter::class,

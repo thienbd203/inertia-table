@@ -1,13 +1,16 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, h, nextTick, ref } from "vue";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
 
-const { visit } = vi.hoisted(() => ({ visit: vi.fn() }));
+const { reload, visit } = vi.hoisted(() => ({
+    reload: vi.fn(),
+    visit: vi.fn(),
+}));
 
 vi.mock("@inertiajs/vue3", () => ({
-    router: { visit, on: vi.fn(() => vi.fn()) },
+    router: { reload, visit, on: vi.fn(() => vi.fn()) },
     usePage: () => ({ url: "/admin/topics" }),
 }));
 
@@ -15,16 +18,25 @@ import { useActions } from "../resources/js/useActions";
 import { useTable } from "../resources/js/useTable";
 
 describe("useActions", () => {
-    beforeEach(() => visit.mockReset());
+    beforeEach(() => {
+        reload.mockReset();
+        visit.mockReset();
+    });
 
-    function mountActions(initialResource = topicResource()) {
+    afterEach(() => {
+        document.head.querySelector('meta[name="csrf-token"]')?.remove();
+        vi.unstubAllGlobals();
+        vi.useRealTimers();
+    });
+
+    function mountActions(initialResource = topicResource(), callbacks = {}) {
         const resource = ref(initialResource);
         let actions: ReturnType<typeof useActions<Topic>>;
         const wrapper = mount(
             defineComponent({
                 setup() {
                     const table = useTable(resource);
-                    actions = useActions(table);
+                    actions = useActions(table, {}, callbacks);
                     return () => h("div");
                 },
             }),
@@ -324,6 +336,196 @@ describe("useActions", () => {
         expect(visit).toHaveBeenCalledWith(
             "/topics/1",
             expect.objectContaining({ method: "get", data: {} }),
+        );
+    });
+
+    it("dispatches and polls a queued bulk action before reloading declared props", async () => {
+        vi.useFakeTimers();
+        const meta = document.createElement("meta");
+        meta.name = "csrf-token";
+        meta.content = "csrf-value";
+        document.head.append(meta);
+        const resource = resourceWithRows(5);
+        const action = {
+            ...resource.actions[0],
+            queued: true,
+            endpoint: {
+                method: "post" as const,
+                url: "/_actions/archive?signature=valid",
+            },
+        };
+        const queued = {
+            id: "action-1",
+            action: "delete",
+            label: "Delete",
+            status: "queued" as const,
+            total: 5,
+            processed: 0,
+            succeeded: 0,
+            skipped: 0,
+            statusEndpoint: "/_actions/archive/action-1?signature=valid",
+        };
+        const processing = {
+            ...queued,
+            status: "processing" as const,
+            processed: 3,
+            succeeded: 2,
+            skipped: 1,
+        };
+        const completed = {
+            ...processing,
+            status: "completed" as const,
+            processed: 5,
+            succeeded: 4,
+        };
+        vi.stubGlobal(
+            "fetch",
+            vi
+                .fn()
+                .mockResolvedValueOnce(
+                    new Response(JSON.stringify({ action: queued }), {
+                        status: 202,
+                        headers: { "content-type": "application/json" },
+                    }),
+                )
+                .mockResolvedValueOnce(
+                    new Response(JSON.stringify({ action: processing }), {
+                        status: 200,
+                        headers: { "content-type": "application/json" },
+                    }),
+                )
+                .mockResolvedValueOnce(
+                    new Response(JSON.stringify({ action: completed }), {
+                        status: 200,
+                        headers: { "content-type": "application/json" },
+                    }),
+                ),
+        );
+        const onQueued = vi.fn();
+        const onProgress = vi.fn();
+        const onSuccess = vi.fn();
+        const { actions, wrapper } = mountActions(resource, {
+            onQueued,
+            onProgress,
+            onSuccess,
+        });
+
+        actions.toggleAll();
+        actions.performAction(action);
+        await flushPromises();
+
+        const payload = JSON.parse(
+            String(vi.mocked(fetch).mock.calls[0][1]?.body),
+        );
+        expect(payload.idempotencyKey).toBeTypeOf("string");
+        expect(payload.selection).toMatchObject({
+            all: true,
+            keys: [],
+            except: [],
+            table: "topics",
+        });
+        expect(actions.selectedCount.value).toBe(0);
+        expect(actions.queuedAction.value).toEqual(queued);
+        expect(actions.isPerformingAction.value).toBe(true);
+        expect(onQueued).toHaveBeenCalledWith(
+            action,
+            queued,
+            payload.selection,
+        );
+
+        await vi.advanceTimersByTimeAsync(1_500);
+        expect(actions.queuedAction.value).toEqual(processing);
+        expect(onProgress).toHaveBeenCalledWith(
+            action,
+            processing,
+            payload.selection,
+        );
+
+        await vi.advanceTimersByTimeAsync(1_500);
+        expect(actions.queuedAction.value).toEqual(completed);
+        expect(actions.isPerformingAction.value).toBe(false);
+        expect(onSuccess).toHaveBeenCalledWith(action, [], payload.selection);
+        expect(reload).toHaveBeenCalledWith({
+            only: ["topics", "featuredCount"],
+        });
+
+        wrapper.unmount();
+    });
+
+    it("stops queued action polling when its table scope is disposed", async () => {
+        vi.useFakeTimers();
+        const meta = document.createElement("meta");
+        meta.name = "csrf-token";
+        meta.content = "csrf-value";
+        document.head.append(meta);
+        const resource = resourceWithRows(2);
+        const action = { ...resource.actions[0], queued: true };
+        const status = {
+            id: "action-2",
+            action: "delete",
+            status: "queued" as const,
+            total: 2,
+            statusEndpoint: "/_actions/delete/action-2?signature=valid",
+        };
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockResolvedValue(
+                new Response(JSON.stringify({ action: status }), {
+                    status: 202,
+                    headers: { "content-type": "application/json" },
+                }),
+            ),
+        );
+        const { actions, wrapper } = mountActions(resource);
+        actions.toggleAll();
+        actions.performAction(action);
+        await flushPromises();
+        wrapper.unmount();
+
+        await vi.advanceTimersByTimeAsync(3_000);
+        expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps selection when a queued action is rejected before snapshotting", async () => {
+        const meta = document.createElement("meta");
+        meta.name = "csrf-token";
+        meta.content = "csrf-value";
+        document.head.append(meta);
+        const resource = topicResource();
+        const action = { ...resource.actions[0], queued: true };
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockResolvedValue(
+                new Response(
+                    JSON.stringify({
+                        errors: {
+                            action: ["The action is no longer available."],
+                        },
+                    }),
+                    {
+                        status: 422,
+                        headers: { "content-type": "application/json" },
+                    },
+                ),
+            ),
+        );
+        const onError = vi.fn();
+        const { actions } = mountActions(resource, { onError });
+        actions.toggleItem(resource.results.data[0], 0);
+
+        actions.performAction(action);
+        await flushPromises();
+
+        expect(actions.selectedCount.value).toBe(1);
+        expect(actions.queuedAction.value).toBeNull();
+        expect(actions.actionError.value).toBe(
+            "The action is no longer available.",
+        );
+        expect(onError).toHaveBeenCalledWith(
+            action,
+            [1],
+            expect.any(Error),
+            expect.objectContaining({ keys: [1] }),
         );
     });
 });

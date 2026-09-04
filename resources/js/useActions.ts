@@ -1,6 +1,8 @@
 import { router } from "@inertiajs/vue3";
-import { computed, ref, watch, type Ref } from "vue";
+import { computed, onScopeDispose, ref, watch, type Ref } from "vue";
+import { createIdempotencyKey, csrfHeaders, responseMessage } from "./http";
 import type {
+    QueuedActionStatus,
     TableAction,
     TableItem,
     TableKey,
@@ -12,6 +14,12 @@ import type { UseTable } from "./useTable";
 type PendingAction<T extends TableItem> = {
     action: TableAction;
     item?: T;
+};
+
+type ActiveQueuedAction = {
+    action: TableAction;
+    keys: TableKey[];
+    selection: TableSelection;
 };
 
 type ActionCallbacks = {
@@ -32,7 +40,19 @@ type ActionCallbacks = {
         error: unknown,
         selection: TableSelection,
     ) => void;
+    onQueued?: (
+        action: TableAction,
+        status: QueuedActionStatus,
+        selection: TableSelection,
+    ) => void;
+    onProgress?: (
+        action: TableAction,
+        status: QueuedActionStatus,
+        selection: TableSelection,
+    ) => void;
 };
+
+const queuedActionPollDelay = 1_500;
 
 export function useActions<T extends TableItem>(
     table: UseTable<T>,
@@ -49,6 +69,164 @@ export function useActions<T extends TableItem>(
         null,
     ) as Ref<PendingAction<T> | null>;
     const isPerformingAction = ref(false);
+    const queuedAction = ref<QueuedActionStatus | null>(null);
+    const actionError = ref<string | null>(null);
+    let activeQueuedAction: ActiveQueuedAction | null = null;
+    let pollingTimer: number | null = null;
+    let pollingGeneration = 0;
+
+    function stopPolling() {
+        pollingGeneration += 1;
+
+        if (pollingTimer !== null) {
+            window.clearTimeout(pollingTimer);
+            pollingTimer = null;
+        }
+    }
+
+    function queuedActionIsTerminal(status: QueuedActionStatus) {
+        return ["completed", "failed", "expired"].includes(status.status);
+    }
+
+    function schedulePoll(endpoint: string, generation: number) {
+        pollingTimer = window.setTimeout(() => {
+            void pollQueuedAction(endpoint, generation);
+        }, queuedActionPollDelay);
+    }
+
+    async function pollQueuedAction(endpoint: string, generation: number) {
+        try {
+            const response = await fetch(endpoint, {
+                method: "GET",
+                credentials: "same-origin",
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            });
+
+            if (generation !== pollingGeneration) return;
+
+            if (!response.ok) {
+                throw new Error(
+                    await responseMessage(
+                        response,
+                        "The action status could not be checked.",
+                    ),
+                );
+            }
+
+            const payload = (await response.json()) as {
+                action: QueuedActionStatus;
+            };
+
+            if (generation !== pollingGeneration) return;
+
+            updateQueuedAction(payload.action);
+        } catch (reason) {
+            if (generation !== pollingGeneration) return;
+
+            const resolved =
+                reason instanceof Error
+                    ? reason
+                    : new Error("The action status could not be checked.");
+            actionError.value = resolved.message;
+
+            if (queuedAction.value) {
+                queuedAction.value = {
+                    ...queuedAction.value,
+                    status: "failed",
+                    message: resolved.message,
+                };
+            }
+
+            if (activeQueuedAction) {
+                callbacks.onError?.(
+                    activeQueuedAction.action,
+                    activeQueuedAction.keys,
+                    resolved,
+                    activeQueuedAction.selection,
+                );
+            }
+
+            activeQueuedAction = null;
+            isPerformingAction.value = false;
+            stopPolling();
+        }
+    }
+
+    function startPolling(status: QueuedActionStatus) {
+        stopPolling();
+
+        if (
+            status.redirect ||
+            queuedActionIsTerminal(status) ||
+            !status.statusEndpoint
+        ) {
+            return;
+        }
+
+        const generation = pollingGeneration;
+        schedulePoll(status.statusEndpoint, generation);
+    }
+
+    function updateQueuedAction(status: QueuedActionStatus) {
+        const previous = queuedAction.value;
+        queuedAction.value = status;
+
+        if (activeQueuedAction && status.status === "processing") {
+            callbacks.onProgress?.(
+                activeQueuedAction.action,
+                status,
+                activeQueuedAction.selection,
+            );
+        }
+
+        if (queuedActionIsTerminal(status)) {
+            stopPolling();
+
+            if (activeQueuedAction && previous?.status !== status.status) {
+                const { action, keys, selection } = activeQueuedAction;
+
+                if (status.status === "completed") {
+                    callbacks.onSuccess?.(action, keys, selection);
+
+                    if (status.redirect) {
+                        router.visit(status.redirect, { method: "get" });
+                    } else {
+                        router.reload({
+                            only: [
+                                table.resource.value.name,
+                                ...table.resource.value.options.reloadProps,
+                            ],
+                        });
+                    }
+                } else {
+                    const error = new Error(
+                        status.message ?? "The queued action failed.",
+                    );
+                    actionError.value = error.message;
+                    callbacks.onError?.(action, keys, error, selection);
+                }
+            }
+
+            activeQueuedAction = null;
+            isPerformingAction.value = false;
+
+            return;
+        }
+
+        startPolling(status);
+    }
+
+    function clearQueuedAction() {
+        queuedAction.value = null;
+        actionError.value = null;
+    }
+
+    function clearActionError() {
+        actionError.value = null;
+    }
 
     function rowKey(item: T, index: number): TableKey {
         return (
@@ -313,6 +491,7 @@ export function useActions<T extends TableItem>(
               : { ids: keys };
 
         isPerformingAction.value = true;
+        actionError.value = null;
         if (!action.endpoint) {
             callbacks.onCustomAction?.(
                 action,
@@ -322,6 +501,17 @@ export function useActions<T extends TableItem>(
                     if (keepConfirmationOpen) pendingAction.value = null;
                 },
                 resolvedSelection,
+            );
+
+            return;
+        }
+
+        if (action.queued) {
+            void executeQueuedAction(
+                action,
+                keys,
+                resolvedSelection,
+                keepConfirmationOpen,
             );
 
             return;
@@ -344,11 +534,79 @@ export function useActions<T extends TableItem>(
         });
     }
 
+    async function executeQueuedAction(
+        action: TableAction,
+        keys: TableKey[],
+        resolvedSelection: TableSelection,
+        keepConfirmationOpen: boolean,
+    ) {
+        try {
+            const csrf = csrfHeaders();
+
+            if (!csrf) {
+                throw new Error(
+                    "Missing CSRF token. Add a csrf-token meta tag or enable Laravel's XSRF-TOKEN cookie.",
+                );
+            }
+
+            const response = await fetch(action.endpoint!.url, {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                    ...csrf,
+                },
+                body: JSON.stringify({
+                    ids: keys,
+                    selection: resolvedSelection,
+                    idempotencyKey: createIdempotencyKey(),
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(
+                    await responseMessage(response, "The action failed."),
+                );
+            }
+
+            const payload = (await response.json()) as {
+                action: QueuedActionStatus;
+            };
+            activeQueuedAction = { action, keys, selection: resolvedSelection };
+            clearSelection();
+            updateQueuedAction(payload.action);
+            callbacks.onQueued?.(action, payload.action, resolvedSelection);
+
+            if (payload.action.redirect) {
+                activeQueuedAction = null;
+                isPerformingAction.value = false;
+                router.visit(payload.action.redirect, { method: "get" });
+            }
+        } catch (reason) {
+            const resolved =
+                reason instanceof Error
+                    ? reason
+                    : new Error("The action failed.");
+            actionError.value = resolved.message;
+            callbacks.onError?.(action, keys, resolved, resolvedSelection);
+        } finally {
+            if (!activeQueuedAction) isPerformingAction.value = false;
+            if (keepConfirmationOpen) pendingAction.value = null;
+        }
+    }
+
+    onScopeDispose(stopPolling);
+
     return {
         allItemsAreSelected,
         allSelected,
+        actionError,
         bulkActions,
         cancelAction,
+        clearActionError,
+        clearQueuedAction,
         clearSelection,
         confirmAction,
         excludedKeys,
@@ -368,6 +626,8 @@ export function useActions<T extends TableItem>(
         selectionState,
         toggleAll,
         toggleItem,
+        queuedAction,
+        updateQueuedAction,
     };
 }
 

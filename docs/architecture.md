@@ -115,7 +115,15 @@ type TableResource<T> = {
 type ColumnResource = {
     attribute: string;
     header: string;
-    type: "text" | "numeric" | "badge" | "boolean" | "date" | "datetime" | "image" | "action";
+    type:
+        | "text"
+        | "numeric"
+        | "badge"
+        | "boolean"
+        | "date"
+        | "datetime"
+        | "image"
+        | "action";
     sortable: boolean;
     toggleable: boolean;
     visibleByDefault: boolean;
@@ -223,6 +231,7 @@ type ActionResource = {
     label: string;
     scope: "row" | "bulk" | "both";
     authorized: boolean;
+    queued?: true;
     variant: "default" | "destructive";
     confirmation: null | {
         title: string | [string, string, string?];
@@ -289,6 +298,22 @@ The frontend selection descriptor is resolved to a typed PHP `Selection`. Explic
 
 `Action::handle()` iterates the resolved query by primary key in chunks and invokes the handler for each model. `Action::handleSelection()` invokes a handler once with the `Selection`, allowing set-based queries without loading every selected key or model into memory.
 
+Queued bulk actions capture the normalized `Selection` plus table/action
+identity, a deterministic definition fingerprint, actor, locale and scalar
+application scope. Queue payloads never contain a live request, table, builder,
+model or definition closure. Workers restore context, re-resolve the current
+definition, rerun authorization and availability checks, and reject stale
+definitions before executing. Per-model execution writes progress only at chunk
+boundaries; set-based handlers expose lifecycle state without invented row
+progress. A cache lock prevents concurrent delivery of the same operation, while
+the client idempotency key deduplicates repeated dispatch requests.
+
+Status resources are signed and scoped to the current actor and application
+attributes. The browser owns polling independently per table instance, clears
+selection only after a `202` snapshot response, and performs a targeted Inertia
+reload after completion. Dismissing the status dialog does not dispose polling;
+unmounting the table does.
+
 ### Export contract
 
 Exports are server-declared capabilities with a stable key, label, filename,
@@ -331,9 +356,9 @@ or `expired`; completed files receive an application-defined delivery URL and ar
 deleted by a delayed cleanup job. Partial files are deleted on failure. Ready and
 failure callbacks, job chaining and post-dispatch redirects are definition-time
 hooks and are resolved around the serializable snapshot rather than embedded in
-it. The Vue composable exposes queued status but deliberately does not invent a
-polling endpoint; applications feed notification or realtime updates back through
-`updateQueuedExport()`.
+it. The Vue composable polls the signed status endpoint until a terminal state.
+Applications using notifications or realtime updates may feed the same resource
+back through `updateQueuedExport()`.
 
 ## URL contract
 

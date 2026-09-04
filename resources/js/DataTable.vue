@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends TableItem">
 import { computed, nextTick, ref, toRef, useSlots, watch } from "vue";
-import { Confirmation } from "@/components/table/actions";
+import { Confirmation, QueuedActionDialog } from "@/components/table/actions";
 import { FilterList } from "@/components/table/filters";
 import { Pagination, Toolbar, Viewport } from "@/components/table/layout";
 import { SlotOutlet } from "@/components/table/shared";
@@ -21,6 +21,7 @@ import type {
     TableKey,
     TableResource,
     TableSelection,
+    QueuedActionStatus,
     QueuedExportStatus,
 } from "@/types";
 import { useActions } from "@/useActions";
@@ -58,6 +59,16 @@ const emit = defineEmits<{
         error: unknown,
         selection: TableSelection,
     ];
+    actionQueued: [
+        action: TableAction,
+        status: QueuedActionStatus,
+        selection: TableSelection,
+    ];
+    actionProgress: [
+        action: TableAction,
+        status: QueuedActionStatus,
+        selection: TableSelection,
+    ];
     exportSuccess: [definition: TableExport];
     exportQueued: [definition: TableExport, status: QueuedExportStatus];
     exportError: [definition: TableExport, error: Error];
@@ -88,6 +99,10 @@ const actions = useActions(
             emit("actionSuccess", action, keys, selection),
         onError: (action, keys, error, selection) =>
             emit("actionError", action, keys, error, selection),
+        onQueued: (action, status, selection) =>
+            emit("actionQueued", action, status, selection),
+        onProgress: (action, status, selection) =>
+            emit("actionProgress", action, status, selection),
     },
 );
 const tableExports = useExports(table, actions, {
@@ -220,6 +235,13 @@ provideTableContext({
             :slot-props="{ pending: actions.pendingAction.value }"
         >
             <Confirmation />
+        </SlotOutlet>
+        <SlotOutlet
+            v-if="actions.queuedAction.value || actions.actionError.value"
+            name="queuedAction"
+            :slot-props="{ status: actions.queuedAction.value }"
+        >
+            <QueuedActionDialog />
         </SlotOutlet>
     </div>
 </template>

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Musing\InertiaTable\Http\Controllers\ActionController;
 use Musing\InertiaTable\Http\Controllers\ExportController;
+use Musing\InertiaTable\Http\Controllers\QueuedActionStatusController;
 use Musing\InertiaTable\Http\Controllers\QueuedExportStatusController;
 use Musing\InertiaTable\Http\Controllers\ViewController;
 
@@ -14,6 +15,19 @@ Route::middleware(['web', 'signed:relative'])
     )
     ->where('table', '[A-Za-z0-9_-]+')
     ->name('inertia-table.actions');
+
+Route::middleware(['web', 'signed:relative'])
+    ->get(
+        trim((string) config('inertia-table.action_path', '_inertia-table/actions'), '/')
+            .'/{table}/{action}/{id}',
+        QueuedActionStatusController::class,
+    )
+    ->where([
+        'table' => '[A-Za-z0-9_-]+',
+        'action' => '[A-Za-z0-9_-]+',
+        'id' => '[A-Fa-f0-9-]+',
+    ])
+    ->name('inertia-table.action-status');
 
 Route::middleware(['web', 'signed:relative'])
     ->post(
