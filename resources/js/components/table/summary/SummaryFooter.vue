@@ -62,6 +62,8 @@ function formattedValue(column: TableColumn): string {
                     {
                         'tb-sticky-cell': sticky.pinSide(column.attribute),
                         'tb-sticky-footer-cell': resource.options.stickyFooter,
+                        'tb-column-resize-active':
+                            table.resizingColumn.value === column.attribute,
                     },
                 ]"
                 :style="[

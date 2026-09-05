@@ -18,6 +18,7 @@ export function useTable<T extends TableItem>(
     const page = usePage();
     const search = ref(toValue(resource).state.search);
     const isNavigating = ref(false);
+    const resizingColumn = ref<string | null>(null);
     const columnOrder = ref(
         normalizeColumnOrder(
             toValue(resource).state.columnOrder,
@@ -359,6 +360,10 @@ export function useTable<T extends TableItem>(
         scheduleLayoutVisit();
     }
 
+    function setResizingColumn(attribute: string | null) {
+        resizingColumn.value = attribute;
+    }
+
     function reorderableOnSameSide(attribute: string): string[] {
         const side = columnPinSide(attribute);
 
@@ -538,6 +543,7 @@ export function useTable<T extends TableItem>(
         removeFilter,
         resetColumnLayout,
         resetColumnWidth,
+        resizingColumn,
         resource: computed(() => toValue(resource)),
         search,
         setFilter,
@@ -545,6 +551,7 @@ export function useTable<T extends TableItem>(
         setColumnWidth,
         setPage,
         setPerPage,
+        setResizingColumn,
         setSearch,
         setSort,
         state,

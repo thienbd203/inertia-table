@@ -42,6 +42,9 @@ function stopResize() {
         handle.value.releasePointerCapture(pointerId);
     }
     pointerId = null;
+    if (document.activeElement !== handle.value) {
+        table.setResizingColumn(null);
+    }
     window.removeEventListener("pointermove", onPointerMove);
     window.removeEventListener("pointerup", stopResize);
     window.removeEventListener("pointercancel", stopResize);
@@ -69,6 +72,7 @@ function onPointerDown(event: PointerEvent) {
         KEYBOARD_STEP;
     pointerId = event.pointerId;
     event.preventDefault();
+    table.setResizingColumn(props.column.attribute);
     handle.value?.setPointerCapture?.(event.pointerId);
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("pointerup", stopResize, { once: true });
@@ -88,7 +92,30 @@ function onKeydown(event: KeyboardEvent) {
     );
 }
 
-onScopeDispose(stopResize);
+function onFocus() {
+    table.setResizingColumn(props.column.attribute);
+}
+
+function onBlur() {
+    if (pointerId === null) table.setResizingColumn(null);
+}
+
+function onPointerEnter() {
+    table.setResizingColumn(props.column.attribute);
+}
+
+function onPointerLeave() {
+    if (pointerId === null && document.activeElement !== handle.value) {
+        table.setResizingColumn(null);
+    }
+}
+
+onScopeDispose(() => {
+    stopResize();
+    if (table.resizingColumn.value === props.column.attribute) {
+        table.setResizingColumn(null);
+    }
+});
 </script>
 
 <template>
@@ -106,8 +133,12 @@ onScopeDispose(stopResize);
         :aria-valuemax="column.maxWidth ?? undefined"
         :aria-valuenow="currentWidth ?? undefined"
         tabindex="0"
+        @blur="onBlur"
         @dblclick="table.resetColumnWidth(column.attribute)"
+        @focus="onFocus"
         @keydown="onKeydown"
         @pointerdown="onPointerDown"
+        @pointerenter="onPointerEnter"
+        @pointerleave="onPointerLeave"
     />
 </template>

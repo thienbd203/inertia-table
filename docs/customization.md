@@ -64,7 +64,14 @@ Column layout exposes `tb-resizable-column`, `tb-reorderable-column`,
 `--tb-resize-handle-hit-area`, `--tb-resize-handle-width`,
 `--tb-resize-handle-inset`, `--tb-resize-handle-color`,
 `--tb-reorder-handle-size`, `--tb-column-header-gap` and
-`--tb-column-drop-color`.
+`--tb-column-drop-color`. Header interactions use three visual layers: the
+whole header row, the active button, then the resize guide. They can be tuned
+with `--tb-header-hover-background`, `--tb-header-button-hover-background`,
+`--tb-header-hover-foreground`, `--tb-header-active-background`, and
+`--tb-header-active-foreground`.
+
+Sticky headers always use an opaque background; the optional backdrop filter
+applies only to horizontally sticky body and summary-footer cells.
 
 Summary footers expose `tb-summary-footer`, `tb-summary-row`, and
 `tb-summary-value`. Their surface can be adjusted with

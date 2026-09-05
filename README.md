@@ -456,8 +456,10 @@ Sticky headers and footers use the same bounded scroll viewport. Override
 `--tb-sticky-max-height` to size it; the legacy
 `--tb-sticky-header-max-height` variable remains supported.
 
-Sticky cells use a backdrop blur by default. Disable it globally when large
-tables or many pinned columns make repainting expensive:
+Horizontally sticky body and summary-footer cells use a backdrop blur by
+default. Sticky headers always keep an opaque background so scrolling content
+cannot show through them. Disable the remaining backdrop blur globally when
+large tables or many pinned columns make repainting expensive:
 
 ```php
 // config/inertia-table.php
@@ -477,7 +479,7 @@ final class TopicsTable extends Table
 TopicsTable::make()->stickyBackdropFilter(false);
 ```
 
-When enabled, customize the CSS filter with
+When enabled, customize the body/footer CSS filter with
 `--tb-sticky-backdrop-filter` (the default is `blur(4px)`). Resources produced
 by older package versions do not include the option and remain enabled for
 backward compatibility.

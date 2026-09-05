@@ -36,7 +36,7 @@
 }
 
 .tb-sticky-backdrop-filter
-    :is(.tb-sticky-cell, .tb-sticky-header-cell, .tb-sticky-footer-cell) {
+    :is(.tb-sticky-cell:not(.tb-sticky-header-cell), .tb-sticky-footer-cell) {
     background-color: var(
         --tb-sticky-background,
         color-mix(in srgb, var(--color-background, Canvas) 88%, transparent)
@@ -79,6 +79,46 @@
     gap: var(--tb-column-header-gap, 0.125rem);
 }
 
+.tb-header-cell {
+    transition: background-color 150ms ease;
+}
+
+.tb-table-header:hover .tb-header-cell {
+    background-color: var(
+        --tb-header-hover-background,
+        color-mix(
+            in oklab,
+            var(--color-muted, Canvas) 50%,
+            var(--color-background, Canvas)
+        )
+    );
+}
+
+.tb-sort-button:is(:hover, [data-state="open"]) {
+    color: var(
+        --tb-header-hover-foreground,
+        var(--color-accent-foreground, currentColor)
+    );
+    background-color: var(
+        --tb-header-button-hover-background,
+        var(--color-accent, transparent)
+    );
+}
+
+.tb-sort-button[data-active] {
+    color: var(
+        --tb-header-active-foreground,
+        var(--color-accent-foreground, currentColor)
+    );
+    background-color: var(
+        --tb-header-active-background,
+        var(
+            --tb-header-button-hover-background,
+            var(--color-accent, transparent)
+        )
+    );
+}
+
 [data-slot="table-head"][data-alignment="center"] > .tb-column-header-content {
     justify-content: center;
 }
@@ -107,12 +147,18 @@
     background: transparent;
 }
 
-.tb-column-resize-handle:is(:hover, :focus-visible, :active)::after {
-    background: var(--tb-resize-handle-color, var(--color-ring, currentColor));
-}
-
 .tb-column-resize-handle:focus-visible {
     outline: none;
+}
+
+.tb-column-resize-active {
+    box-shadow: inset calc(var(--tb-resize-guide-width, 1px) * -1) 0 0
+        var(--tb-resize-handle-color, var(--color-border, currentColor));
+}
+
+.tb-column-resize-active:dir(rtl) {
+    box-shadow: inset var(--tb-resize-guide-width, 1px) 0 0
+        var(--tb-resize-handle-color, var(--color-border, currentColor));
 }
 
 .tb-column-reorder-handle {
