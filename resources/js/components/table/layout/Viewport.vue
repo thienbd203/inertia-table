@@ -28,6 +28,7 @@ const canSelect = computed(
             class="tb-table"
             :container-class="{
                 'tb-sticky-header-container': resource.options.stickyHeader,
+                'tb-sticky-footer-container': resource.options.stickyFooter,
                 'tb-sticky-backdrop-filter':
                     resource.options.stickyBackdropFilter ?? true,
             }"

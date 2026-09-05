@@ -53,11 +53,22 @@ export function useViews<T extends TableItem>(table: UseTable<T>) {
         return JSON.stringify(value);
     }
 
+    function comparableState(state: TableViewState): TableViewState {
+        return {
+            ...state,
+            // Laravel serializes an empty associative array as `[]`, while
+            // useTable exposes column widths as an object. Both represent the
+            // same empty width map and must not mark a saved view as dirty.
+            columnWidths: { ...(state.columnWidths ?? {}) },
+        };
+    }
+
     const isDirty = computed(() => {
         const selected = selectedView.value;
 
         return selected
-            ? canonical(persistableState()) !== canonical(selected.state)
+            ? canonical(comparableState(persistableState())) !==
+                  canonical(comparableState(selected.state))
             : false;
     });
 

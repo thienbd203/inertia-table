@@ -120,6 +120,18 @@ describe("useViews", () => {
         ).toBe("0");
     });
 
+    it("treats server-serialized empty column widths as a clean view", () => {
+        const resource = resourceWithViews();
+        resource.views!.items[0].state.columnWidths = [] as unknown as Record<
+            string,
+            number
+        >;
+
+        const { views } = mountViews(resource);
+
+        expect(views.isDirty.value).toBe(false);
+    });
+
     it("sends normalized state for create and update without ephemeral search", () => {
         const { views } = mountViews();
         views.create("New view");

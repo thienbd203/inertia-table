@@ -102,6 +102,7 @@ type TableResource<T> = {
         paginationType: "full" | "simple" | "cursor";
         reloadProps: string[];
         stickyHeader: boolean;
+        stickyFooter: boolean;
     };
     views: TableViewsResource | null;
     exports: ExportResource[];

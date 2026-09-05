@@ -34,6 +34,8 @@ abstract class Table implements Arrayable
 
     protected ?bool $stickyHeader = null;
 
+    protected ?bool $stickyFooter = null;
+
     protected ?bool $stickyBackdropFilter = null;
 
     protected ?bool $columnResizing = null;
@@ -90,6 +92,7 @@ abstract class Table implements Arrayable
         ?bool $stickyBackdropFilter = null,
         ?bool $columnResizing = null,
         ?bool $columnReordering = null,
+        ?bool $stickyFooter = null,
     ): AnonymousTable {
         return new AnonymousTable(
             resource: $resource,
@@ -110,6 +113,7 @@ abstract class Table implements Arrayable
             stickyBackdropFilter: $stickyBackdropFilter,
             columnResizing: $columnResizing,
             columnReordering: $columnReordering,
+            stickyFooter: $stickyFooter,
         );
     }
 
@@ -174,6 +178,13 @@ abstract class Table implements Arrayable
     public function stickyHeader(bool $sticky = true): static
     {
         $this->stickyHeader = $sticky;
+
+        return $this;
+    }
+
+    public function stickyFooter(bool $sticky = true): static
+    {
+        $this->stickyFooter = $sticky;
 
         return $this;
     }
@@ -307,6 +318,8 @@ abstract class Table implements Arrayable
                 'paginationType' => $paginationType->value,
                 'reloadProps' => $this->reloadProps,
                 'stickyHeader' => $this->stickyHeader ?? false,
+                'stickyFooter' => $this->stickyFooter
+                    ?? (bool) config('inertia-table.sticky.footer', false),
                 'stickyBackdropFilter' => $this->stickyBackdropFilter
                     ?? (bool) config('inertia-table.sticky.backdrop_filter', true),
                 'columnResizing' => $this->resolvedColumnResizing(),

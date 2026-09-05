@@ -30,13 +30,18 @@ function formattedValue(column: TableColumn): string {
 </script>
 
 <template>
-    <tfoot data-slot="table-footer" class="tb-summary-footer">
+    <tfoot
+        data-slot="table-footer"
+        class="tb-summary-footer"
+        :data-sticky-footer="resource.options.stickyFooter || undefined"
+    >
         <tr data-slot="table-row" class="tb-summary-row">
             <UiTableCell
                 v-if="canSelect"
                 class="tb-selection-cell"
                 :class="{
                     'tb-sticky-cell': sticky.selectionPinned.value,
+                    'tb-sticky-footer-cell': resource.options.stickyFooter,
                 }"
                 :data-sticky-side="
                     sticky.selectionPinned.value ? 'left' : undefined
@@ -56,6 +61,7 @@ function formattedValue(column: TableColumn): string {
                     alignmentClass(column.alignment),
                     {
                         'tb-sticky-cell': sticky.pinSide(column.attribute),
+                        'tb-sticky-footer-cell': resource.options.stickyFooter,
                     },
                 ]"
                 :style="[

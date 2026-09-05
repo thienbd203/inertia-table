@@ -70,7 +70,9 @@ Summary footers expose `tb-summary-footer`, `tb-summary-row`, and
 `tb-summary-value`. Their surface can be adjusted with
 `--tb-summary-background`, `--tb-summary-border-color`, and
 `--tb-summary-font-weight`; horizontally sticky summary cells retain the same
-sticky edge and backdrop hooks as headers and body cells.
+sticky edge and backdrop hooks as headers and body cells. When `stickyFooter`
+is enabled, footer cells also expose `tb-sticky-footer-cell` and the scroll
+container exposes `tb-sticky-footer-container`.
 
 For a fully application-owned renderer, compose `useTable()`, `useActions()`,
 `useViews()` and `useExports()` against the typed `TableResource`. Keep the

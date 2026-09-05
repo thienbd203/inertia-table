@@ -74,6 +74,7 @@ return [
     'pagination_type' => 'full',
     'debounce' => 300,
     'sticky' => [
+        'footer' => false,
         'backdrop_filter' => true,
     ],
     'columns' => [
@@ -416,7 +417,7 @@ Disable either interaction globally with `columns.resizable` or
 `columnReordering(false)`. The Columns menu can reset order and widths without
 resetting search, filters or selection.
 
-### Sticky header and columns
+### Sticky header, summary footer, and columns
 
 Enable a sticky header on one table with a property or the fluent API. The
 default renderer gives sticky-header tables a `70vh` scroll viewport so the
@@ -432,6 +433,28 @@ final class TopicsTable extends Table
 
 TopicsTable::make()->stickyHeader();
 ```
+
+Tables with summaries can keep the footer visible while scrolling. Enable it
+globally or override it for one table:
+
+```php
+// config/inertia-table.php
+'sticky' => [
+    'footer' => true,
+    'backdrop_filter' => true,
+],
+
+final class TopicsTable extends Table
+{
+    protected ?bool $stickyFooter = true;
+}
+
+TopicsTable::make()->stickyFooter();
+```
+
+Sticky headers and footers use the same bounded scroll viewport. Override
+`--tb-sticky-max-height` to size it; the legacy
+`--tb-sticky-header-max-height` variable remains supported.
 
 Sticky cells use a backdrop blur by default. Disable it globally when large
 tables or many pinned columns make repainting expensive:

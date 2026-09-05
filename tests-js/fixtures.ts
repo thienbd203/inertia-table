@@ -178,6 +178,7 @@ export function topicResource(
             perPage: [10, 25, 50],
             paginationType: "full",
             stickyHeader: false,
+            stickyFooter: false,
             stickyBackdropFilter: true,
             columnResizing: true,
             columnReordering: true,

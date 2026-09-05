@@ -63,6 +63,7 @@ it('builds an anonymous table from a model class using the public options', func
         stickyBackdropFilter: false,
         columnResizing: false,
         columnReordering: false,
+        stickyFooter: true,
     );
 
     $resource = $table->resolve(Request::create('/', 'GET'))->toArray();
@@ -78,6 +79,7 @@ it('builds an anonymous table from a model class using the public options', func
             'debounceTime' => 125,
             'perPage' => [2, 5],
             'stickyHeader' => true,
+            'stickyFooter' => true,
             'stickyBackdropFilter' => false,
             'columnResizing' => false,
             'columnReordering' => false,

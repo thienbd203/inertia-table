@@ -289,6 +289,7 @@ export type TableResource<T extends TableItem = TableItem> = {
         paginationType?: "full" | "simple" | "cursor";
         reloadProps: string[];
         stickyHeader?: boolean;
+        stickyFooter?: boolean;
         stickyBackdropFilter?: boolean;
         columnResizing?: boolean;
         columnReordering?: boolean;

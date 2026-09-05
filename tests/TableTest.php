@@ -127,6 +127,8 @@ class StickyTopicsTable extends TopicsTable
 
     protected ?bool $stickyHeader = true;
 
+    protected ?bool $stickyFooter = true;
+
     public function columns(): array
     {
         return [
@@ -346,6 +348,7 @@ it('serializes a versioned table resource', function () {
             'paginationType' => 'full',
             'reloadProps' => [],
             'stickyHeader' => false,
+            'stickyFooter' => false,
             'stickyBackdropFilter' => true,
             'columnResizing' => true,
             'columnReordering' => true,
@@ -387,7 +390,7 @@ it('serializes the eloquent primary key as stable row metadata', function () {
     expect($resource['results']['data'][0]['_table']['key'])->toBe('topic-alpha');
 });
 
-it('normalizes sticky header and pinned column state through declarations', function () {
+it('normalizes sticky header, footer, and pinned column state through declarations', function () {
     $defaults = (new StickyTopicsTable)->resolve(tableRequest())->toArray();
     $requested = (new StickyTopicsTable)->resolve(tableRequest([
         'pinnedColumns' => [
@@ -397,6 +400,7 @@ it('normalizes sticky header and pinned column state through declarations', func
     ]))->toArray();
 
     expect($defaults['options']['stickyHeader'])->toBeTrue()
+        ->and($defaults['options']['stickyFooter'])->toBeTrue()
         ->and($defaults['capabilities']['hasStickableColumns'])->toBeTrue()
         ->and($defaults['state']['pinnedColumns'])->toBe([
             'left' => ['id'],
@@ -406,6 +410,27 @@ it('normalizes sticky header and pinned column state through declarations', func
             'left' => ['id', 'name'],
             'right' => ['__actions'],
         ]);
+});
+
+it('configures the sticky footer globally and per table', function () {
+    config()->set('inertia-table.sticky.footer', true);
+
+    $global = (new TopicsTable)->resolve(tableRequest())->toArray();
+    $disabled = (new TopicsTable)
+        ->stickyFooter(false)
+        ->resolve(tableRequest())
+        ->toArray();
+
+    config()->set('inertia-table.sticky.footer', false);
+
+    $enabled = (new TopicsTable)
+        ->stickyFooter()
+        ->resolve(tableRequest())
+        ->toArray();
+
+    expect($global['options']['stickyFooter'])->toBeTrue()
+        ->and($disabled['options']['stickyFooter'])->toBeFalse()
+        ->and($enabled['options']['stickyFooter'])->toBeTrue();
 });
 
 it('configures the sticky backdrop filter globally and per table', function () {

@@ -43,6 +43,16 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
     }[alignment];
 }
 
+function buttonMarginClassByAlignment(
+    alignment: "left" | "center" | "right",
+): string {
+    return {
+        left: "-ms-3",
+        center: "",
+        right: "-me-3",
+    }[alignment];
+}
+
 function canTogglePin(attribute: string): boolean {
     const column = resource.value.columns.find(
         (candidate) => candidate.attribute === attribute,
@@ -208,7 +218,12 @@ function reorderKeydown(event: KeyboardEvent, attribute: string) {
                                             : 'ghost'
                                     "
                                     size="sm"
-                                    class="-ms-3 tb-sort-button font-semibold"
+                                    class="tb-sort-button font-semibold"
+                                    :class="
+                                        buttonMarginClassByAlignment(
+                                            column.alignment,
+                                        )
+                                    "
                                     :data-active="
                                         sortDirection(column.attribute)
                                             ? ''

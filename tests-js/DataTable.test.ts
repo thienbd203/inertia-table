@@ -133,6 +133,31 @@ describe("DataTable shadcn renderer", () => {
         expect(document.body.textContent).toContain("Delete");
     });
 
+    it("keeps aligned sort-button hover surfaces inside header cells", () => {
+        const resource = topicResource();
+        resource.columns[1].sortable = true;
+        resource.columns[2].sortable = true;
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        expect(
+            wrapper.get('th[data-column="name"] .tb-sort-button').classes(),
+        ).toContain("-ms-3");
+        expect(
+            wrapper
+                .get('th[data-column="is_featured"] .tb-sort-button')
+                .classes(),
+        ).not.toContain("-");
+        expect(
+            wrapper
+                .get('th[data-column="__actions"] .tb-sort-button')
+                .classes(),
+        ).toContain("-me-3");
+    });
+
     it("disables the sticky backdrop filter for one table", () => {
         const resource = topicResource();
         resource.options.stickyBackdropFilter = false;
@@ -164,6 +189,7 @@ describe("DataTable shadcn renderer", () => {
     it("renders formatted summaries in visible and sticky columns", () => {
         const resource = topicResource();
         resource.capabilities.hasSummaries = true;
+        resource.options.stickyFooter = true;
         resource.columns[0].summary = {
             type: "sum",
             format: "#,##0.00",
@@ -187,8 +213,20 @@ describe("DataTable shadcn renderer", () => {
         const footer = wrapper.get('[data-slot="table-footer"]');
         const name = footer.get('td[data-column="name"]');
 
+        expect(footer.attributes("data-sticky-footer")).toBe("true");
+        expect(
+            wrapper.get('[data-slot="table-container"]').classes(),
+        ).toContain("tb-sticky-footer-container");
         expect(footer.findAll('td[data-column="is_featured"]')).toHaveLength(0);
         expect(name.classes()).toContain("tb-sticky-cell");
+        expect(name.classes()).toContain("tb-sticky-footer-cell");
+        expect(
+            footer
+                .findAll('[data-slot="table-cell"]')
+                .every((cell) =>
+                    cell.classes().includes("tb-sticky-footer-cell"),
+                ),
+        ).toBe(true);
         expect(name.get("[data-summary-slot]").text()).toBe("1234.5:1,234.50");
     });
 

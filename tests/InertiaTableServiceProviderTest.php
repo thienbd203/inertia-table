@@ -23,6 +23,7 @@ it('merges the package default configuration without a published config file', f
         ->and(config('inertia-table.pagination_type'))->toBe('full')
         ->and(config('inertia-table.debounce'))->toBe(300)
         ->and(config('inertia-table.sticky.backdrop_filter'))->toBeTrue()
+        ->and(config('inertia-table.sticky.footer'))->toBeFalse()
         ->and(config('inertia-table.columns.resizable'))->toBeTrue()
         ->and(config('inertia-table.columns.reorderable'))->toBeTrue()
         ->and(config('inertia-table.action_path'))->toBe('_inertia-table/actions')

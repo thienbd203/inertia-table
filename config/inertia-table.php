@@ -10,6 +10,7 @@ return [
     'pagination_type' => 'full',
     'debounce' => 300,
     'sticky' => [
+        'footer' => false,
         'backdrop_filter' => true,
     ],
     'columns' => [
