@@ -135,7 +135,6 @@ function goToPage(page: number): void {
                 <UiButton
                     v-if="paginationType === 'full'"
                     variant="outline"
-                    size="icon-sm"
                     :aria-label="i18n.t('firstPage')"
                     :disabled="!hasPreviousPage"
                     @click="table.setPage(1)"
@@ -144,7 +143,6 @@ function goToPage(page: number): void {
                 </UiButton>
                 <UiButton
                     variant="outline"
-                    size="icon-sm"
                     :aria-label="i18n.t('previousPage')"
                     :disabled="!hasPreviousPage"
                     @click="previousPage"
@@ -160,7 +158,6 @@ function goToPage(page: number): void {
                         v-for="page in pageNumbers"
                         :key="page"
                         :variant="page === currentPage ? 'default' : 'outline'"
-                        size="icon-sm"
                         :aria-label="i18n.t('goToPage', { page })"
                         :aria-current="
                             page === currentPage ? 'page' : undefined
@@ -172,7 +169,6 @@ function goToPage(page: number): void {
                 </nav>
                 <UiButton
                     variant="outline"
-                    size="icon-sm"
                     :aria-label="i18n.t('nextPage')"
                     :disabled="!hasNextPage"
                     @click="nextPage"
@@ -182,7 +178,6 @@ function goToPage(page: number): void {
                 <UiButton
                     v-if="paginationType === 'full'"
                     variant="outline"
-                    size="icon-sm"
                     :aria-label="i18n.t('lastPage')"
                     :disabled="!hasNextPage"
                     @click="table.setPage(resource.results.lastPage ?? 1)"
