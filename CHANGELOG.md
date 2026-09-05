@@ -19,6 +19,10 @@ All notable changes to `inertia-table` will be documented in this file.
   aggregate query.
 - A sticky-aware summary footer with per-cell/whole-footer slots, loading state,
   locale-aware formatting, and opt-in native CSV summary rows.
+- Signed, server-driven `SetFilter` option sources with debounced search, opaque
+  cursor pagination, dependency allowlists and independent authorization.
+- Optional facet counts derived from the normalized table query, selected-label
+  hydration, bounded client caching and loading/error/retry option states.
 
 ### Changed
 

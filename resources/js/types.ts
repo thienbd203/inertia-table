@@ -64,6 +64,18 @@ export type TableColumn = {
 export type TableFilterOption = {
     value: string | number | boolean;
     label: string;
+    count?: number;
+};
+
+export type TableRemoteFilter = {
+    endpoint: string;
+    searchable: boolean;
+    dependsOn: string[];
+    perPage: number;
+    debounceTime: number;
+    cacheTtl: number;
+    maxCacheEntries: number;
+    withCounts: boolean;
 };
 
 export type TableFilter = {
@@ -72,6 +84,7 @@ export type TableFilter = {
     type: "text" | "set" | "select" | "numeric" | "date" | "boolean" | string;
     clauses: string[];
     options: TableFilterOption[];
+    remote?: TableRemoteFilter;
     multiple?: boolean;
     compactDisplayLabel?: string | null;
     showClause?: boolean;

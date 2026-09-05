@@ -18,6 +18,7 @@ import type { TableFilter } from "@/types";
 import { useTableContext } from "@/context/tableContext";
 import FilterDateCalendar from "./FilterDateCalendar.vue";
 import FilterDateRangeCalendar from "./FilterDateRangeCalendar.vue";
+import RemoteFilterValueControl from "./RemoteFilterValueControl.vue";
 
 const props = defineProps<{
     filter: TableFilter;
@@ -170,7 +171,18 @@ defineExpose({
     <div v-if="control !== 'none'" class="flex items-center gap-2 mt-2">
         <Search v-if="showsSearchIcon" class="size-5" />
 
-        <UiDropdownMenu v-if="control === 'select' && allowsMultipleValues">
+        <RemoteFilterValueControl
+            v-if="control === 'select' && filter.remote"
+            ref="valueControl"
+            :filter="filter"
+            :clause="clause"
+            :model-value="modelValue"
+            @update:model-value="emit('update:modelValue', $event)"
+        />
+
+        <UiDropdownMenu
+            v-else-if="control === 'select' && allowsMultipleValues"
+        >
             <UiDropdownMenuTrigger as-child>
                 <UiButton
                     ref="valueControl"

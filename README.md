@@ -81,6 +81,16 @@ return [
         'resizable' => true,
         'reorderable' => true,
     ],
+    'filter_option_path' => '_inertia-table/filter-options',
+    'filters' => [
+        'remote' => [
+            'per_page' => 25,
+            'max_per_page' => 100,
+            'debounce' => 250,
+            'cache_ttl' => 30000,
+            'max_cache_entries' => 50,
+        ],
+    ],
     'action_path' => '_inertia-table/actions',
     'actions' => [
         'queue' => [
@@ -689,6 +699,74 @@ SetFilter::make('status')->options([
 
 `SelectFilter` is available as a deprecated alias for `SetFilter`.
 
+### Remote and faceted options
+
+Use a remote option source when a set is too large to serialize with the table
+resource. The initial resource contains only the signed endpoint and any labels
+needed by the current selection; option pages are loaded on demand.
+
+```php
+use Illuminate\Database\Eloquent\Builder;
+use Musing\InertiaTable\Filters\FilterOptionRequest;
+
+SetFilter::make('category_id', 'Category')
+    ->optionsUsing(function (FilterOptionRequest $request): Builder {
+        $statuses = array_values(array_filter(
+            (array) $request->dependency('status'),
+            fn (mixed $status): bool => is_string($status),
+        ));
+
+        return Category::query()
+            ->when(
+                $statuses !== [],
+                fn (Builder $query): Builder => $query
+                    ->whereHas('products', fn (Builder $products): Builder => $products
+                        ->whereIn('status', $statuses)),
+            )
+            ->orderBy('name');
+    })
+    ->optionValue('id')
+    ->optionLabel('name')
+    ->searchableOptions()
+    ->dependsOn(['status'])
+    ->withCounts()
+    ->optionPageSize(25)
+    ->multiple();
+```
+
+`searchableOptions()` searches the label column by default; pass a column name
+or an array of allowlisted option-model columns to override it. Remote options
+use opaque cursor pagination, debounced latest-request-wins search, bounded
+client caching, loading/error/retry states and selected-label hydration. A
+dependency is exposed to `FilterOptionRequest` only when it was declared with
+`dependsOn()`.
+
+`withCounts()` calculates each option's count from the table's normalized query,
+including search and every active filter except the remote filter itself. The
+default counter supports a direct base-table attribute such as `category_id`.
+For relationship paths or domain-specific counting, pass a callback that returns
+an array keyed by option value:
+
+```php
+->withCounts(function (FilterOptionRequest $request, array $values): array {
+    // Build duplicate-safe counts from $request->table and return [value => count].
+})
+```
+
+Authorize option loading independently when needed:
+
+```php
+->authorizeOptionsUsing(
+    fn (Request $request, Table $table, SetFilter $filter): bool =>
+        $request->user()?->can('viewCategories') === true,
+)
+```
+
+The package route is signed and accepts only the declared table, filter,
+dependency and normalized filter state. Configure its path with
+`inertia-table.filter_option_path`; page limits, debounce and cache bounds live
+under `inertia-table.filters.remote`.
+
 ### Relationship queries
 
 Declared columns and filters accept nested Eloquent paths. Dot notation is never
@@ -1109,7 +1187,10 @@ The default renderer is intended to cover normal tables. Use slots only for targ
 
 Useful slots include `topbar`, `beforeSearch`, `afterSearch`, `beforeActions`, `afterActions`, `filters`, `table`, `thead`, `tbody`, `summaryFooter`, `footer`, `loading`, `emptyState`, `confirmation`, `queuedAction`, `cell(attribute)`, `header(attribute)`, `summary(attribute)`, `filter(attribute)`, `image(attribute)` and `image-fallback(attribute)`.
 
-Use `filter(attribute)` when an option source needs application-owned behavior such as remote search, pagination or creating a missing option. The slot receives `filter`, `state`, `value`, `update`, `setDisplayValue`, `close`, `table` and `actions`:
+Use `filter(attribute)` when an option source needs fully application-owned
+behavior, such as creating a missing option or a non-Eloquent data source. The
+slot receives `filter`, `state`, `value`, `update`, `setDisplayValue`, `close`,
+`table` and `actions`:
 
 Declare the stored value with a regular server-side filter. For example, an integer foreign key can use a clause-less numeric filter:
 
@@ -1134,7 +1215,10 @@ NumericFilter::make('source_id', 'Source')->withoutClause();
 </DataTable>
 ```
 
-The package only owns the selected filter value and URL state in this case. The application owns the endpoint, loading state, debounce, result pagination and option creation.
+The package only owns the selected filter value and URL state in this case. The
+application owns the endpoint, loading state, debounce, result pagination and
+option creation. Prefer `SetFilter::optionsUsing()` for the built-in Eloquent
+remote-search, cursor-pagination and facet-count flow.
 
 For a fully custom renderer, use the composables instead:
 

@@ -17,8 +17,11 @@ use Musing\InertiaTable\Columns\Column;
 use Musing\InertiaTable\Exports\Export;
 use Musing\InertiaTable\Exports\ExportScope;
 use Musing\InertiaTable\Filters\Filter;
+use Musing\InertiaTable\Filters\FilterOptionRequest;
+use Musing\InertiaTable\Filters\SetFilter;
 use Musing\InertiaTable\Summaries\SummaryAggregate;
 use Musing\InertiaTable\Support\DataAttributes;
+use Musing\InertiaTable\Support\RelationshipPath;
 use Musing\InertiaTable\Support\TableReference;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -289,7 +292,10 @@ abstract class Table implements Arrayable
         return new TableResource(
             name: $this->name(),
             columns: array_map(fn (Column $column) => $column->toArray(), $columns),
-            filters: array_map(fn (Filter $filter) => $filter->toArray(), $filters),
+            filters: array_map(
+                fn (Filter $filter) => $this->resolveFilter($filter, $request, $state),
+                $filters,
+            ),
             actions: $bulkActions,
             search: array_map(fn (Column $column) => $column->attribute, $searchable),
             capabilities: [
@@ -348,6 +354,17 @@ abstract class Table implements Arrayable
         foreach ($this->validatedExports() as $export) {
             if ($export->key === $key) {
                 return $export;
+            }
+        }
+
+        return null;
+    }
+
+    public function filter(string $attribute): ?Filter
+    {
+        foreach ($this->validatedFilters() as $filter) {
+            if ($filter->attribute === $attribute) {
+                return $filter;
             }
         }
 
@@ -458,6 +475,54 @@ abstract class Table implements Arrayable
 
         return $this->buildQuery($request, $resolved, $columns, $filters)
             ->getEloquentBuilder();
+    }
+
+    /**
+     * Resolve counts for the requested option values against the normalized
+     * table query, excluding the filter whose facets are being calculated.
+     *
+     * @param  array<string, mixed>  $state
+     * @param  array<int, string|int|bool>  $values
+     * @return array<string, int>
+     */
+    public function facetCounts(SetFilter $filter, array $state, array $values): array
+    {
+        if (RelationshipPath::split($filter->attribute) !== null) {
+            throw new LogicException(
+                "Facet counts for relationship path [{$filter->attribute}] require a custom withCounts callback.",
+            );
+        }
+
+        $state['filters'][$filter->attribute] = [
+            'enabled' => false,
+            'clause' => $filter->defaultClause(),
+            'value' => null,
+        ];
+        $query = $this->queryForState($state);
+        $model = $query->getModel();
+        $qualifiedKey = $model->getQualifiedKeyName();
+        $qualifiedAttribute = $model->qualifyColumn($filter->attribute);
+        $grammar = $query->getQuery()->getGrammar();
+        $keyExpression = $grammar->wrap($qualifiedKey);
+        $valueExpression = $grammar->wrap($qualifiedAttribute);
+        $facetKey = $grammar->wrap('__facet_key');
+        $facetValue = $grammar->wrap('__facet_value');
+
+        $query->reorder()
+            ->whereIn($qualifiedAttribute, $values)
+            ->select([])
+            ->selectRaw("{$keyExpression} as {$facetKey}, {$valueExpression} as {$facetValue}");
+
+        return $query->toBase()->newQuery()
+            ->fromSub($query->toBase(), '__inertia_table_facets')
+            ->select('__facet_value')
+            ->selectRaw('count(distinct __facet_key) as aggregate')
+            ->groupBy('__facet_value')
+            ->get()
+            ->mapWithKeys(fn (object $row) => [
+                (string) $row->__facet_value => (int) $row->aggregate,
+            ])
+            ->all();
     }
 
     /** @return Builder<Model> */
@@ -1306,6 +1371,61 @@ abstract class Table implements Arrayable
         );
 
         return $export->resolve($request, $this, $endpoint);
+    }
+
+    /** @return array<string, mixed> */
+    private function resolveFilter(Filter $filter, Request $request, TableState $state): array
+    {
+        $resolved = $filter->toArray();
+
+        if (! $filter instanceof SetFilter || ! $filter->hasRemoteOptions()) {
+            return $resolved;
+        }
+
+        $endpoint = url()->signedRoute(
+            'inertia-table.filter-options',
+            [
+                'table' => TableReference::encode(static::class),
+                'filter' => $filter->attribute,
+            ],
+            absolute: false,
+        );
+        $resolved['remote'] = $filter->remoteConfiguration($endpoint);
+        $filterState = $state->filters[$filter->attribute] ?? null;
+        $selected = is_array($filterState) && $filterState['enabled']
+            ? $filter->normalizeOptionValues($filterState['value'])
+            : [];
+
+        if ($selected === []) {
+            return $resolved;
+        }
+
+        $normalizedState = [
+            'search' => $state->search,
+            'sort' => $state->sort,
+            'filters' => $state->filters,
+        ];
+        $optionRequest = new FilterOptionRequest(
+            request: $request,
+            table: $this,
+            filter: $filter,
+            dependencies: $filter->dependenciesFromState($normalizedState),
+            selected: $selected,
+            state: $normalizedState,
+            perPage: $filter->resolveOptionPageSize(),
+        );
+
+        if (! $filter->isOptionLoadingAuthorized($optionRequest)) {
+            return $resolved;
+        }
+
+        $selectedOptions = $filter->resolveSelectedOptions($optionRequest);
+        $resolved['options'] = collect([...$resolved['options'], ...$selectedOptions])
+            ->unique(fn (array $option) => (string) $option['value'])
+            ->values()
+            ->all();
+
+        return $resolved;
     }
 
     /**

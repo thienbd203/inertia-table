@@ -3,9 +3,19 @@
 use Illuminate\Support\Facades\Route;
 use Musing\InertiaTable\Http\Controllers\ActionController;
 use Musing\InertiaTable\Http\Controllers\ExportController;
+use Musing\InertiaTable\Http\Controllers\FilterOptionsController;
 use Musing\InertiaTable\Http\Controllers\QueuedActionStatusController;
 use Musing\InertiaTable\Http\Controllers\QueuedExportStatusController;
 use Musing\InertiaTable\Http\Controllers\ViewController;
+
+Route::middleware(['web', 'signed:relative'])
+    ->post(
+        trim((string) config('inertia-table.filter_option_path', '_inertia-table/filter-options'), '/')
+            .'/{table}/{filter}',
+        FilterOptionsController::class,
+    )
+    ->where(['table' => '[A-Za-z0-9_-]+', 'filter' => '[A-Za-z0-9_.-]+'])
+    ->name('inertia-table.filter-options');
 
 Route::middleware(['web', 'signed:relative'])
     ->post(
