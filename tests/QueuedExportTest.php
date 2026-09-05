@@ -104,7 +104,7 @@ class QueuedExportTopicsTable extends Table
     public function columns(): array
     {
         return [
-            NumberColumn::make('id', 'ID')->sortable(),
+            NumberColumn::make('id', 'ID')->sortable()->summary('count'),
             TextColumn::make('name', 'Name')->searchable(),
             TextColumn::make('tenant', 'Tenant'),
         ];
@@ -118,7 +118,7 @@ class QueuedExportTopicsTable extends Table
     public function exports(): array
     {
         $exports = [
-            Export::make('sync', 'Sync', 'topics.csv')->filtered(),
+            Export::make('sync', 'Sync', 'topics.csv')->filtered()->withSummaries(),
         ];
 
         if (self::$removeQueuedExport) {
@@ -127,6 +127,7 @@ class QueuedExportTopicsTable extends Table
 
         $queued = Export::make('queued', 'Queued', 'topics.csv')
             ->filtered()
+            ->withSummaries()
             ->queue(
                 connection: 'database',
                 queue: 'exports',
@@ -256,7 +257,7 @@ it('dispatches a closure-free normalized snapshot with queue configuration and c
         ->and($response->json('export'))->not->toHaveKey('_accessHash');
 });
 
-it('restores actor and tenant, writes the same filtered CSV, and publishes ready status', function () {
+it('restores actor and tenant, writes the same filtered CSV with summaries, and publishes ready status', function () {
     $user = QueuedExportUser::query()->create(['name' => 'Allowed']);
     $this->actingAs($user);
     $payload = queuedExportPayload();
@@ -270,6 +271,7 @@ it('restores actor and tenant, writes the same filtered CSV, and publishes ready
 
     Storage::disk('queued-exports')->assertExists($job->snapshot->path);
     expect(Storage::disk('queued-exports')->get($job->snapshot->path))->toBe($sync)
+        ->and($sync)->toEndWith("2,,\n")
         ->and(QueuedExportTestContext::$restored)->toBe([
             [$user->getKey(), ['tenant' => 'tenant-one']],
         ])

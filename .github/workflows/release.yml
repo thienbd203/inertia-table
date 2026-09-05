@@ -9,31 +9,19 @@ permissions:
   contents: read
 
 jobs:
-  php:
-    name: PHP checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  php-checks:
+    name: PHP release gate
+    uses: ./.github/workflows/run-tests.yml
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+  js-checks:
+    name: JavaScript release gate
+    uses: ./.github/workflows/run-js-tests.yml
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
-
-      - name: Run tests
-        run: vendor/bin/pest --ci
-
-  npm:
+  publish-npm:
     name: Publish npm package
-    needs: php
+    needs:
+      - php-checks
+      - js-checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -51,21 +39,14 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: npm
 
+      - name: Setup npm
+        run: npm install --global npm@10.9.7 --no-audit --no-fund
+
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Verify tag matches package version
-        run: |
-          test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
-
-      - name: Check formatting, types and tests
-        run: |
-          npm run format:check
-          npm run types:check
-          npm test
-
-      - name: Build package
-        run: npm run build
+        run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
 
       - name: Publish public package
         run: npm publish --access public --provenance

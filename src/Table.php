@@ -17,6 +17,7 @@ use Musing\InertiaTable\Columns\Column;
 use Musing\InertiaTable\Exports\Export;
 use Musing\InertiaTable\Exports\ExportScope;
 use Musing\InertiaTable\Filters\Filter;
+use Musing\InertiaTable\Summaries\SummaryAggregate;
 use Musing\InertiaTable\Support\DataAttributes;
 use Musing\InertiaTable\Support\TableReference;
 use Spatie\QueryBuilder\AllowedFilter;
@@ -33,7 +34,13 @@ abstract class Table implements Arrayable
 
     protected ?bool $stickyHeader = null;
 
+    protected ?bool $stickyFooter = null;
+
     protected ?bool $stickyBackdropFilter = null;
+
+    protected ?bool $columnResizing = null;
+
+    protected ?bool $columnReordering = null;
 
     protected bool $pagination = true;
 
@@ -83,6 +90,9 @@ abstract class Table implements Arrayable
         ?int $defaultPerPage = null,
         ?PaginationType $paginationType = null,
         ?bool $stickyBackdropFilter = null,
+        ?bool $columnResizing = null,
+        ?bool $columnReordering = null,
+        ?bool $stickyFooter = null,
     ): AnonymousTable {
         return new AnonymousTable(
             resource: $resource,
@@ -101,6 +111,9 @@ abstract class Table implements Arrayable
             defaultPerPage: $defaultPerPage,
             paginationType: $paginationType,
             stickyBackdropFilter: $stickyBackdropFilter,
+            columnResizing: $columnResizing,
+            columnReordering: $columnReordering,
+            stickyFooter: $stickyFooter,
         );
     }
 
@@ -169,9 +182,30 @@ abstract class Table implements Arrayable
         return $this;
     }
 
+    public function stickyFooter(bool $sticky = true): static
+    {
+        $this->stickyFooter = $sticky;
+
+        return $this;
+    }
+
     public function stickyBackdropFilter(bool $enabled = true): static
     {
         $this->stickyBackdropFilter = $enabled;
+
+        return $this;
+    }
+
+    public function columnResizing(bool $enabled = true): static
+    {
+        $this->columnResizing = $enabled;
+
+        return $this;
+    }
+
+    public function columnReordering(bool $enabled = true): static
+    {
+        $this->columnReordering = $enabled;
 
         return $this;
     }
@@ -217,6 +251,7 @@ abstract class Table implements Arrayable
         $paginationType = $this->resolvedPaginationType();
         $state = $this->normalizePaginationState($state, $columns, $paginationType);
         $query = $this->buildQuery($request, $state, $columns, $filters);
+        $summaries = $this->summariesForQuery(clone $query->getEloquentBuilder(), $columns);
 
         $bulkActions = collect($actions)
             ->filter(fn (Action $action) => $action->isBulkAction())
@@ -268,6 +303,11 @@ abstract class Table implements Arrayable
                 'hasExports' => $resolvedExports !== [],
                 'hasToggleableColumns' => collect($columns)->contains(fn (Column $column) => $column->isToggleable()),
                 'hasStickableColumns' => collect($columns)->contains(fn (Column $column) => $column->isStickable()),
+                'hasResizableColumns' => $this->resolvedColumnResizing()
+                    && collect($columns)->contains(fn (Column $column) => $column->isResizable()),
+                'hasReorderableColumns' => $this->resolvedColumnReordering()
+                    && collect($columns)->contains(fn (Column $column) => $column->isReorderable()),
+                'hasSummaries' => $summaries !== [],
                 'hasEmptyState' => $emptyState !== null,
             ],
             state: $state,
@@ -278,12 +318,17 @@ abstract class Table implements Arrayable
                 'paginationType' => $paginationType->value,
                 'reloadProps' => $this->reloadProps,
                 'stickyHeader' => $this->stickyHeader ?? false,
+                'stickyFooter' => $this->stickyFooter
+                    ?? (bool) config('inertia-table.sticky.footer', false),
                 'stickyBackdropFilter' => $this->stickyBackdropFilter
                     ?? (bool) config('inertia-table.sticky.backdrop_filter', true),
+                'columnResizing' => $this->resolvedColumnResizing(),
+                'columnReordering' => $this->resolvedColumnReordering(),
             ],
             views: $resolvedViews['resource'] ?? null,
             exports: $resolvedExports,
             emptyState: $resolvedEmptyState,
+            summaries: $summaries,
         );
     }
 
@@ -338,11 +383,13 @@ abstract class Table implements Arrayable
             $this->validatedFilters(),
         );
         $normalized = [
-            'schemaVersion' => 1,
+            'schemaVersion' => 2,
             'sort' => $resolved->sort,
             'filters' => $resolved->filters,
             'columns' => $resolved->columns,
             'pinnedColumns' => $resolved->pinnedColumns,
+            'columnOrder' => $resolved->columnOrder,
+            'columnWidths' => $resolved->columnWidths,
             'perPage' => $resolved->perPage,
         ];
 
@@ -433,16 +480,120 @@ abstract class Table implements Arrayable
             fn (Column $column) => $column->isExportable(),
         ));
 
-        if (! $export->usesVisibleColumns()) {
+        if (! $export->usesVisibleColumns() && ! $export->usesUserColumnOrder()) {
             return $columns;
         }
 
-        $visibility = $this->normalizeViewState($state)['columns'];
+        $layout = $this->normalizeViewState($state);
 
-        return array_values(array_filter(
+        if ($export->usesVisibleColumns()) {
+            $columns = array_values(array_filter(
+                $columns,
+                fn (Column $column) => $layout['columns'][$column->attribute] ?? false,
+            ));
+        }
+
+        if ($export->usesUserColumnOrder()) {
+            $positions = array_flip($layout['columnOrder']);
+            usort(
+                $columns,
+                fn (Column $left, Column $right) => ($positions[$left->attribute] ?? PHP_INT_MAX)
+                    <=> ($positions[$right->attribute] ?? PHP_INT_MAX),
+            );
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Resolve declared summaries against an already scoped query.
+     *
+     * @param  Builder<Model>  $query
+     * @param  array<int, Column>|null  $columns
+     * @return array<string, mixed>
+     */
+    public function summariesForQuery(Builder $query, ?array $columns = null): array
+    {
+        $columns ??= $this->validatedColumns();
+        $summaryColumns = array_values(array_filter(
             $columns,
-            fn (Column $column) => $visibility[$column->attribute] ?? false,
+            fn (Column $column) => $column->summaryDefinition() !== null,
         ));
+
+        if ($summaryColumns === []) {
+            return [];
+        }
+
+        $values = $this->resolveBuiltInSummaries($query, $summaryColumns);
+
+        foreach ($summaryColumns as $column) {
+            $summary = $column->summaryDefinition();
+
+            if ($summary?->aggregateType() !== SummaryAggregate::Custom) {
+                continue;
+            }
+
+            $customQuery = clone $query;
+            $customQuery->reorder();
+            $values[$column->attribute] = $summary->resolve($customQuery, $column, $this);
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @param  array<int, Column>  $columns
+     * @return array<string, mixed>
+     */
+    private function resolveBuiltInSummaries(Builder $query, array $columns): array
+    {
+        $builtIns = array_values(array_filter(
+            $columns,
+            fn (Column $column) => $column->summaryDefinition()?->aggregateType() !== SummaryAggregate::Custom,
+        ));
+
+        if ($builtIns === []) {
+            return [];
+        }
+
+        $base = clone $query;
+        $base->reorder();
+        $baseQuery = $base->toBase();
+        $grammar = $baseQuery->getGrammar();
+        $summaryQuery = $baseQuery->newQuery()->fromSub($baseQuery, 'inertia_table_summary');
+        $aliases = [];
+
+        foreach ($builtIns as $index => $column) {
+            $summary = $column->summaryDefinition();
+            $aggregate = $summary?->aggregateType();
+            $attribute = $summary?->attribute();
+            $wrappedAttribute = $attribute === null ? null : $grammar->wrap($attribute);
+            $alias = "inertia_table_summary_{$index}";
+            $expression = match ($aggregate) {
+                SummaryAggregate::Count => 'COUNT(*)',
+                SummaryAggregate::CountDistinct => "COUNT(DISTINCT {$wrappedAttribute})",
+                SummaryAggregate::Sum => "SUM({$wrappedAttribute})",
+                SummaryAggregate::Average => "AVG({$wrappedAttribute})",
+                SummaryAggregate::Minimum => "MIN({$wrappedAttribute})",
+                SummaryAggregate::Maximum => "MAX({$wrappedAttribute})",
+                default => throw new LogicException('Unsupported built-in table summary.'),
+            };
+            $summaryQuery->selectRaw("{$expression} AS {$grammar->wrap($alias)}");
+            $aliases[$column->attribute] = [$alias, $aggregate];
+        }
+
+        $row = (array) $summaryQuery->first();
+        $values = [];
+
+        foreach ($aliases as $attribute => [$alias, $aggregate]) {
+            $value = $row[$alias] ?? null;
+            $values[$attribute] = in_array($aggregate, [SummaryAggregate::Count, SummaryAggregate::CountDistinct], true)
+                ? (int) $value
+                : $value;
+        }
+
+        return $values;
     }
 
     /** @return Builder<Model> */
@@ -533,6 +684,66 @@ abstract class Table implements Arrayable
         }
 
         return $state->withColumns($visibility);
+    }
+
+    /** @param array<int, Column> $columns */
+    protected function normalizeColumnLayout(array $columns, TableState $state): TableState
+    {
+        $declaredOrder = array_map(fn (Column $column) => $column->attribute, $columns);
+        $definitions = [];
+
+        foreach ($columns as $column) {
+            $definitions[$column->attribute] = $column;
+        }
+        $requestedOrder = array_values(array_unique(array_filter(
+            $state->columnOrder,
+            fn (string $attribute) => in_array($attribute, $declaredOrder, true),
+        )));
+        $requestedOrder = [...$requestedOrder, ...array_values(array_diff($declaredOrder, $requestedOrder))];
+
+        if (! $this->resolvedColumnReordering()) {
+            $columnOrder = $declaredOrder;
+        } else {
+            $side = fn (string $attribute): string => in_array($attribute, $state->pinnedColumns['left'], true)
+                ? 'left'
+                : (in_array($attribute, $state->pinnedColumns['right'], true) ? 'right' : 'none');
+            $reorderable = ['left' => [], 'none' => [], 'right' => []];
+
+            foreach ($requestedOrder as $attribute) {
+                if ($definitions[$attribute]->isReorderable()) {
+                    $reorderable[$side($attribute)][] = $attribute;
+                }
+            }
+
+            $columnOrder = [];
+
+            foreach ($columns as $column) {
+                if (! $column->isReorderable()) {
+                    $columnOrder[] = $column->attribute;
+
+                    continue;
+                }
+
+                $group = $side($column->attribute);
+                $columnOrder[] = array_shift($reorderable[$group]) ?? $column->attribute;
+            }
+        }
+
+        $widths = [];
+
+        foreach ($columns as $column) {
+            $requested = $state->columnWidths[$column->attribute] ?? null;
+
+            if ($this->resolvedColumnResizing() && $column->isResizable() && is_int($requested)) {
+                $widths[$column->attribute] = $column->clampWidth($requested);
+            } elseif ($column->defaultWidth() !== null) {
+                $widths[$column->attribute] = $column->defaultWidth();
+            }
+        }
+
+        return $state
+            ->withColumnOrder($columnOrder)
+            ->withColumnWidths($widths);
     }
 
     /**
@@ -626,6 +837,11 @@ abstract class Table implements Arrayable
                 $column->attribute => $column->isVisibleByDefault(),
             ])->all(),
             $this->defaultPinnedColumns($columns),
+            array_map(fn (Column $column) => $column->attribute, $columns),
+            collect($columns)
+                ->filter(fn (Column $column) => $column->defaultWidth() !== null)
+                ->mapWithKeys(fn (Column $column) => [$column->attribute => $column->defaultWidth()])
+                ->all(),
         );
         $state = $this->normalizeSort($columns, $state);
 
@@ -633,10 +849,10 @@ abstract class Table implements Arrayable
             $state = $state->withSearch('');
         }
 
-        return $this->normalizePinnedState($columns, $this->normalizeColumns(
+        return $this->normalizeColumnLayout($columns, $this->normalizePinnedState($columns, $this->normalizeColumns(
             $columns,
             $this->normalizeFilters($filters, $state),
-        ));
+        )));
     }
 
     /** @param array<string, mixed> $baseState */
@@ -653,9 +869,12 @@ abstract class Table implements Arrayable
             : [];
         $merged = array_replace($baseState, $explicit);
 
-        foreach (['filters', 'columns', 'pinnedColumns'] as $group) {
+        foreach (['filters', 'columns', 'pinnedColumns', 'columnWidths'] as $group) {
             if (is_array($baseState[$group] ?? null) && is_array($explicit[$group] ?? null)) {
-                $merged[$group] = array_replace($baseState[$group], $explicit[$group]);
+                $merged[$group] = $group === 'columnWidths'
+                    && filter_var($explicit[$group]['__reset'] ?? false, FILTER_VALIDATE_BOOL)
+                        ? array_diff_key($explicit[$group], ['__reset' => true])
+                        : array_replace($baseState[$group], $explicit[$group]);
             }
         }
 
@@ -725,6 +944,18 @@ abstract class Table implements Arrayable
     private function defaultPerPage(): int
     {
         return $this->perPage ?? (int) config('inertia-table.per_page', 25);
+    }
+
+    private function resolvedColumnResizing(): bool
+    {
+        return $this->columnResizing
+            ?? (bool) config('inertia-table.columns.resizable', true);
+    }
+
+    private function resolvedColumnReordering(): bool
+    {
+        return $this->columnReordering
+            ?? (bool) config('inertia-table.columns.reorderable', true);
     }
 
     /**

@@ -26,6 +26,10 @@ final class Export
 
     private bool $visibleColumnsOnly = false;
 
+    private bool $userColumnOrder = false;
+
+    private bool $summaries = false;
+
     private bool $queued = false;
 
     private ?int $chunkSize = null;
@@ -147,6 +151,21 @@ final class Export
     public function visibleColumnsOnly(bool $visibleOnly = true): self
     {
         $this->visibleColumnsOnly = $visibleOnly;
+
+        return $this;
+    }
+
+    public function visibleColumnLayout(bool $follow = true): self
+    {
+        $this->visibleColumnsOnly = $follow;
+        $this->userColumnOrder = $follow;
+
+        return $this;
+    }
+
+    public function withSummaries(bool $include = true): self
+    {
+        $this->summaries = $include;
 
         return $this;
     }
@@ -303,6 +322,16 @@ final class Export
     public function usesVisibleColumns(): bool
     {
         return $this->visibleColumnsOnly;
+    }
+
+    public function usesUserColumnOrder(): bool
+    {
+        return $this->userColumnOrder;
+    }
+
+    public function includesSummaries(): bool
+    {
+        return $this->summaries;
     }
 
     public function isQueued(): bool
@@ -466,6 +495,7 @@ final class Export
             'scope' => $this->scope->value,
             'requiresSelection' => $this->scope === ExportScope::Selected,
             'queued' => $this->queued,
+            'includesSummaries' => $this->summaries,
             'endpoint' => $endpoint,
             'meta' => $this->meta,
         ];

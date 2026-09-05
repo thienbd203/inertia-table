@@ -6,6 +6,7 @@ use Musing\InertiaTable\Actions\Action;
 use Musing\InertiaTable\Columns\ActionColumn;
 use Musing\InertiaTable\Columns\BooleanColumn;
 use Musing\InertiaTable\Columns\DateTimeColumn;
+use Musing\InertiaTable\Columns\NumberColumn;
 use Musing\InertiaTable\Columns\TextColumn;
 
 function anonymousModel(): Model
@@ -39,6 +40,48 @@ it('serializes user-toggleable and permanently sticky columns', function () {
         ->toMatchArray(['stickable' => true, 'sticky' => true])
         ->and(ActionColumn::new()->sticky()->toArray())
         ->toMatchArray(['stickable' => true, 'sticky' => true]);
+});
+
+it('serializes normalized column sizing and ordering declarations', function () {
+    $column = TextColumn::make('name')
+        ->width(280)
+        ->minWidth(180)
+        ->maxWidth(240)
+        ->resizable()
+        ->reorderable();
+
+    expect($column->toArray())->toMatchArray([
+        'width' => 240,
+        'minWidth' => 180,
+        'maxWidth' => 240,
+        'resizable' => true,
+        'reorderable' => true,
+    ])->and($column->clampWidth(100))->toBe(180)
+        ->and($column->clampWidth(900))->toBe(240)
+        ->and(TextColumn::make('wide')->minWidth(20000)->toArray()['minWidth'])->toBe(10000);
+});
+
+it('rejects invalid column sizing bounds', function () {
+    expect(fn () => TextColumn::make('name')->width(0))
+        ->toThrow(LogicException::class)
+        ->and(fn () => TextColumn::make('name')->minWidth(300)->maxWidth(200))
+        ->toThrow(LogicException::class)
+        ->and(ActionColumn::new()->toArray())
+        ->toMatchArray(['resizable' => false, 'reorderable' => false]);
+});
+
+it('validates summary declarations and keeps callbacks on the server', function () {
+    $custom = NumberColumn::make('score')->summaryUsing(fn () => 10);
+
+    expect(NumberColumn::make('amount')->summary('avg')->summaryFormat('#,##0.00')->toArray()['summary'])
+        ->toBe(['type' => 'avg', 'format' => '#,##0.00'])
+        ->and($custom->toArray()['summary'])->toBe(['type' => 'custom', 'format' => null])
+        ->and(fn () => NumberColumn::make('amount')->summary('median'))
+        ->toThrow(LogicException::class)
+        ->and(fn () => NumberColumn::make('relation.amount')->summary())
+        ->toThrow(LogicException::class)
+        ->and(fn () => NumberColumn::make('amount')->summaryFormat('0.00'))
+        ->toThrow(LogicException::class);
 });
 
 it('can group row actions in a dropdown', function () {

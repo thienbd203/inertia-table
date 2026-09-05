@@ -50,9 +50,11 @@ class ViewTopicsTable extends Table
     public function columns(): array
     {
         return [
-            NumberColumn::make('id')->toggleable(false),
-            TextColumn::make('name')->searchable()->sortable()->stickable(),
-            NumberColumn::make('score')->sortable()->stickable(),
+            NumberColumn::make('id')->toggleable(false)->resizable(),
+            TextColumn::make('name')->searchable()->sortable()->stickable()
+                ->width(240)->minWidth(160)->maxWidth(360)->resizable()->reorderable(),
+            NumberColumn::make('score')->sortable()->stickable()
+                ->width(120)->resizable()->reorderable(),
         ];
     }
 
@@ -245,6 +247,8 @@ it('normalizes stale saved state through current declarations', function () {
         ],
         'columns' => ['removed_column' => false, 'score' => false],
         'pinnedColumns' => ['left' => ['removed_column', 'name'], 'right' => ['name', 'score']],
+        'columnOrder' => ['removed_column', 'score', 'name'],
+        'columnWidths' => ['removed_column' => 500, 'name' => 999, 'score' => 180],
         'perPage' => 999,
     ];
     $view->save();
@@ -257,11 +261,13 @@ it('normalizes stale saved state through current declarations', function () {
         ->perPage->toBe(2)
         ->and($resource['state']['filters'])->not->toHaveKey('removed_filter')
         ->and($resource['state']['columns'])->not->toHaveKey('removed_column')
-        ->and($savedState['schemaVersion'])->toBe(1)
+        ->and($savedState['schemaVersion'])->toBe(2)
         ->and($savedState['pinnedColumns'])->toBe([
             'left' => ['name'],
             'right' => ['score'],
-        ]);
+        ])
+        ->and($savedState['columnOrder'])->toBe(['id', 'name', 'score'])
+        ->and($savedState['columnWidths'])->toBe(['name' => 360, 'score' => 180]);
 });
 
 it('stores normalized views and rejects duplicate names in one scope', function () {
@@ -289,6 +295,24 @@ it('stores normalized views and rejects duplicate names in one scope', function 
     $this->postJson($endpoint, ['name' => 'My view', 'state' => $state])
         ->assertUnprocessable()
         ->assertJsonValidationErrors('name');
+});
+
+it('can explicitly reset a saved view width to the column default', function () {
+    $user = ViewUser::query()->create(['name' => 'One']);
+    $this->actingAs($user);
+    $table = new ViewTopicsTable;
+    $view = saveTableView($table, viewRequest(), 'Wide ID', [
+        'columnWidths' => ['id' => 260],
+    ]);
+
+    $resource = $table->resolve(viewRequest(state: [
+        'view' => $view->getKey(),
+        'columnWidths' => ['__reset' => '1'],
+    ]))->toArray();
+
+    expect($resource['state']['columnWidths'])
+        ->not->toHaveKey('id')
+        ->toMatchArray(['name' => 240, 'score' => 120]);
 });
 
 it('detects stale concurrent updates with lock versions', function () {

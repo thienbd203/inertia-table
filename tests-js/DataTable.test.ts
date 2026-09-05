@@ -55,11 +55,13 @@ function attachViews(resource: ReturnType<typeof topicResource>) {
         id: 7,
         name: "Featured view",
         state: {
-            schemaVersion: 1,
+            schemaVersion: 2,
             sort: resource.state.sort,
             filters: resource.state.filters,
             columns: resource.state.columns,
             pinnedColumns: { left: [], right: [] },
+            columnOrder: resource.state.columnOrder,
+            columnWidths: resource.state.columnWidths,
             perPage: resource.state.perPage,
         },
         isDefault: true,
@@ -95,6 +97,7 @@ describe("DataTable shadcn renderer", () => {
     });
 
     afterEach(() => {
+        vi.useRealTimers();
         document.body.innerHTML = "";
     });
 
@@ -130,6 +133,31 @@ describe("DataTable shadcn renderer", () => {
         expect(document.body.textContent).toContain("Delete");
     });
 
+    it("keeps aligned sort-button hover surfaces inside header cells", () => {
+        const resource = topicResource();
+        resource.columns[1].sortable = true;
+        resource.columns[2].sortable = true;
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        expect(
+            wrapper.get('th[data-column="name"] .tb-sort-button').classes(),
+        ).toContain("-ms-3");
+        expect(
+            wrapper
+                .get('th[data-column="is_featured"] .tb-sort-button')
+                .classes(),
+        ).not.toContain("-");
+        expect(
+            wrapper
+                .get('th[data-column="__actions"] .tb-sort-button')
+                .classes(),
+        ).toContain("-me-3");
+    });
+
     it("disables the sticky backdrop filter for one table", () => {
         const resource = topicResource();
         resource.options.stickyBackdropFilter = false;
@@ -156,6 +184,213 @@ describe("DataTable shadcn renderer", () => {
         expect(
             wrapper.get('[data-slot="table-container"]').classes(),
         ).toContain("tb-sticky-backdrop-filter");
+    });
+
+    it("renders formatted summaries in visible and sticky columns", () => {
+        const resource = topicResource();
+        resource.capabilities.hasSummaries = true;
+        resource.options.stickyFooter = true;
+        resource.columns[0].summary = {
+            type: "sum",
+            format: "#,##0.00",
+        };
+        resource.columns[1].summary = { type: "count", format: null };
+        resource.columns[0].stickable = true;
+        resource.state.columns.is_featured = false;
+        resource.state.pinnedColumns = { left: ["name"], right: [] };
+        resource.summaries = { name: "1234.5", is_featured: 2 };
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            slots: {
+                "summary(name)": ({ value, formatted }) =>
+                    h("strong", { "data-summary-slot": "" }, [
+                        `${value}:${formatted}`,
+                    ]),
+            },
+            attachTo: document.body,
+        });
+        const footer = wrapper.get('[data-slot="table-footer"]');
+        const name = footer.get('td[data-column="name"]');
+
+        expect(footer.attributes("data-sticky-footer")).toBe("true");
+        expect(
+            wrapper.get('[data-slot="table-container"]').classes(),
+        ).toContain("tb-sticky-footer-container");
+        expect(footer.findAll('td[data-column="is_featured"]')).toHaveLength(0);
+        expect(name.classes()).toContain("tb-sticky-cell");
+        expect(name.classes()).toContain("tb-sticky-footer-cell");
+        expect(
+            footer
+                .findAll('[data-slot="table-cell"]')
+                .every((cell) =>
+                    cell.classes().includes("tb-sticky-footer-cell"),
+                ),
+        ).toBe(true);
+        expect(name.get("[data-summary-slot]").text()).toBe("1234.5:1,234.50");
+    });
+
+    it("hides stale summary values while a table navigation is pending", async () => {
+        vi.useFakeTimers();
+        const resource = topicResource();
+        resource.capabilities.hasSummaries = true;
+        resource.columns[0].summary = { type: "count", format: null };
+        resource.summaries = { name: 30 };
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        await wrapper.get('input[type="search"]').setValue("Alpha");
+        vi.advanceTimersByTime(300);
+        await wrapper.vm.$nextTick();
+
+        const footer = wrapper.get('[data-slot="table-footer"]');
+        expect(footer.text()).toContain("Loading");
+        expect(footer.text()).not.toContain("30");
+    });
+
+    it("resizes and reorders columns with keyboard-accessible handles", async () => {
+        const resource = topicResource();
+        Object.assign(resource.columns[0], {
+            width: 240,
+            minWidth: 180,
+            maxWidth: 480,
+            resizable: true,
+            reorderable: true,
+            stickable: true,
+        });
+        Object.assign(resource.columns[1], {
+            width: 120,
+            resizable: true,
+            reorderable: true,
+            stickable: true,
+        });
+        resource.state.columnWidths = { name: 240, is_featured: 120 };
+        resource.state.pinnedColumns = {
+            left: ["name", "is_featured"],
+            right: [],
+        };
+
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+
+        expect(
+            wrapper.get('th[data-column="name"]').attributes("style"),
+        ).toContain("inline-size: 240px");
+        await wrapper.get('[aria-label="Resize Name"]').trigger("keydown", {
+            key: "ArrowRight",
+        });
+
+        expect(
+            wrapper.get('th[data-column="name"]').attributes("style"),
+        ).toContain("inline-size: 250px");
+        expect(
+            wrapper.get('th[data-column="is_featured"]').attributes("style"),
+        ).toContain("inset-inline-start: 250px");
+
+        await wrapper.get('[aria-label="Reorder Name"]').trigger("keydown", {
+            key: "ArrowRight",
+        });
+        expect(
+            wrapper
+                .findAll("thead th[data-column]")
+                .map((cell) => cell.attributes("data-column")),
+        ).toEqual(["is_featured", "name", "__actions"]);
+    });
+
+    it("resizes columns through touch pointer movement", async () => {
+        const resource = topicResource();
+        Object.assign(resource.columns[0], {
+            width: 240,
+            minWidth: 180,
+            maxWidth: 480,
+            resizable: true,
+        });
+        resource.state.columnWidths = { name: 240 };
+        let frame: FrameRequestCallback | undefined;
+        const requestFrame = vi
+            .spyOn(window, "requestAnimationFrame")
+            .mockImplementation((callback) => {
+                frame = callback;
+
+                return 1;
+            });
+        const cancelFrame = vi
+            .spyOn(window, "cancelAnimationFrame")
+            .mockImplementation(() => undefined);
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+        const handle = wrapper.get('[aria-label="Resize Name"]');
+
+        handle.element.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                bubbles: true,
+                clientX: 100,
+                isPrimary: true,
+                pointerId: 7,
+                pointerType: "touch",
+            }),
+        );
+        window.dispatchEvent(
+            new PointerEvent("pointermove", {
+                clientX: 150,
+                pointerId: 7,
+                pointerType: "touch",
+            }),
+        );
+        frame?.(0);
+        await wrapper.vm.$nextTick();
+
+        expect(
+            wrapper.get('th[data-column="name"]').attributes("style"),
+        ).toContain("inline-size: 290px");
+
+        window.dispatchEvent(
+            new PointerEvent("pointerup", {
+                pointerId: 7,
+                pointerType: "touch",
+            }),
+        );
+        requestFrame.mockRestore();
+        cancelFrame.mockRestore();
+    });
+
+    it("uses logical sticky offsets and reverses reorder keys in RTL", async () => {
+        const resource = topicResource();
+        resource.columns[0].reorderable = true;
+        resource.columns[1].reorderable = true;
+        resource.columns[0].stickable = true;
+        resource.columns[1].stickable = true;
+        resource.state.pinnedColumns = {
+            left: ["name", "is_featured"],
+            right: [],
+        };
+        const wrapper = mount(DataTable, {
+            props: { resource },
+            attachTo: document.body,
+        });
+        const container = wrapper.get<HTMLElement>(
+            '[data-slot="table-container"]',
+        );
+        container.element.style.direction = "rtl";
+
+        expect(
+            wrapper.get('th[data-column="name"]').attributes("style"),
+        ).toContain("inset-inline-start: 0px");
+        await wrapper
+            .get('[aria-label="Reorder Featured"]')
+            .trigger("keydown", { key: "ArrowRight" });
+
+        expect(
+            wrapper
+                .findAll("thead th[data-column]")
+                .map((cell) => cell.attributes("data-column")),
+        ).toEqual(["is_featured", "name", "__actions"]);
     });
 
     it("renders the saved-view switcher and destructive delete confirmation", async () => {

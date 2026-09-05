@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, ref } from "vue";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
 
@@ -17,6 +17,8 @@ describe("useTable", () => {
     beforeEach(() => {
         visit.mockReset();
     });
+
+    afterEach(() => vi.useRealTimers());
 
     function mountTable() {
         const resource = ref(topicResource());
@@ -100,7 +102,7 @@ describe("useTable", () => {
         resource.value.columns[1].stickable = true;
 
         table.togglePinnedColumn("is_featured");
-        let url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        let url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
         ).toEqual(["is_featured"]);
@@ -111,7 +113,7 @@ describe("useTable", () => {
             right: [],
         };
         table.togglePinnedColumn("is_featured");
-        url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][left][]"),
         ).toEqual(["name"]);
@@ -129,7 +131,7 @@ describe("useTable", () => {
         resource.value.state.columns.score = true;
 
         table.togglePinnedColumn("score");
-        let url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        let url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][right][]"),
         ).toEqual(["score"]);
@@ -140,7 +142,7 @@ describe("useTable", () => {
             right: ["score", "__actions"],
         };
         table.togglePinnedColumn("__actions");
-        url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(
             url.searchParams.getAll("table[topics][pinnedColumns][right][]"),
         ).toEqual(["score"]);
@@ -153,6 +155,108 @@ describe("useTable", () => {
 
         table.togglePinnedColumn("name");
 
+        expect(visit).not.toHaveBeenCalled();
+    });
+
+    it("applies clamped column widths optimistically and debounces navigation", () => {
+        vi.useFakeTimers();
+        const { resource, table } = mountTable();
+        Object.assign(resource.value.columns[0], {
+            width: 240,
+            minWidth: 180,
+            maxWidth: 480,
+            resizable: true,
+        });
+        resource.value.state.columnWidths = { name: 240 };
+
+        table.setColumnWidth("name", 100);
+        table.setColumnWidth("name", 900);
+
+        expect(table.columnWidth("name")).toBe(480);
+        expect(table.columnStyle("name")).toMatchObject({
+            inlineSize: "480px",
+            minInlineSize: "480px",
+            maxInlineSize: "480px",
+        });
+        expect(visit).not.toHaveBeenCalled();
+
+        vi.advanceTimersByTime(300);
+        expect(visit).toHaveBeenCalledOnce();
+        const url = new URL(
+            visit.mock.calls[0][0],
+            "http://inertia-table.local",
+        );
+        expect(url.searchParams.get("table[topics][columnWidths][name]")).toBe(
+            "480",
+        );
+    });
+
+    it("caps optimistic widths at the same safety limit as the server", () => {
+        vi.useFakeTimers();
+        const { resource, table } = mountTable();
+        resource.value.columns[0].resizable = true;
+
+        table.setColumnWidth("name", Number.MAX_SAFE_INTEGER);
+
+        expect(table.columnWidth("name")).toBe(10_000);
+    });
+
+    it("folds a pending layout update into the next navigation", () => {
+        vi.useFakeTimers();
+        const { resource, table } = mountTable();
+        resource.value.columns[0].resizable = true;
+
+        table.setColumnWidth("name", 320);
+        table.setSort("name", "desc");
+
+        expect(visit).toHaveBeenCalledOnce();
+        expect(visit.mock.calls[0][0]).toContain(
+            "table%5Btopics%5D%5BcolumnWidths%5D%5Bname%5D=320",
+        );
+        vi.advanceTimersByTime(300);
+        expect(visit).toHaveBeenCalledOnce();
+    });
+
+    it("reorders hidden columns optimistically while preserving fixed slots", () => {
+        vi.useFakeTimers();
+        const { resource, table } = mountTable();
+        resource.value.columns[0].reorderable = true;
+        resource.value.columns[1].reorderable = true;
+        resource.value.state.columns.is_featured = false;
+
+        table.swapColumns("name", "is_featured");
+
+        expect(
+            table.orderedColumns.value.map((column) => column.attribute),
+        ).toEqual(["is_featured", "name", "__actions"]);
+        expect(
+            table.visibleColumns.value.map((column) => column.attribute),
+        ).toEqual(["name", "__actions"]);
+        expect(visit).not.toHaveBeenCalled();
+
+        vi.advanceTimersByTime(300);
+        const url = new URL(
+            visit.mock.calls[0][0],
+            "http://inertia-table.local",
+        );
+        expect(url.searchParams.getAll("table[topics][columnOrder][]")).toEqual(
+            ["is_featured", "name", "__actions"],
+        );
+    });
+
+    it("reorders columns only within the same pinned side", () => {
+        vi.useFakeTimers();
+        const { resource, table } = mountTable();
+        resource.value.columns[0].reorderable = true;
+        resource.value.columns[1].reorderable = true;
+        resource.value.state.pinnedColumns = { left: ["name"], right: [] };
+
+        table.swapColumns("name", "is_featured");
+        expect(table.state.value.columnOrder).toEqual([
+            "name",
+            "is_featured",
+            "__actions",
+        ]);
         expect(visit).not.toHaveBeenCalled();
     });
 
@@ -172,7 +276,7 @@ describe("useTable", () => {
         resource.value.state.cursor = "current-token";
 
         table.setCursor("next-token");
-        let url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        let url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(url.searchParams.get("table[topics][cursor]")).toBe(
             "next-token",
         );
@@ -180,7 +284,7 @@ describe("useTable", () => {
 
         visit.mockReset();
         table.setSort("name", "desc");
-        url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        url = new URL(visit.mock.calls[0][0], "http://inertia-table.local");
         expect(url.searchParams.has("table[topics][cursor]")).toBe(false);
         expect(url.searchParams.get("table[topics][sort]")).toBe("-name");
     });

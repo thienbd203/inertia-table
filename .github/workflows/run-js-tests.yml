@@ -1,7 +1,10 @@
 name: run-js-tests
 
 on:
+  workflow_call:
   push:
+    branches:
+      - '**'
     paths:
       - 'resources/js/**'
       - 'tests-js/**'
@@ -21,7 +24,7 @@ on:
       - '.github/workflows/run-js-tests.yml'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: run-js-tests-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -43,8 +46,14 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
 
+      - name: Setup npm
+        run: npm install --global npm@10.9.7 --no-audit --no-fund
+
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Check formatting
         run: npm run format:check

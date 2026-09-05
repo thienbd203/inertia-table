@@ -11,13 +11,18 @@ use Musing\InertiaTable\Contracts\RelationshipSorter;
 use Musing\InertiaTable\Image;
 use Musing\InertiaTable\SortDirection;
 use Musing\InertiaTable\Sorters\PowerJoinsRelationshipSorter;
+use Musing\InertiaTable\Summaries\Summary;
+use Musing\InertiaTable\Summaries\SummaryAggregate;
 use Musing\InertiaTable\Support\RelationshipPath;
+use Musing\InertiaTable\Table;
 use Musing\InertiaTable\Url;
 use Spatie\QueryBuilder\AllowedSort;
 
 /** @implements Arrayable<string, mixed> */
 class Column implements Arrayable
 {
+    private const MAX_PIXEL_WIDTH = 10000;
+
     protected bool $searchable = false;
 
     protected bool $sortable = false;
@@ -29,6 +34,16 @@ class Column implements Arrayable
     protected bool $stickable = false;
 
     protected bool $sticky = false;
+
+    protected ?int $width = null;
+
+    protected ?int $minWidth = null;
+
+    protected ?int $maxWidth = null;
+
+    protected bool $resizable = false;
+
+    protected bool $reorderable = false;
 
     protected ColumnAlignment $alignment = ColumnAlignment::Left;
 
@@ -71,6 +86,8 @@ class Column implements Arrayable
 
     /** @var array<string, mixed> */
     protected array $exportMeta = [];
+
+    protected ?Summary $summary = null;
 
     final public function __construct(
         public readonly string $attribute,
@@ -187,6 +204,84 @@ class Column implements Arrayable
         if ($sticky) {
             $this->stickable = true;
         }
+
+        return $this;
+    }
+
+    public function width(int $width): static
+    {
+        $this->width = $this->positiveWidth($width);
+        $this->normalizeDeclaredWidth();
+
+        return $this;
+    }
+
+    public function minWidth(int $width): static
+    {
+        $width = $this->positiveWidth($width);
+
+        if ($this->maxWidth !== null && $width > $this->maxWidth) {
+            throw new LogicException('A column minimum width cannot exceed its maximum width.');
+        }
+
+        $this->minWidth = $width;
+        $this->normalizeDeclaredWidth();
+
+        return $this;
+    }
+
+    public function maxWidth(int $width): static
+    {
+        $width = $this->positiveWidth($width);
+
+        if ($this->minWidth !== null && $width < $this->minWidth) {
+            throw new LogicException('A column maximum width cannot be smaller than its minimum width.');
+        }
+
+        $this->maxWidth = $width;
+        $this->normalizeDeclaredWidth();
+
+        return $this;
+    }
+
+    public function resizable(bool $resizable = true): static
+    {
+        $this->resizable = $resizable;
+
+        return $this;
+    }
+
+    public function reorderable(bool $reorderable = true): static
+    {
+        $this->reorderable = $reorderable;
+
+        return $this;
+    }
+
+    public function summary(
+        string|SummaryAggregate $aggregate = SummaryAggregate::Sum,
+        ?string $attribute = null,
+    ): static {
+        $this->summary = Summary::aggregate($aggregate, $this->attribute, $attribute);
+
+        return $this;
+    }
+
+    /** @param Closure(Builder<Model>, self, Table): mixed $resolver */
+    public function summaryUsing(Closure $resolver): static
+    {
+        $this->summary = Summary::custom($resolver);
+
+        return $this;
+    }
+
+    public function summaryFormat(?string $format): static
+    {
+        if (! $this->summary instanceof Summary) {
+            throw new LogicException('summaryFormat() requires a summary definition.');
+        }
+
+        $this->summary->format($format);
 
         return $this;
     }
@@ -470,6 +565,51 @@ class Column implements Arrayable
         return $this->sticky;
     }
 
+    public function isResizable(): bool
+    {
+        return $this->resizable;
+    }
+
+    public function isReorderable(): bool
+    {
+        return $this->reorderable;
+    }
+
+    public function defaultWidth(): ?int
+    {
+        return $this->width;
+    }
+
+    public function minimumWidth(): ?int
+    {
+        return $this->minWidth;
+    }
+
+    public function maximumWidth(): ?int
+    {
+        return $this->maxWidth;
+    }
+
+    public function summaryDefinition(): ?Summary
+    {
+        return $this->summary;
+    }
+
+    public function clampWidth(int $width): int
+    {
+        $width = $this->positiveWidth($width);
+
+        if ($this->minWidth !== null) {
+            $width = max($width, $this->minWidth);
+        }
+
+        if ($this->maxWidth !== null) {
+            $width = min($width, $this->maxWidth);
+        }
+
+        return min($width, self::MAX_PIXEL_WIDTH);
+    }
+
     public function applySearch(Builder $query, string $search, string $boolean = 'or'): void
     {
         RelationshipPath::where(
@@ -596,6 +736,12 @@ class Column implements Arrayable
             'visibleByDefault' => $this->visibleByDefault,
             'stickable' => $this->stickable,
             'sticky' => $this->sticky,
+            'width' => $this->width,
+            'minWidth' => $this->minWidth,
+            'maxWidth' => $this->maxWidth,
+            'resizable' => $this->resizable,
+            'reorderable' => $this->reorderable,
+            'summary' => $this->summary?->toArray(),
             'alignment' => $this->alignment->value,
             'wrap' => $this->wrap,
             'truncate' => $this->truncate,
@@ -613,5 +759,21 @@ class Column implements Arrayable
         }
 
         return is_string($class) && trim($class) !== '' ? trim($class) : null;
+    }
+
+    private function positiveWidth(int $width): int
+    {
+        if ($width < 1) {
+            throw new LogicException('Column widths must be positive pixel values.');
+        }
+
+        return min($width, self::MAX_PIXEL_WIDTH);
+    }
+
+    private function normalizeDeclaredWidth(): void
+    {
+        if ($this->width !== null) {
+            $this->width = $this->clampWidth($this->width);
+        }
     }
 }

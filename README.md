@@ -7,7 +7,7 @@
 
 **Server-driven data tables for Laravel and Inertia.js.** Define the table once in PHP—columns, sorting, search, filters and actions—and render it in Vue with one component.
 
-Toolbelt keeps the server authoritative. The browser can only request capabilities declared by the table, URL state is namespaced per table, and query execution is powered by [Spatie Laravel Query Builder](https://spatie.be/docs/laravel-query-builder/v7/introduction).
+Musing Inertia Table keeps the server authoritative. The browser can only request capabilities declared by the table, URL state is namespaced per table, and query execution is powered by [Spatie Laravel Query Builder](https://spatie.be/docs/laravel-query-builder/v7/introduction).
 
 > [!WARNING]
 > The package is actively developed before `v1.0`. Please expect API changes between minor releases.
@@ -19,7 +19,9 @@ Toolbelt keeps the server authoritative. The browser can only request capabiliti
 - A ready-to-use Vue `<DataTable>` built from shadcn-vue-style source and Reka UI primitives.
 - Text, numeric, set, boolean and date filters, including single-date and date-range calendars.
 - Per-table query-string state, Inertia partial reloads, pagination, column visibility, sticky headers/columns and all-results selection across pages.
+- Server-side summary footers for the complete filtered dataset.
 - Scoped saved views with defaults, sharing, optimistic locking and live dirty-state feedback.
+- Managed row and bulk actions, including queued all-matching execution with progress.
 - Signed synchronous or queued exports for all, filtered or selected rows, plus optional XLSX/PDF adapters.
 - Presentation helpers for badges, dates, images, links, tooltips, alignment and Tailwind classes.
 - Slots and headless composables when the default renderer needs an escape hatch.
@@ -55,7 +57,7 @@ npm version 0.1.1 --no-git-tag-version
 git add package.json package-lock.json
 git commit -m "chore: release v0.1.1"
 git tag v0.1.1
-git push origin main --follow-tags
+git push origin master --follow-tags
 ```
 
 Publish configuration only when you want to change pagination or debounce defaults:
@@ -72,10 +74,26 @@ return [
     'pagination_type' => 'full',
     'debounce' => 300,
     'sticky' => [
+        'footer' => false,
         'backdrop_filter' => true,
     ],
+    'columns' => [
+        'resizable' => true,
+        'reorderable' => true,
+    ],
     'action_path' => '_inertia-table/actions',
+    'actions' => [
+        'queue' => [
+            'connection' => null,
+            'queue' => null,
+            'delay' => 0,
+            'expires_after' => 86400,
+            'status_retention' => 86400,
+            'after_commit' => true,
+        ],
+    ],
     'export_path' => '_inertia-table/exports',
+    'exports' => ['chunk_size' => 1000],
     'relationship_sorter' => \Musing\InertiaTable\Sorters\PowerJoinsRelationshipSorter::class,
     'queue' => [
         'connection' => null,
@@ -371,7 +389,35 @@ ActionColumn::new()->asDropdown();
 menu trigger. Dynamic `action(<key>)` slots work in both the inline and dropdown
 renderers.
 
-### Sticky header and columns
+### Column sizing and ordering
+
+Sizing and ordering are opt-in per column. Declared widths are pixel values;
+the server clamps both defaults and untrusted URL/Saved View state through the
+current minimum and maximum:
+
+```php
+TextColumn::make('name')
+    ->width(280)
+    ->minWidth(180)
+    ->maxWidth(480)
+    ->resizable()
+    ->reorderable();
+
+ActionColumn::new()->width(64);
+```
+
+Resize handles support pointer, touch and 10-pixel keyboard steps. Reorder
+handles support drag/touch and Left/Right Arrow keys. Hidden columns keep their
+layout preference, fixed columns keep their declared slot, and pinned columns
+can move only within their current pin side. Layout changes render locally and
+are debounced into the table's isolated URL state.
+
+Disable either interaction globally with `columns.resizable` or
+`columns.reorderable`, or for one table with `columnResizing(false)` and
+`columnReordering(false)`. The Columns menu can reset order and widths without
+resetting search, filters or selection.
+
+### Sticky header, summary footer, and columns
 
 Enable a sticky header on one table with a property or the fluent API. The
 default renderer gives sticky-header tables a `70vh` scroll viewport so the
@@ -387,6 +433,28 @@ final class TopicsTable extends Table
 
 TopicsTable::make()->stickyHeader();
 ```
+
+Tables with summaries can keep the footer visible while scrolling. Enable it
+globally or override it for one table:
+
+```php
+// config/inertia-table.php
+'sticky' => [
+    'footer' => true,
+    'backdrop_filter' => true,
+],
+
+final class TopicsTable extends Table
+{
+    protected ?bool $stickyFooter = true;
+}
+
+TopicsTable::make()->stickyFooter();
+```
+
+Sticky headers and footers use the same bounded scroll viewport. Override
+`--tb-sticky-max-height` to size it; the legacy
+`--tb-sticky-header-max-height` variable remains supported.
 
 Sticky cells use a backdrop blur by default. Disable it globally when large
 tables or many pinned columns make repainting expensive:
@@ -445,6 +513,46 @@ TextColumn::make('score')->sortable()->sortUsing(
         $query->orderBy('score', $direction->value),
 );
 ```
+
+### Filtered summary footer
+
+Summaries describe the complete normalized search/filter result, not only the
+current page. All built-in summaries on a table are resolved together in one
+SQL query:
+
+```php
+use Musing\InertiaTable\Summaries\SummaryAggregate;
+
+NumberColumn::make('id', 'Orders')
+    ->summary(SummaryAggregate::Count);
+
+NumberColumn::make('total', 'Total')
+    ->summary('sum')
+    ->summaryFormat('#,##0.00');
+
+NumberColumn::make('average', 'Average')
+    ->summary('avg', 'total');
+```
+
+The built-ins are `count`, `count_distinct`, `sum`, `avg`, `min`, and `max`.
+`count` counts filtered rows; the others use the column attribute unless a base
+column name is passed as the second argument. Relationship paths and SQL
+expressions stay explicit through a server-only callback:
+
+```php
+NumberColumn::make('paid_total', 'Paid total')
+    ->summaryUsing(
+        fn (Builder $query) => (clone $query)
+            ->where('status', 'paid')
+            ->sum('total'),
+    );
+```
+
+The default renderer aligns the footer with visible, resized, reordered, and
+pinned columns. Override the whole row with `summaryFooter`, or one cell with
+`summary(attribute)`; the cell slot receives `column`, `definition`, `value`,
+and `formatted`. During navigation the default footer hides stale values and
+shows a loading state.
 
 ### Badges and images
 
@@ -677,6 +785,67 @@ Action::make('archive', 'Archive')
 
 Managed endpoints use Laravel's normal response contract consistently: returned `Response`/`Responsable` values pass through, successful handlers without one redirect back, unavailable actions return `403`, disabled row actions return validation errors, and unexpected exceptions remain visible to Laravel's exception handler.
 
+Large managed bulk actions can run on Laravel's queue. Define `bulk()` and the
+server handler before calling `queue()`:
+
+```php
+use Musing\InertiaTable\Actions\QueuedActionSnapshot;
+
+Action::make('archive', 'Archive')
+    ->bulk()
+    ->handle(fn (Topic $topic) => $topic->archive())
+    ->chunkSize(500)
+    ->queue(
+        connection: 'redis',
+        queue: 'table-actions',
+        delay: 0,
+        expiresAfter: 86_400,
+        afterCommit: true,
+    )
+    ->scopeAttributes(fn () => ['tenant' => tenant()->id])
+    ->tags(fn () => ['tenant:'.tenant()->id])
+    ->onCompleted(fn (QueuedActionSnapshot $snapshot, mixed $result) => /* notify */ null)
+    ->onFailure(fn (QueuedActionSnapshot $snapshot, \Throwable $exception) => /* report */ null);
+```
+
+The dispatcher snapshots the normalized explicit or all-matching selection,
+definition fingerprint, actor, locale and scalar application scope. It never
+serializes the request, table, query builder, model or definition closures. The
+worker restores that context, reruns authorization, verifies that the table and
+action definition have not changed, and rechecks row selectability and action
+availability. Per-model handlers update `processed`, `succeeded` and `skipped`
+once per chunk; set-based `handleSelection()` actions deliberately expose only
+lifecycle state because row-level progress would be misleading.
+
+Queue connection, name, delay, expiry and status retention fall back to
+`inertia-table.actions.queue`; dispatch waits for the current database
+transaction to commit by default. Use `context()` with an implementation of
+`ActionContext` to restore tenant state, `middleware()` for queue middleware,
+`chain()` for follow-up jobs, `redirectAfterDispatch()` for an application-owned
+operations page, and `failureMessage()` for safe user-facing failure copy.
+Repeated submissions with the same idempotency key reuse the existing operation;
+retrying a finished operation requires a new key.
+
+Queued actions use the application's default cache store for idempotency,
+execution locks and status polling. Configure a persistent store shared by the
+web and queue processes (for example Redis, Memcached, database or DynamoDB);
+the `array` store is process-local and is not suitable for queued actions.
+Queue delivery is still at-least-once: make action handlers idempotent and set
+the queue connection's `retry_after` or visibility timeout longer than the
+maximum duration of one action attempt. The execution lock prevents concurrent
+delivery but cannot roll back an external side effect after a worker crash.
+
+The Vue renderer clears selection only after the server has durably accepted the
+snapshot. It polls the signed, actor-scoped status endpoint and emits
+`action-queued`, `action-progress`, then the existing `action-success` or
+`action-error`. Completion reloads only the table prop and its declared
+`reloadProps`. The processing dialog may be closed without cancelling polling
+and opens again on completion, failure or expiry. Use the `queuedAction` slot or
+`useActions().updateQueuedAction()` for a custom notification/realtime UI.
+One queued operation is tracked per table instance; its action controls remain
+disabled until that operation reaches a terminal state or redirects to an
+application-owned operations page.
+
 The `Selection` query always starts from `Table::query()` and applies `selectableQuery()`. For an all-results selection, it rebuilds the query through the table's declared search/filter allowlist and applies the unchecked keys from `except`. Useful APIs are `query()`, `count()`, `get()`, `firstOrFail()` and memory-safe `each()`.
 
 Declare bulk eligibility at both query and row level. The query scope gives the frontend an exact `selectableTotal` without loading every model; the row check disables individual checkboxes. Keep both rules equivalent whenever possible:
@@ -817,7 +986,9 @@ NumberColumn::make('amount')
 ```
 
 Declared exportable columns are used by default. Call `visibleColumnsOnly()` on
-an export when it should follow the normalized column visibility state. Native
+an export when it should follow the normalized column visibility state while
+retaining declared order. Call `visibleColumnLayout()` to follow both visible
+columns and their normalized user order. Native
 CSV reads Eloquent models in eager-loaded chunks, streams each row immediately,
 emits UTF-8 with a BOM by default, and protects spreadsheet formula prefixes.
 The default chunk size is `inertia-table.exports.chunk_size` (1,000). Override it
@@ -834,6 +1005,10 @@ Export::make('archive')
         'topics.name',
     ]));
 ```
+
+Call `withSummaries()` to append declared summary values as a final row aligned
+to exported columns. Summary rows are currently supported by the native CSV
+adapter, including queued CSV exports; values remain raw and machine-readable.
 
 Query modifiers run after the export scope, filters and sort are resolved. They
 may mutate the builder or return another Eloquent builder, which lets expensive
@@ -930,7 +1105,7 @@ The default renderer is intended to cover normal tables. Use slots only for targ
 </DataTable>
 ```
 
-Useful slots include `topbar`, `beforeSearch`, `afterSearch`, `beforeActions`, `afterActions`, `filters`, `table`, `thead`, `tbody`, `footer`, `loading`, `emptyState`, `confirmation`, `cell(attribute)`, `header(attribute)`, `filter(attribute)`, `image(attribute)` and `image-fallback(attribute)`.
+Useful slots include `topbar`, `beforeSearch`, `afterSearch`, `beforeActions`, `afterActions`, `filters`, `table`, `thead`, `tbody`, `summaryFooter`, `footer`, `loading`, `emptyState`, `confirmation`, `queuedAction`, `cell(attribute)`, `header(attribute)`, `summary(attribute)`, `filter(attribute)`, `image(attribute)` and `image-fallback(attribute)`.
 
 Use `filter(attribute)` when an option source needs application-owned behavior such as remote search, pagination or creating a missing option. The slot receives `filter`, `state`, `value`, `update`, `setDisplayValue`, `close`, `table` and `actions`:
 
@@ -987,11 +1162,13 @@ Every table gets an isolated query-string namespace. Several table resources may
 &table[topics][filters][status][clause]=equals
 &table[topics][filters][status][value]=featured
 &table[topics][columns][created_at]=0
+&table[topics][columnOrder][]=name
+&table[topics][columnWidths][name]=320
 &table[topics][page]=2
 &table[topics][perPage]=25
 ```
 
-Toolbelt translates this state to Spatie's query contract internally. Invalid columns, sorts, clauses, filter values and page sizes are ignored or replaced by safe defaults before the query executes.
+Musing Inertia Table translates this state to Spatie's query contract internally. Invalid columns, sorts, clauses, filter values and page sizes are ignored or replaced by safe defaults before the query executes.
 
 ## Saved views
 
@@ -1009,7 +1186,7 @@ public function views(): ?Views
 
 The toolbar then provides the view switcher and create, update, rename, delete,
 default and share operations allowed by the server. View state contains sort,
-filters, column visibility, pinned-column metadata and page size. Search remains
+filters, column visibility, order, widths, pinned-column metadata and page size. Search remains
 ephemeral unless `includeSearch()` is enabled:
 
 ```php
@@ -1066,5 +1243,8 @@ The design and resource contract are described in
 are documented in [docs/api-stability.md](docs/api-stability.md).
 
 ## License
+
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Report
+security issues through the process in [SECURITY.md](SECURITY.md).
 
 The MIT License. See [LICENSE.md](LICENSE.md).

@@ -123,13 +123,22 @@ export function useStickyColumns<T extends TableItem>(table: UseTable<T>) {
                     : 0) +
                 pinned
                     .slice(0, index)
-                    .reduce((total, key) => total + (widths.get(key) ?? 0), 0)
+                    .reduce(
+                        (total, key) =>
+                            total +
+                            (table.columnWidth(key) ?? widths.get(key) ?? 0),
+                        0,
+                    )
             );
         }
 
         return pinned
             .slice(index + 1)
-            .reduce((total, key) => total + (widths.get(key) ?? 0), 0);
+            .reduce(
+                (total, key) =>
+                    total + (table.columnWidth(key) ?? widths.get(key) ?? 0),
+                0,
+            );
     }
 
     function style(attribute: string): Record<string, string> | undefined {
@@ -169,6 +178,7 @@ export function useStickyColumns<T extends TableItem>(table: UseTable<T>) {
 
     return {
         edge,
+        measureAll,
         pinSide,
         pinnedColumns,
         registerHeaderCell,

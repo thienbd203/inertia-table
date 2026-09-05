@@ -23,11 +23,13 @@ describe("tableUrl", () => {
                     left: ["name"],
                     right: ["__actions"],
                 },
+                columnOrder: ["is_featured", "name", "__actions"],
+                columnWidths: { name: 320 },
                 page: 2,
                 perPage: 50,
             },
         );
-        const parsed = new URL(url, "http://toolbelt.local");
+        const parsed = new URL(url, "http://inertia-table.local");
 
         expect(parsed.searchParams.get("foo")).toBe("bar");
         expect(parsed.searchParams.get("table[authors][page]")).toBe("3");
@@ -53,6 +55,12 @@ describe("tableUrl", () => {
         expect(
             parsed.searchParams.getAll("table[topics][pinnedColumns][right][]"),
         ).toEqual(["__actions"]);
+        expect(
+            parsed.searchParams.getAll("table[topics][columnOrder][]"),
+        ).toEqual(["is_featured", "name", "__actions"]);
+        expect(
+            parsed.searchParams.get("table[topics][columnWidths][name]"),
+        ).toBe("320");
     });
 
     it("omits empty and first-page values", () => {
@@ -64,7 +72,7 @@ describe("tableUrl", () => {
             page: 1,
             perPage: 25,
         });
-        const parsed = new URL(url, "http://toolbelt.local");
+        const parsed = new URL(url, "http://inertia-table.local");
 
         expect(parsed.searchParams.has("table[topics][search]")).toBe(false);
         expect(parsed.searchParams.has("table[topics][sort]")).toBe(false);
@@ -87,7 +95,7 @@ describe("tableUrl", () => {
             page: 1,
             perPage: 25,
         });
-        const parsed = new URL(url, "http://toolbelt.local");
+        const parsed = new URL(url, "http://inertia-table.local");
 
         expect(
             parsed.searchParams.getAll(
@@ -104,7 +112,7 @@ describe("tableUrl", () => {
             page: 9,
             cursor: "opaque-token",
         });
-        const parsed = new URL(url, "http://toolbelt.local");
+        const parsed = new URL(url, "http://inertia-table.local");
 
         expect(parsed.searchParams.get("table[topics][cursor]")).toBe(
             "opaque-token",
@@ -130,7 +138,7 @@ describe("tableUrl", () => {
                 },
             },
         );
-        const parsed = new URL(url, "http://toolbelt.local");
+        const parsed = new URL(url, "http://inertia-table.local");
 
         expect(parsed.searchParams.get("table[authors][view]")).toBe("4");
         expect(parsed.searchParams.get("table[topics][view]")).toBe("7");
@@ -144,5 +152,8 @@ describe("tableUrl", () => {
         expect(
             parsed.searchParams.getAll("table[topics][pinnedColumns][right][]"),
         ).toEqual([""]);
+        expect(
+            parsed.searchParams.get("table[topics][columnWidths][__reset]"),
+        ).toBe("1");
     });
 });

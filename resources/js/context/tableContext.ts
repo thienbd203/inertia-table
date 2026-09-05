@@ -34,7 +34,7 @@ export type TableContext<T extends TableItem = TableItem> = {
     };
 };
 
-const tableContextKey = Symbol("ToolbeltTableContext") as InjectionKey<
+const tableContextKey = Symbol("MusingInertiaTableContext") as InjectionKey<
     TableContext<TableItem>
 >;
 

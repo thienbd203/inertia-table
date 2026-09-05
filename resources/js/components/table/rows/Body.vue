@@ -148,6 +148,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                     },
                 ]"
                 :style="[
+                    table.columnStyle(column.attribute),
                     sticky.style(column.attribute),
                     column.truncate
                         ? { '--tb-line-clamp': column.truncate }

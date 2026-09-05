@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Musing\InertiaTable\Actions\Action;
+use Musing\InertiaTable\Actions\QueuedActionDispatcher;
 use Musing\InertiaTable\Selection;
 use Musing\InertiaTable\Support\TableReference;
 use Musing\InertiaTable\Table;
@@ -32,15 +33,31 @@ final class ActionController
             abort_unless($tableAction->isRowAction(), 404);
             $model = $selection->query()->first();
             abort_unless($model instanceof Model, 404);
-            $this->ensureAvailable($tableAction, $model);
+            $this->ensureAvailable($request, $tableAction, $model);
         } else {
             abort_unless($tableAction->isBulkAction(), 404);
-            $this->ensureAvailable($tableAction);
+            $this->ensureAvailable($request, $tableAction);
+        }
+
+        if ($tableAction->isQueued()) {
+            $validated = $request->validate([
+                'idempotencyKey' => ['required', 'string', 'max:128'],
+            ]);
+            $status = app(QueuedActionDispatcher::class)->dispatch(
+                $request,
+                $tableInstance,
+                $tableAction,
+                $selection,
+                $validated['idempotencyKey'],
+            );
+
+            return response()->json(['action' => $status], 202);
         }
 
         $response = $tableAction->execute(
             $selection,
             skipUnavailableModels: ! $isRowAction,
+            request: $request,
         );
 
         if ($response instanceof Response || $response instanceof Responsable) {
@@ -71,9 +88,9 @@ final class ActionController
         ]);
     }
 
-    private function ensureAvailable(Action $action, ?Model $model = null): void
+    private function ensureAvailable(Request $request, Action $action, ?Model $model = null): void
     {
-        $resolved = $action->resolve($model);
+        $resolved = $action->resolve($model, request: $request);
 
         abort_if(! $resolved['authorized'] || $resolved['hidden'], 403);
 

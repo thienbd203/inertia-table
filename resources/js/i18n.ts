@@ -12,6 +12,16 @@ import {
 
 export const en = {
     actions: "Actions",
+    actionCompleted: "Action completed",
+    actionCompletedMessage: 'Finished "{action}" for {count} rows.',
+    actionExpired: "Action status expired",
+    actionExpiredMessage: "This action status is no longer available.",
+    actionFailed: "Action failed",
+    actionFailedMessage: "The action could not be completed.",
+    actionProgress: "Processed {processed} of {count} rows",
+    actionQueued: "Your action is being processed",
+    actionQueuedMessage:
+        "We're processing \"{action}\" for {count} rows. You can close this dialog and we'll notify you when it's done.",
     addFilter: "Add filter",
     ascending: "Asc",
     bulkActions: "Bulk actions",
@@ -79,6 +89,9 @@ export const en = {
     pinColumn: "Pin column",
     previousPage: "Previous page",
     removeFilter: "Remove {filter} filter",
+    reorderColumn: "Reorder {column}",
+    resetColumnLayout: "Reset column layout",
+    resizeColumn: "Resize {column}",
     rowsPerPage: "Rows per page",
     rowActions: "Row actions",
     searchPlaceholder: "Search…",
@@ -113,6 +126,16 @@ export type TableMessageParams = Record<string, string | number>;
 
 export const vi: TableMessages = {
     actions: "Thao tác",
+    actionCompleted: "Thao tác đã hoàn tất",
+    actionCompletedMessage: 'Đã hoàn tất "{action}" cho {count} dòng.',
+    actionExpired: "Trạng thái thao tác đã hết hạn",
+    actionExpiredMessage: "Trạng thái thao tác này không còn khả dụng.",
+    actionFailed: "Thao tác thất bại",
+    actionFailedMessage: "Không thể hoàn tất thao tác.",
+    actionProgress: "Đã xử lý {processed} / {count} dòng",
+    actionQueued: "Thao tác của bạn đang được xử lý",
+    actionQueuedMessage:
+        'Chúng tôi đang xử lý "{action}" cho {count} dòng. Bạn có thể đóng hộp thoại và chúng tôi sẽ báo khi hoàn tất.',
     addFilter: "Thêm bộ lọc",
     ascending: "Tăng dần",
     bulkActions: "Thao tác hàng loạt",
@@ -180,6 +203,9 @@ export const vi: TableMessages = {
     pinColumn: "Ghim cột",
     previousPage: "Trang trước",
     removeFilter: "Xóa bộ lọc {filter}",
+    reorderColumn: "Sắp xếp lại cột {column}",
+    resetColumnLayout: "Đặt lại bố cục cột",
+    resizeColumn: "Đổi kích thước cột {column}",
     rowsPerPage: "Số dòng mỗi trang",
     rowActions: "Thao tác cho dòng",
     searchPlaceholder: "Tìm kiếm…",

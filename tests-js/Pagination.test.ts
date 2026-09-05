@@ -282,7 +282,10 @@ describe("Pagination", () => {
 
         await wrapper.get('[aria-label="Next page"]').trigger("click");
 
-        const url = new URL(visit.mock.calls[0][0], "http://toolbelt.local");
+        const url = new URL(
+            visit.mock.calls[0][0],
+            "http://inertia-table.local",
+        );
         expect(url.searchParams.get("table[topics][cursor]")).toBe(
             "eyJpZCI6MjV9",
         );

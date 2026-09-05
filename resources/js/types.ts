@@ -31,6 +31,22 @@ export type TableColumn = {
     visibleByDefault: boolean;
     stickable?: boolean;
     sticky?: boolean;
+    width?: number | null;
+    minWidth?: number | null;
+    maxWidth?: number | null;
+    resizable?: boolean;
+    reorderable?: boolean;
+    summary?: {
+        type:
+            | "count"
+            | "count_distinct"
+            | "sum"
+            | "avg"
+            | "min"
+            | "max"
+            | "custom";
+        format?: string | null;
+    } | null;
     alignment: "left" | "center" | "right";
     wrap?: boolean;
     truncate?: number | null;
@@ -88,11 +104,31 @@ export type TableAction = {
         confirmLabel: string;
         cancelLabel: string;
     };
+    queued?: boolean;
     endpoint: {
         method: "get" | "post" | "put" | "patch" | "delete";
         url: string;
     } | null;
     meta: Record<string, unknown>;
+};
+
+export type QueuedActionStatus = {
+    id: string;
+    action: string;
+    label?: string;
+    status: "queued" | "processing" | "completed" | "failed" | "expired";
+    total?: number;
+    processed?: number | null;
+    succeeded?: number | null;
+    skipped?: number | null;
+    result?: unknown;
+    statusEndpoint?: string | null;
+    expiresAt?: number;
+    completedAt?: number;
+    failedAt?: number;
+    redirect?: string | null;
+    duplicate?: boolean;
+    message?: string | null;
 };
 
 export type TableState = {
@@ -105,14 +141,18 @@ export type TableState = {
     view?: TableKey | null;
     pinnedColumns?: { left: string[]; right: string[] };
     cursor?: string | null;
+    columnOrder?: string[];
+    columnWidths?: Record<string, number>;
 };
 
 export type TableViewState = {
-    schemaVersion: 1;
+    schemaVersion: 1 | 2;
     sort: string | null;
     filters: Record<string, TableFilterState>;
     columns: Record<string, boolean>;
     pinnedColumns: { left: string[]; right: string[] };
+    columnOrder?: string[];
+    columnWidths?: Record<string, number>;
     perPage: number;
     search?: string;
 };
@@ -160,6 +200,7 @@ export type TableExport = {
     scope: "all" | "filtered" | "selected";
     requiresSelection: boolean;
     queued?: boolean;
+    includesSummaries?: boolean;
     endpoint: string;
     meta: Record<string, unknown>;
 };
@@ -234,6 +275,9 @@ export type TableResource<T extends TableItem = TableItem> = {
         hasBulkActions?: boolean;
         hasToggleableColumns?: boolean;
         hasStickableColumns?: boolean;
+        hasResizableColumns?: boolean;
+        hasReorderableColumns?: boolean;
+        hasSummaries?: boolean;
         hasExports?: boolean;
         hasEmptyState?: boolean;
     };
@@ -245,11 +289,15 @@ export type TableResource<T extends TableItem = TableItem> = {
         paginationType?: "full" | "simple" | "cursor";
         reloadProps: string[];
         stickyHeader?: boolean;
+        stickyFooter?: boolean;
         stickyBackdropFilter?: boolean;
+        columnResizing?: boolean;
+        columnReordering?: boolean;
     };
     views?: TableViewsResource | null;
     exports?: TableExport[];
     emptyState?: TableEmptyState | null;
+    summaries?: Record<string, unknown>;
 };
 
 export type TableOptions<T extends TableItem> = {

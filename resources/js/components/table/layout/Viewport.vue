@@ -6,6 +6,7 @@ import type { TableColumn, TableItem } from "@/types";
 import { Header } from "../columns";
 import { Body } from "../rows";
 import { SlotOutlet } from "../shared";
+import { SummaryFooter } from "../summary";
 
 const { resource, actions } = useTableContext();
 const emit = defineEmits<{
@@ -27,6 +28,7 @@ const canSelect = computed(
             class="tb-table"
             :container-class="{
                 'tb-sticky-header-container': resource.options.stickyHeader,
+                'tb-sticky-footer-container': resource.options.stickyFooter,
                 'tb-sticky-backdrop-filter':
                     resource.options.stickyBackdropFilter ?? true,
             }"
@@ -41,6 +43,12 @@ const canSelect = computed(
                         (item, column) => emit('rowClick', item, column)
                     "
                 />
+            </SlotOutlet>
+            <SlotOutlet
+                v-if="resource.capabilities.hasSummaries"
+                name="summaryFooter"
+            >
+                <SummaryFooter :can-select="canSelect" />
             </SlotOutlet>
         </UiTable>
     </SlotOutlet>

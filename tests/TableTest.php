@@ -127,6 +127,8 @@ class StickyTopicsTable extends TopicsTable
 
     protected ?bool $stickyHeader = true;
 
+    protected ?bool $stickyFooter = true;
+
     public function columns(): array
     {
         return [
@@ -135,6 +137,28 @@ class StickyTopicsTable extends TopicsTable
             NumberColumn::make('score', 'Score')->sortable(),
             BooleanColumn::make('is_featured', 'Featured'),
             ActionColumn::new()->sticky(),
+        ];
+    }
+}
+
+class LayoutTopicsTable extends TopicsTable
+{
+    protected ?string $name = 'topics';
+
+    public function columns(): array
+    {
+        return [
+            NumberColumn::make('id', 'ID')->width(80)->toggleable(false),
+            TextColumn::make('name', 'Name')
+                ->width(280)
+                ->minWidth(180)
+                ->maxWidth(480)
+                ->resizable()
+                ->reorderable()
+                ->stickable(),
+            NumberColumn::make('score', 'Score')->width(120)->resizable()->reorderable()->stickable(),
+            BooleanColumn::make('is_featured', 'Featured')->reorderable(),
+            ActionColumn::new()->width(64),
         ];
     }
 }
@@ -312,6 +336,9 @@ it('serializes a versioned table resource', function () {
             'hasExports' => false,
             'hasToggleableColumns' => true,
             'hasStickableColumns' => false,
+            'hasResizableColumns' => false,
+            'hasReorderableColumns' => false,
+            'hasSummaries' => false,
             'hasEmptyState' => false,
         ])
         ->search->toBe(['name'])
@@ -321,7 +348,10 @@ it('serializes a versioned table resource', function () {
             'paginationType' => 'full',
             'reloadProps' => [],
             'stickyHeader' => false,
+            'stickyFooter' => false,
             'stickyBackdropFilter' => true,
+            'columnResizing' => true,
+            'columnReordering' => true,
         ])
         ->state->sort->toBe('name')
         ->state->columns->toBe([
@@ -360,7 +390,7 @@ it('serializes the eloquent primary key as stable row metadata', function () {
     expect($resource['results']['data'][0]['_table']['key'])->toBe('topic-alpha');
 });
 
-it('normalizes sticky header and pinned column state through declarations', function () {
+it('normalizes sticky header, footer, and pinned column state through declarations', function () {
     $defaults = (new StickyTopicsTable)->resolve(tableRequest())->toArray();
     $requested = (new StickyTopicsTable)->resolve(tableRequest([
         'pinnedColumns' => [
@@ -370,6 +400,7 @@ it('normalizes sticky header and pinned column state through declarations', func
     ]))->toArray();
 
     expect($defaults['options']['stickyHeader'])->toBeTrue()
+        ->and($defaults['options']['stickyFooter'])->toBeTrue()
         ->and($defaults['capabilities']['hasStickableColumns'])->toBeTrue()
         ->and($defaults['state']['pinnedColumns'])->toBe([
             'left' => ['id'],
@@ -379,6 +410,27 @@ it('normalizes sticky header and pinned column state through declarations', func
             'left' => ['id', 'name'],
             'right' => ['__actions'],
         ]);
+});
+
+it('configures the sticky footer globally and per table', function () {
+    config()->set('inertia-table.sticky.footer', true);
+
+    $global = (new TopicsTable)->resolve(tableRequest())->toArray();
+    $disabled = (new TopicsTable)
+        ->stickyFooter(false)
+        ->resolve(tableRequest())
+        ->toArray();
+
+    config()->set('inertia-table.sticky.footer', false);
+
+    $enabled = (new TopicsTable)
+        ->stickyFooter()
+        ->resolve(tableRequest())
+        ->toArray();
+
+    expect($global['options']['stickyFooter'])->toBeTrue()
+        ->and($disabled['options']['stickyFooter'])->toBeFalse()
+        ->and($enabled['options']['stickyFooter'])->toBeTrue();
 });
 
 it('configures the sticky backdrop filter globally and per table', function () {
@@ -400,6 +452,79 @@ it('configures the sticky backdrop filter globally and per table', function () {
     expect($global['options']['stickyBackdropFilter'])->toBeFalse()
         ->and($enabled['options']['stickyBackdropFilter'])->toBeTrue()
         ->and($disabled['options']['stickyBackdropFilter'])->toBeFalse();
+});
+
+it('normalizes column layout through declarations and keeps fixed columns in place', function () {
+    $resource = (new LayoutTopicsTable)->resolve(tableRequest([
+        'columnOrder' => ['score', '__actions', 'name', 'removed', 'is_featured', 'id'],
+        'columnWidths' => [
+            'name' => 900,
+            'score' => 160,
+            'id' => 300,
+            '__actions' => 100,
+            'removed' => 200,
+        ],
+    ]))->toArray();
+
+    expect($resource['state'])
+        ->columnOrder->toBe(['id', 'score', 'name', 'is_featured', '__actions'])
+        ->columnWidths->toBe([
+            'id' => 80,
+            'name' => 480,
+            'score' => 160,
+            '__actions' => 64,
+        ])
+        ->and($resource['capabilities'])
+        ->hasResizableColumns->toBeTrue()
+        ->hasReorderableColumns->toBeTrue();
+});
+
+it('normalizes reordered columns within their current pin group', function () {
+    $sameSide = (new LayoutTopicsTable)->resolve(tableRequest([
+        'pinnedColumns' => ['left' => ['name', 'score'], 'right' => []],
+        'columnOrder' => ['score', 'name', 'is_featured'],
+    ]))->toArray();
+    $differentSides = (new LayoutTopicsTable)->resolve(tableRequest([
+        'pinnedColumns' => ['left' => ['name'], 'right' => ['score']],
+        'columnOrder' => ['score', 'name', 'is_featured'],
+    ]))->toArray();
+
+    expect($sameSide['state']['columnOrder'])
+        ->toBe(['id', 'score', 'name', 'is_featured', '__actions'])
+        ->and($differentSides['state']['columnOrder'])
+        ->toBe(['id', 'name', 'score', 'is_featured', '__actions']);
+});
+
+it('can disable column layout globally and per table', function () {
+    config()->set('inertia-table.columns.resizable', false);
+    config()->set('inertia-table.columns.reorderable', false);
+
+    $request = tableRequest([
+        'columnOrder' => ['score', 'name'],
+        'columnWidths' => ['name' => 400],
+    ]);
+    $global = (new LayoutTopicsTable)->resolve($request)->toArray();
+    $enabled = (new LayoutTopicsTable)
+        ->columnResizing()
+        ->columnReordering()
+        ->resolve($request)
+        ->toArray();
+    $disabled = (new LayoutTopicsTable)
+        ->columnResizing(false)
+        ->columnReordering(false)
+        ->resolve($request)
+        ->toArray();
+
+    expect($global['state'])
+        ->columnOrder->toBe(['id', 'name', 'score', 'is_featured', '__actions'])
+        ->columnWidths->toBe(['id' => 80, 'name' => 280, 'score' => 120, '__actions' => 64])
+        ->and($global['options'])
+        ->columnResizing->toBeFalse()
+        ->columnReordering->toBeFalse()
+        ->and($enabled['state'])
+        ->columnOrder->toBe(['id', 'score', 'name', 'is_featured', '__actions'])
+        ->columnWidths->toMatchArray(['name' => 400])
+        ->and($disabled['state'])->toBe($global['state']);
 });
 
 it('serializes row eligibility and the exact selectable result count', function () {

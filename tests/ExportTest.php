@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Musing\InertiaTable\Columns\ActionColumn;
 use Musing\InertiaTable\Columns\BooleanColumn;
+use Musing\InertiaTable\Columns\Column;
 use Musing\InertiaTable\Columns\DateColumn;
 use Musing\InertiaTable\Columns\NumberColumn;
 use Musing\InertiaTable\Columns\TextColumn;
@@ -51,13 +52,14 @@ class ExportTopicsTable extends Table
     public function columns(): array
     {
         return [
-            NumberColumn::make('id', 'ID')->sortable(),
+            NumberColumn::make('id', 'ID')->sortable()->reorderable(),
             TextColumn::make('name', 'Name')
                 ->searchable()
+                ->reorderable()
                 ->exportAs(fn (string $value, ExportTopicRecord $topic) => "{$value} #{$topic->getKey()}"),
-            BooleanColumn::make('active', 'Active'),
-            DateColumn::make('published_at', 'Published')->format('Y-m-d'),
-            TextColumn::make('note', 'Note'),
+            BooleanColumn::make('active', 'Active')->reorderable(),
+            DateColumn::make('published_at', 'Published')->format('Y-m-d')->reorderable(),
+            TextColumn::make('note', 'Note')->reorderable(),
             TextColumn::make('secret', 'Secret')->dontExport(),
             ActionColumn::new(),
         ];
@@ -76,6 +78,28 @@ class ExportTopicsTable extends Table
             Export::make('selected', 'Selected CSV')->selected(),
             Export::make('xlsx', 'Excel', type: 'xlsx'),
             Export::make('unauthorized')->authorize(false),
+        ];
+    }
+}
+
+class SummaryExportTopicsTable extends ExportTopicsTable
+{
+    public function columns(): array
+    {
+        return [
+            NumberColumn::make('id', 'ID')->summary('count'),
+            TextColumn::make('name', 'Name'),
+            BooleanColumn::make('active', 'Active')->summary('count_distinct'),
+            DateColumn::make('published_at', 'Published')->format('Y-m-d'),
+            TextColumn::make('note', 'Note'),
+        ];
+    }
+
+    public function exports(): array
+    {
+        return [
+            Export::make('summary', 'Summary CSV')->filtered()->withSummaries(),
+            Export::make('summary-xlsx', 'Summary Excel', type: 'xlsx')->withSummaries(),
         ];
     }
 }
@@ -347,6 +371,23 @@ it('streams UTF-8 CSV with mapped values, escaping, dates, booleans, nulls, and 
         ->and($rows[3])->toBe(['3', 'Gamma #3', 'true', '2026-08-03', 'plain']);
 });
 
+it('appends opt-in summaries as a final native CSV row', function () {
+    $table = new SummaryExportTopicsTable;
+    $resource = exportResource($table);
+    $response = $this->post(exportEndpoint($table, 'summary'), [
+        'state' => [
+            'filters' => [
+                'active' => ['enabled' => true, 'clause' => 'is_true', 'value' => null],
+            ],
+        ],
+    ])->assertOk();
+    $rows = csvRows($response->streamedContent());
+
+    expect($resource['exports'][0]['includesSummaries'])->toBeTrue()
+        ->and($rows)->toHaveCount(4)
+        ->and($rows[array_key_last($rows)])->toBe(['2', '', '1', '', '']);
+});
+
 it('accepts a null selection for exports that do not require one', function () {
     $this->postJson(exportEndpoint(new ExportTopicsTable, 'all'), [
         'state' => [],
@@ -369,6 +410,27 @@ it('normalizes filtered exports and honors visible columns only when requested',
 
     expect($rows[0])->toBe(['ID', 'Active', 'Published'])
         ->and(array_column(array_slice($rows, 1), 0))->toBe(['3', '2']);
+});
+
+it('follows visible user column layout only when explicitly requested', function () {
+    $table = new ExportTopicsTable;
+    $state = [
+        'columns' => ['note' => false],
+        'columnOrder' => ['active', 'name', 'id', 'published_at', 'note', 'secret', '__actions'],
+    ];
+    $declared = $table->columnsForExport(
+        Export::make('declared')->visibleColumnsOnly(),
+        $state,
+    );
+    $layout = $table->columnsForExport(
+        Export::make('layout')->visibleColumnLayout(),
+        $state,
+    );
+
+    expect(array_column(array_map(fn (Column $column) => $column->toArray(), $declared), 'attribute'))
+        ->toBe(['id', 'name', 'active', 'published_at'])
+        ->and(array_column(array_map(fn (Column $column) => $column->toArray(), $layout), 'attribute'))
+        ->toBe(['active', 'name', 'id', 'published_at']);
 });
 
 it('exports explicit and all-matching integer selections without clearing their scope', function () {
@@ -440,6 +502,12 @@ it('returns a clear validation error when the optional Laravel Excel adapter is 
         ->assertUnprocessable()
         ->assertJsonValidationErrors('export')
         ->assertJsonPath('errors.export.0', 'Install maatwebsite/excel before using XLSX or PDF table exports.');
+});
+
+it('rejects summary rows for exporters that do not support them', function () {
+    $this->postJson(exportEndpoint(new SummaryExportTopicsTable, 'summary-xlsx'), ['state' => []])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.export.0', 'Summary rows are currently supported only by the native CSV exporter.');
 });
 
 it('streams a large CSV query without materializing the entire result collection', function () {

@@ -1,6 +1,6 @@
 import type { TableItem, TableResource, TableState } from "./types";
 
-const BASE_URL = "http://toolbelt.local";
+const BASE_URL = "http://inertia-table.local";
 
 function stateKey(table: string, key: string): string {
     return `table[${table}][${key}]`;
@@ -96,6 +96,19 @@ export function tableUrl<T extends TableItem>(
                 params.append(key, attribute);
             }
         }
+    }
+
+    for (const attribute of state.columnOrder ?? []) {
+        params.append(`${stateKey(table, "columnOrder")}[]`, attribute);
+    }
+
+    const columnWidths = state.columnWidths ?? {};
+    if (Object.keys(columnWidths).length === 0 && state.view != null) {
+        params.set(nestedKey(table, "columnWidths", "__reset"), "1");
+    }
+
+    for (const [attribute, width] of Object.entries(columnWidths)) {
+        params.set(nestedKey(table, "columnWidths", attribute), String(width));
     }
 
     return `${url.pathname}${url.search}${url.hash}`;

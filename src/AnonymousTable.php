@@ -53,6 +53,9 @@ final class AnonymousTable extends Table
         ?int $defaultPerPage = null,
         ?PaginationType $paginationType = null,
         ?bool $stickyBackdropFilter = null,
+        ?bool $columnResizing = null,
+        ?bool $columnReordering = null,
+        ?bool $stickyFooter = null,
     ) {
         if (is_string($resource) && ! is_subclass_of($resource, Model::class)) {
             throw new LogicException('Anonymous table resources must be an Eloquent model class or builder.');
@@ -108,6 +111,9 @@ final class AnonymousTable extends Table
         $this->perPage = $defaultPerPage;
         $this->paginationType = $paginationType;
         $this->stickyBackdropFilter = $stickyBackdropFilter;
+        $this->columnResizing = $columnResizing;
+        $this->columnReordering = $columnReordering;
+        $this->stickyFooter = $stickyFooter;
     }
 
     public function query(): Builder
