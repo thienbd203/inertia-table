@@ -1146,6 +1146,12 @@ scalar tenant identifiers with `scopeAttributes()` and provide an
 state. Definitions removed or materially changed after dispatch fail safely
 instead of exporting with different semantics.
 
+Queued exports also capture the dispatch locale for generation and lifecycle
+callbacks. Deploy the PHP producer and queue workers together: pause dispatches
+or drain pending jobs before workers with older package code consume new export
+snapshots. Failed statuses expose a stable public message; report the original
+exception through the failure callback or Laravel's exception handler.
+
 The Vue renderer submits signed POST requests and reads Laravel's CSRF token from
 either `<meta name="csrf-token">` or the `XSRF-TOKEN` cookie. It exposes
 `export-success`, `export-queued` and `export-error` events; custom renderers can
