@@ -524,3 +524,23 @@ it('does not let a late failure delete or overwrite a ready export', function ()
     expect(app(QueuedExportRepository::class)->get($job->snapshot->id))
         ->status->toBe('ready');
 });
+
+it('does not generate an export while another worker owns its execution lock', function () {
+    $user = QueuedExportUser::query()->create(['name' => 'Allowed']);
+    $this->actingAs($user);
+    $this->postJson(queuedExportEndpoint('queued'), queuedExportPayload())->assertStatus(202);
+    $job = capturedQueuedExportJob();
+    $repository = app(QueuedExportRepository::class);
+    $lock = $repository->executionLock($job->snapshot->id, 120);
+
+    expect($lock->get())->toBeTrue();
+
+    try {
+        $job->handle(app(ExportManager::class), $repository);
+    } finally {
+        $lock->release();
+    }
+
+    Storage::disk('queued-exports')->assertMissing($job->snapshot->path);
+    expect($repository->get($job->snapshot->id))->status->toBe('dispatched');
+});

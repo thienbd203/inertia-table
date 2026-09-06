@@ -25,15 +25,34 @@ final class CleanupQueuedExport implements ShouldQueue
 
     public function handle(QueuedExportRepository $repository): void
     {
-        Storage::disk($this->disk)->delete($this->path);
+        $lock = $repository->executionLock($this->id, 120);
+
+        if (! $lock->get()) {
+            $this->release(5);
+
+            return;
+        }
+
+        try {
+            $this->cleanup($repository);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function cleanup(QueuedExportRepository $repository): void
+    {
         $status = $repository->get($this->id);
 
-        if ($status !== null) {
-            $repository->put($this->id, [
-                ...$status,
-                'status' => 'expired',
-                'url' => null,
-            ], 86400);
+        if (($status['status'] ?? null) !== 'ready') {
+            return;
         }
+
+        Storage::disk($this->disk)->delete($this->path);
+        $repository->put($this->id, [
+            ...$status,
+            'status' => 'expired',
+            'url' => null,
+        ], 86400);
     }
 }

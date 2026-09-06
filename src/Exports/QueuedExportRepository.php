@@ -2,6 +2,7 @@
 
 namespace Musing\InertiaTable\Exports;
 
+use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Support\Facades\Cache;
 
 final class QueuedExportRepository
@@ -32,6 +33,11 @@ final class QueuedExportRepository
         $existing = Cache::get($key);
 
         return is_string($existing) ? $existing : null;
+    }
+
+    public function executionLock(string $id, int $seconds): Lock
+    {
+        return Cache::lock("inertia-table:queued-export:lock:{$id}", max($seconds, 1));
     }
 
     /** @param array<string, mixed> $status */

@@ -31,6 +31,27 @@ final class GenerateQueuedExport implements ShouldQueue
 
     public function handle(ExportManager $manager, QueuedExportRepository $repository): void
     {
+        $lock = $repository->executionLock($this->snapshot->id, $this->executionLockSeconds());
+
+        if (! $lock->get()) {
+            $status = $this->status($repository);
+
+            if (! in_array($status['status'] ?? null, ['ready', 'failed', 'expired'], true)) {
+                $this->release(5);
+            }
+
+            return;
+        }
+
+        try {
+            $this->generate($manager, $repository);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function generate(ExportManager $manager, QueuedExportRepository $repository): void
+    {
         $ttl = max($this->snapshot->expiresAt - time() + 86400, 86400);
         $status = $this->status($repository);
 
@@ -183,6 +204,18 @@ final class GenerateQueuedExport implements ShouldQueue
         if (isset($this->snapshot->locale) && is_string($this->snapshot->locale) && $this->snapshot->locale !== '') {
             App::setLocale($this->snapshot->locale);
         }
+    }
+
+    private function executionLockSeconds(): int
+    {
+        $connection = is_string($this->connection) && $this->connection !== ''
+            ? $this->connection
+            : config('queue.default');
+        $retryAfter = is_string($connection)
+            ? config("queue.connections.{$connection}.retry_after")
+            : null;
+
+        return max((int) $retryAfter + 60, 120);
     }
 
     /** @param array<string, mixed> $status */
