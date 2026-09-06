@@ -876,6 +876,30 @@ it('supports set filter clauses, multiple values, and withoutClause', function (
         ->showClause->toBeFalse();
 });
 
+it('serializes declared clause value kinds for custom filter clauses', function () {
+    $filter = TextFilter::make('name')
+        ->clauses(['equals', 'matches_range', 'is_blank'])
+        ->clauseValueKinds([
+            'matches_range' => 'range',
+            'is_blank' => 'none',
+        ]);
+
+    expect($filter->toArray()['clauseValueKinds'])->toBe([
+        'equals' => 'value',
+        'matches_range' => 'range',
+        'is_blank' => 'none',
+    ])
+        ->and($filter->normalizeState([
+            'enabled' => true,
+            'clause' => 'is_blank',
+            'value' => null,
+        ]))->toBe([
+            'enabled' => true,
+            'clause' => 'is_blank',
+            'value' => null,
+        ]);
+});
+
 it('resolves row action visibility, availability, and custom actions', function () {
     $topic = TopicRecord::query()->firstOrFail();
 

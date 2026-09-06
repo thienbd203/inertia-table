@@ -13,6 +13,9 @@ abstract class Filter implements Arrayable
     /** @var array<int, string> */
     protected array $clauses;
 
+    /** @var array<string, 'value'|'range'|'none'> */
+    protected array $clauseValueKinds = [];
+
     /** @var array<string, mixed> */
     protected array $meta = [];
 
@@ -63,6 +66,24 @@ abstract class Filter implements Arrayable
 
         if ($values !== []) {
             $this->clauses = $values;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Declare how the client should collect a value for each clause.
+     *
+     * @param  array<array-key, mixed>  $valueKinds
+     */
+    public function clauseValueKinds(array $valueKinds): static
+    {
+        foreach ($valueKinds as $clause => $valueKind) {
+            if (! is_string($clause) || ! in_array($valueKind, ['value', 'range', 'none'], true)) {
+                continue;
+            }
+
+            $this->clauseValueKinds[$clause] = $valueKind;
         }
 
         return $this;
@@ -186,7 +207,7 @@ abstract class Filter implements Arrayable
         }
 
         $value = $this->normalize($state['value'] ?? null, $clause);
-        if ($value === null && ! in_array($clause, [Clause::IsTrue->value, Clause::IsFalse->value, Clause::IsSet->value, Clause::IsNotSet->value], true)) {
+        if ($value === null && $this->clauseValueKind($clause) !== 'none') {
             return ['enabled' => false, 'clause' => $this->defaultClause(), 'value' => null];
         }
 
@@ -214,10 +235,28 @@ abstract class Filter implements Arrayable
             'attribute' => $this->attribute,
             'label' => $this->label,
             'clauses' => $this->clauses,
+            'clauseValueKinds' => array_combine(
+                $this->clauses,
+                array_map($this->clauseValueKind(...), $this->clauses),
+            ),
             'meta' => $this->meta,
             'hasDefaultValue' => $this->hasDefaultValue,
             'showClause' => $this->showClause,
             'compactDisplayLabel' => $this->compactDisplayLabel,
         ];
+    }
+
+    /** @return 'value'|'range'|'none' */
+    private function clauseValueKind(string $clause): string
+    {
+        return $this->clauseValueKinds[$clause]
+            ?? match ($clause) {
+                Clause::Between->value, Clause::NotBetween->value => 'range',
+                Clause::IsTrue->value,
+                Clause::IsFalse->value,
+                Clause::IsSet->value,
+                Clause::IsNotSet->value => 'none',
+                default => 'value',
+            };
     }
 }

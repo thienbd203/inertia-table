@@ -682,6 +682,22 @@ DateFilter::make('created_at', 'Created at');
 
 `SetFilter` presents a multi-select UI for `in` and `not_in`. `DateFilter` presents an inline calendar for a single date and a two-month range calendar for `between` and `not_between`.
 
+Custom clauses can declare the value shape that the Vue renderer should collect.
+Use `value` for one control, `range` for a two-value range, or `none` for a
+clause that applies immediately without a value:
+
+```php
+$filter->clauses(['equals', 'matches_range', 'is_blank'])
+    ->clauseValueKinds([
+        'matches_range' => 'range',
+        'is_blank' => 'none',
+    ]);
+```
+
+This only describes the client input. The custom filter implementation remains
+responsible for normalizing and applying those clauses. Built-in clauses keep
+their existing behavior when a resource does not include this additive field.
+
 For application-specific query logic, use `applyUsing()` and retain the declared option allowlist:
 
 ```php

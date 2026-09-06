@@ -40,6 +40,19 @@ const featuredFilter: TableFilter = {
     meta: {},
 };
 
+const customClauseFilter: TableFilter = {
+    attribute: "custom",
+    label: "Custom",
+    type: "numeric",
+    clauses: ["equals", "matches_range", "is_blank"],
+    clauseValueKinds: {
+        matches_range: "range",
+        is_blank: "none",
+    },
+    options: [],
+    meta: {},
+};
+
 function resourceWithFilters(filters: TableFilter[]) {
     const base = topicResource();
 
@@ -165,5 +178,20 @@ describe("useFilterEditor", () => {
 
         expect(editor.isValuelessClause.value).toBe(true);
         expect(setFilter).toHaveBeenCalledWith("is_featured", true, "is_true");
+    });
+
+    it("uses server-declared value kinds for custom clauses", () => {
+        const { editor, table } = mountEditor(customClauseFilter, [
+            customClauseFilter,
+        ]);
+        const setFilter = vi.spyOn(table, "setFilter");
+
+        editor.updateClause("matches_range");
+        expect(editor.isRangeClause.value).toBe(true);
+        expect(editor.value.value).toEqual(["", ""]);
+
+        editor.updateClause("is_blank");
+        expect(editor.isValuelessClause.value).toBe(true);
+        expect(setFilter).toHaveBeenCalledWith("custom", true, "is_blank");
     });
 });

@@ -43,13 +43,27 @@ export function isValuelessClause(clause: string): boolean {
     return ["is_true", "is_false", "is_set", "is_not_set"].includes(clause);
 }
 
+export function filterClauseValueKind(
+    filter: TableFilter,
+    clause: string,
+): "value" | "range" | "none" {
+    return (
+        filter.clauseValueKinds?.[clause] ??
+        (isRangeClause(clause)
+            ? "range"
+            : isValuelessClause(clause)
+              ? "none"
+              : "value")
+    );
+}
+
 export function filterDisplayValue(
     filter: TableFilter,
     state: TableFilterState | undefined,
 ): string {
     if (!state) return "";
 
-    if (isValuelessClause(state.clause)) {
+    if (filterClauseValueKind(filter, state.clause) === "none") {
         return "";
     }
 

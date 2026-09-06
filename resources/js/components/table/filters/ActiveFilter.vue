@@ -11,7 +11,7 @@ import {
     UiTooltipProvider,
     UiTooltipTrigger,
 } from "@/components/ui/tooltip";
-import { filterFullDisplayValue, isValuelessClause } from "@/filters";
+import { filterClauseValueKind, filterFullDisplayValue } from "@/filters";
 import type { TableFilter } from "@/types";
 import { useTableContext } from "@/context/tableContext";
 import FilterChip from "./FilterChip.vue";
@@ -62,7 +62,10 @@ watch(
 );
 
 async function focusValueControl(event: Event) {
-    if (isValuelessClause(state.value?.clause ?? "")) {
+    if (
+        filterClauseValueKind(props.filter, state.value?.clause ?? "") ===
+        "none"
+    ) {
         return;
     }
 

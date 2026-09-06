@@ -85,6 +85,7 @@ export type TableFilter = {
     label: string;
     type: "text" | "set" | "select" | "numeric" | "date" | "boolean" | string;
     clauses: string[];
+    clauseValueKinds?: Partial<Record<string, "value" | "range" | "none">>;
     options: TableFilterOption[];
     remote?: TableRemoteFilter;
     multiple?: boolean;

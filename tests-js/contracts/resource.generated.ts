@@ -98,6 +98,12 @@ const resources = {
                     "equals",
                     "not_equals"
                 ],
+                "clauseValueKinds": {
+                    "in": "value",
+                    "not_in": "value",
+                    "equals": "value",
+                    "not_equals": "value"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -128,6 +134,16 @@ const resources = {
                     "between",
                     "not_between"
                 ],
+                "clauseValueKinds": {
+                    "equals": "value",
+                    "not_equals": "value",
+                    "greater_than": "value",
+                    "greater_than_or_equal": "value",
+                    "less_than": "value",
+                    "less_than_or_equal": "value",
+                    "between": "range",
+                    "not_between": "range"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -148,6 +164,16 @@ const resources = {
                     "between",
                     "not_between"
                 ],
+                "clauseValueKinds": {
+                    "before": "value",
+                    "after": "value",
+                    "equal_or_before": "value",
+                    "equal_or_after": "value",
+                    "equals": "value",
+                    "not_equals": "value",
+                    "between": "range",
+                    "not_between": "range"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -162,6 +188,10 @@ const resources = {
                     "is_true",
                     "is_false"
                 ],
+                "clauseValueKinds": {
+                    "is_true": "none",
+                    "is_false": "none"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -509,6 +539,12 @@ const resources = {
                     "equals",
                     "not_equals"
                 ],
+                "clauseValueKinds": {
+                    "in": "value",
+                    "not_in": "value",
+                    "equals": "value",
+                    "not_equals": "value"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -539,6 +575,16 @@ const resources = {
                     "between",
                     "not_between"
                 ],
+                "clauseValueKinds": {
+                    "equals": "value",
+                    "not_equals": "value",
+                    "greater_than": "value",
+                    "greater_than_or_equal": "value",
+                    "less_than": "value",
+                    "less_than_or_equal": "value",
+                    "between": "range",
+                    "not_between": "range"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -559,6 +605,16 @@ const resources = {
                     "between",
                     "not_between"
                 ],
+                "clauseValueKinds": {
+                    "before": "value",
+                    "after": "value",
+                    "equal_or_before": "value",
+                    "equal_or_after": "value",
+                    "equals": "value",
+                    "not_equals": "value",
+                    "between": "range",
+                    "not_between": "range"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -573,6 +629,10 @@ const resources = {
                     "is_true",
                     "is_false"
                 ],
+                "clauseValueKinds": {
+                    "is_true": "none",
+                    "is_false": "none"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -830,6 +890,12 @@ const resources = {
                     "equals",
                     "not_equals"
                 ],
+                "clauseValueKinds": {
+                    "in": "value",
+                    "not_in": "value",
+                    "equals": "value",
+                    "not_equals": "value"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -860,6 +926,16 @@ const resources = {
                     "between",
                     "not_between"
                 ],
+                "clauseValueKinds": {
+                    "equals": "value",
+                    "not_equals": "value",
+                    "greater_than": "value",
+                    "greater_than_or_equal": "value",
+                    "less_than": "value",
+                    "less_than_or_equal": "value",
+                    "between": "range",
+                    "not_between": "range"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -880,6 +956,16 @@ const resources = {
                     "between",
                     "not_between"
                 ],
+                "clauseValueKinds": {
+                    "before": "value",
+                    "after": "value",
+                    "equal_or_before": "value",
+                    "equal_or_after": "value",
+                    "equals": "value",
+                    "not_equals": "value",
+                    "between": "range",
+                    "not_between": "range"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -894,6 +980,10 @@ const resources = {
                     "is_true",
                     "is_false"
                 ],
+                "clauseValueKinds": {
+                    "is_true": "none",
+                    "is_false": "none"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -1151,6 +1241,12 @@ const resources = {
                     "equals",
                     "not_equals"
                 ],
+                "clauseValueKinds": {
+                    "in": "value",
+                    "not_in": "value",
+                    "equals": "value",
+                    "not_equals": "value"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -1181,6 +1277,16 @@ const resources = {
                     "between",
                     "not_between"
                 ],
+                "clauseValueKinds": {
+                    "equals": "value",
+                    "not_equals": "value",
+                    "greater_than": "value",
+                    "greater_than_or_equal": "value",
+                    "less_than": "value",
+                    "less_than_or_equal": "value",
+                    "between": "range",
+                    "not_between": "range"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -1201,6 +1307,16 @@ const resources = {
                     "between",
                     "not_between"
                 ],
+                "clauseValueKinds": {
+                    "before": "value",
+                    "after": "value",
+                    "equal_or_before": "value",
+                    "equal_or_after": "value",
+                    "equals": "value",
+                    "not_equals": "value",
+                    "between": "range",
+                    "not_between": "range"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
@@ -1215,6 +1331,10 @@ const resources = {
                     "is_true",
                     "is_false"
                 ],
+                "clauseValueKinds": {
+                    "is_true": "none",
+                    "is_false": "none"
+                },
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
