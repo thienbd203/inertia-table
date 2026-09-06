@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Musing\InertiaTable\Actions\Action;
+use Musing\InertiaTable\Actions\QueuedActionDispatcher;
 use Musing\InertiaTable\Actions\QueuedActionRepository;
 use Musing\InertiaTable\Actions\QueuedActionSnapshot;
 use Musing\InertiaTable\Columns\TextColumn;
@@ -120,6 +121,10 @@ class QueuedActionTopicsTable extends Table
 
     public static bool $denyAction = false;
 
+    public static bool $throwWhenResolvingLabel = false;
+
+    public static int $labelResolutionCount = 0;
+
     /** @var array<int, array<int, mixed>> */
     public static array $events = [];
 
@@ -146,7 +151,15 @@ class QueuedActionTopicsTable extends Table
             return [];
         }
 
-        $feature = Action::make('queue-feature', 'Feature selected')
+        $feature = Action::make('queue-feature', function () {
+            self::$labelResolutionCount++;
+
+            if (self::$throwWhenResolvingLabel) {
+                throw new RuntimeException('Action label resolver exposed implementation details.');
+            }
+
+            return 'Feature selected';
+        })
             ->bulk()
             ->authorize(fn () => ! self::$denyAction && Auth::user()?->name === 'Allowed')
             ->handle(fn (QueuedActionRecord $topic) => $topic->update(['featured' => true]))
@@ -252,6 +265,8 @@ beforeEach(function () {
     QueuedActionTopicsTable::$removeAction = false;
     QueuedActionTopicsTable::$changeAction = false;
     QueuedActionTopicsTable::$denyAction = false;
+    QueuedActionTopicsTable::$throwWhenResolvingLabel = false;
+    QueuedActionTopicsTable::$labelResolutionCount = 0;
     QueuedActionTopicsTable::$events = [];
     QueuedActionTestContext::$restored = [];
 
@@ -475,6 +490,47 @@ it('deduplicates repeated requests for the same captured action and selection', 
         ->assertOk()
         ->assertJsonPath('action.status', 'queued');
     Queue::assertPushed(ExecuteQueuedAction::class, 1);
+});
+
+it('keeps a terminal failure when action preparation fails after reservation', function () {
+    $user = QueuedActionUser::query()->create(['name' => 'Allowed']);
+    $this->actingAs($user);
+    QueuedActionTopicsTable::$throwWhenResolvingLabel = true;
+    $request = Request::create('/', 'POST');
+    $request->setUserResolver(fn () => $user);
+    $table = app(QueuedActionTopicsTable::class);
+    $action = $table->action('queue-feature');
+    $selection = $table->selection([
+        'all' => false,
+        'keys' => [1, 2, 3],
+        'except' => [],
+        'table' => 'queued_action_topics',
+        'state' => [],
+    ]);
+
+    expect(fn () => app(QueuedActionDispatcher::class)->dispatch(
+        $request,
+        $table,
+        $action,
+        $selection,
+        'request-one',
+    ))->toThrow(RuntimeException::class, 'Action label resolver exposed implementation details.');
+    Queue::assertNothingPushed();
+
+    QueuedActionTopicsTable::$throwWhenResolvingLabel = false;
+    $retry = app(QueuedActionDispatcher::class)->dispatch(
+        $request,
+        $table,
+        $action,
+        $selection,
+        'request-one',
+    );
+
+    expect($retry)
+        ->status->toBe('failed')
+        ->duplicate->toBeTrue()
+        ->message->toBe('The queued action failed.')
+        ->and(QueuedActionTopicsTable::$labelResolutionCount)->toBe(1);
 });
 
 it('requires an idempotency key before accepting a queued operation', function () {
