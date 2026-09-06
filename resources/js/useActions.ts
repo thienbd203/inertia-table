@@ -1,5 +1,5 @@
 import { router } from "@inertiajs/vue3";
-import { computed, onScopeDispose, ref, watch, type Ref } from "vue";
+import { computed, ref, watch, type Ref } from "vue";
 import { createIdempotencyKey, csrfHeaders, responseMessage } from "./http";
 import type {
     QueuedActionStatus,
@@ -10,6 +10,7 @@ import type {
     TableSelection,
 } from "./types";
 import type { UseTable } from "./useTable";
+import { usePolling } from "./usePolling";
 
 type PendingAction<T extends TableItem> = {
     action: TableAction;
@@ -72,41 +73,13 @@ export function useActions<T extends TableItem>(
     const queuedAction = ref<QueuedActionStatus | null>(null);
     const actionError = ref<string | null>(null);
     let activeQueuedAction: ActiveQueuedAction | null = null;
-    let pollingTimer: number | null = null;
-    let pollingGeneration = 0;
-
-    function stopPolling() {
-        pollingGeneration += 1;
-
-        if (pollingTimer !== null) {
-            window.clearTimeout(pollingTimer);
-            pollingTimer = null;
-        }
-    }
-
     function queuedActionIsTerminal(status: QueuedActionStatus) {
         return ["completed", "failed", "expired"].includes(status.status);
     }
 
-    function schedulePoll(endpoint: string, generation: number) {
-        pollingTimer = window.setTimeout(() => {
-            void pollQueuedAction(endpoint, generation);
-        }, queuedActionPollDelay);
-    }
-
-    async function pollQueuedAction(endpoint: string, generation: number) {
-        try {
-            const response = await fetch(endpoint, {
-                method: "GET",
-                credentials: "same-origin",
-                headers: {
-                    Accept: "application/json",
-                    "X-Requested-With": "XMLHttpRequest",
-                },
-            });
-
-            if (generation !== pollingGeneration) return;
-
+    const polling = usePolling<QueuedActionStatus>({
+        delay: queuedActionPollDelay,
+        async parse(response) {
             if (!response.ok) {
                 throw new Error(
                     await responseMessage(
@@ -116,16 +89,17 @@ export function useActions<T extends TableItem>(
                 );
             }
 
-            const payload = (await response.json()) as {
-                action: QueuedActionStatus;
-            };
+            return ((await response.json()) as { action: QueuedActionStatus })
+                .action;
+        },
+        nextEndpoint(status, endpoint) {
+            updateQueuedAction(status, false);
 
-            if (generation !== pollingGeneration) return;
-
-            updateQueuedAction(payload.action);
-        } catch (reason) {
-            if (generation !== pollingGeneration) return;
-
+            return queuedActionIsTerminal(status)
+                ? null
+                : (status.statusEndpoint ?? endpoint);
+        },
+        onError(reason) {
             const resolved =
                 reason instanceof Error
                     ? reason
@@ -151,8 +125,11 @@ export function useActions<T extends TableItem>(
 
             activeQueuedAction = null;
             isPerformingAction.value = false;
-            stopPolling();
-        }
+        },
+    });
+
+    function stopPolling() {
+        polling.stop();
     }
 
     function startPolling(status: QueuedActionStatus) {
@@ -166,11 +143,13 @@ export function useActions<T extends TableItem>(
             return;
         }
 
-        const generation = pollingGeneration;
-        schedulePoll(status.statusEndpoint, generation);
+        polling.start(status.statusEndpoint);
     }
 
-    function updateQueuedAction(status: QueuedActionStatus) {
+    function updateQueuedAction(
+        status: QueuedActionStatus,
+        scheduleNextPoll = true,
+    ) {
         const previous = queuedAction.value;
         queuedAction.value = status;
 
@@ -216,7 +195,7 @@ export function useActions<T extends TableItem>(
             return;
         }
 
-        startPolling(status);
+        if (scheduleNextPoll) startPolling(status);
     }
 
     function clearQueuedAction() {
@@ -596,8 +575,6 @@ export function useActions<T extends TableItem>(
             if (keepConfirmationOpen) pendingAction.value = null;
         }
     }
-
-    onScopeDispose(stopPolling);
 
     return {
         allItemsAreSelected,
