@@ -45,7 +45,24 @@ final class QueuedExportRepository
     {
         $status = Cache::get($this->statusKey($id));
 
-        return is_array($status) ? $status : null;
+        if (! is_array($status)) {
+            return null;
+        }
+
+        $expiresAt = $status['expiresAt'] ?? null;
+
+        if (is_int($expiresAt) && $expiresAt <= time() && ($status['status'] ?? null) !== 'expired') {
+            $status = [
+                ...$status,
+                'status' => 'expired',
+                'url' => null,
+                'redirect' => null,
+                'message' => null,
+            ];
+            $this->put($id, $status, 86400);
+        }
+
+        return $status;
     }
 
     public function forget(string $id): void

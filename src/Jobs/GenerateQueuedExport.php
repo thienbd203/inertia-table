@@ -32,8 +32,20 @@ final class GenerateQueuedExport implements ShouldQueue
     public function handle(ExportManager $manager, QueuedExportRepository $repository): void
     {
         $ttl = max($this->snapshot->expiresAt - time() + 86400, 86400);
+        $status = $this->status($repository);
+
+        if (in_array($status['status'] ?? null, ['ready', 'failed', 'expired'], true)) {
+            return;
+        }
+
+        if ($this->snapshot->expiresAt <= time()) {
+            $this->expire($repository, $status);
+
+            return;
+        }
+
         $repository->put($this->snapshot->id, [
-            ...$this->status($repository),
+            ...$status,
             'status' => 'processing',
         ], $ttl);
         $context = app($this->snapshot->contextClass);
@@ -58,8 +70,17 @@ final class GenerateQueuedExport implements ShouldQueue
                 $this->snapshot->path,
             );
             $url = $export->resolvedDeliveryUrl($this->snapshot);
+            $status = $this->status($repository);
+
+            if ($this->snapshot->expiresAt <= time() || ($status['status'] ?? null) === 'expired') {
+                Storage::disk($this->snapshot->disk)->delete($this->snapshot->path);
+                $this->expire($repository, $status);
+
+                return;
+            }
+
             $repository->put($this->snapshot->id, [
-                ...$this->status($repository),
+                ...$status,
                 'status' => 'ready',
                 'url' => $url,
             ], $ttl);
@@ -78,10 +99,16 @@ final class GenerateQueuedExport implements ShouldQueue
     public function failed(?Throwable $exception): void
     {
         $exception ??= new LogicException('The queued export failed.');
-        Storage::disk($this->snapshot->disk)->delete($this->snapshot->path);
         $repository = app(QueuedExportRepository::class);
+        $status = $this->status($repository);
+
+        if (in_array($status['status'] ?? null, ['ready', 'expired'], true)) {
+            return;
+        }
+
+        Storage::disk($this->snapshot->disk)->delete($this->snapshot->path);
         $repository->put($this->snapshot->id, [
-            ...$this->status($repository),
+            ...$status,
             'status' => 'failed',
             'url' => null,
             'message' => Export::DEFAULT_FAILURE_MESSAGE,
@@ -156,5 +183,17 @@ final class GenerateQueuedExport implements ShouldQueue
         if (isset($this->snapshot->locale) && is_string($this->snapshot->locale) && $this->snapshot->locale !== '') {
             App::setLocale($this->snapshot->locale);
         }
+    }
+
+    /** @param array<string, mixed> $status */
+    private function expire(QueuedExportRepository $repository, array $status): void
+    {
+        $repository->put($this->snapshot->id, [
+            ...$status,
+            'status' => 'expired',
+            'url' => null,
+            'redirect' => null,
+            'message' => null,
+        ], 86400);
     }
 }

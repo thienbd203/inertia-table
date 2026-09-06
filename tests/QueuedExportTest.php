@@ -492,3 +492,35 @@ it('cleans up expired files and marks the status expired', function () {
         ->status->toBe('expired')
         ->url->toBeNull();
 });
+
+it('invalidates an expired queued export status without refreshing its delivery data', function () {
+    $repository = app(QueuedExportRepository::class);
+    $repository->put('expired-export', [
+        'id' => 'expired-export',
+        'status' => 'ready',
+        'url' => '/download',
+        'redirect' => '/exports/history',
+        'message' => 'stale',
+        'expiresAt' => time() - 1,
+    ], 3600);
+
+    expect($repository->get('expired-export'))
+        ->status->toBe('expired')
+        ->url->toBeNull()
+        ->redirect->toBeNull()
+        ->message->toBeNull();
+});
+
+it('does not let a late failure delete or overwrite a ready export', function () {
+    $user = QueuedExportUser::query()->create(['name' => 'Allowed']);
+    $this->actingAs($user);
+    $this->postJson(queuedExportEndpoint('queued'), queuedExportPayload())->assertStatus(202);
+    $job = capturedQueuedExportJob();
+    $job->handle(app(ExportManager::class), app(QueuedExportRepository::class));
+
+    $job->failed(new RuntimeException('Late worker failure.'));
+
+    Storage::disk('queued-exports')->assertExists($job->snapshot->path);
+    expect(app(QueuedExportRepository::class)->get($job->snapshot->id))
+        ->status->toBe('ready');
+});
