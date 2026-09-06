@@ -100,17 +100,17 @@ final class GenerateQueuedExport implements ShouldQueue
                 return;
             }
 
+            CleanupQueuedExport::dispatch(
+                $this->snapshot->id,
+                $this->snapshot->disk,
+                $this->snapshot->path,
+            )->delay(Carbon::createFromTimestamp($this->snapshot->expiresAt));
             $repository->put($this->snapshot->id, [
                 ...$status,
                 'status' => 'ready',
                 'url' => $url,
             ], $ttl);
             $export->notifyReady($this->snapshot, $url);
-            CleanupQueuedExport::dispatch(
-                $this->snapshot->id,
-                $this->snapshot->disk,
-                $this->snapshot->path,
-            )->delay(Carbon::createFromTimestamp($this->snapshot->expiresAt));
         } finally {
             App::setLocale($previousLocale);
             $context->release();
