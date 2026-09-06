@@ -1094,21 +1094,14 @@ abstract class Table implements Arrayable
             $models = $query->get();
             $total = $models->count();
 
-            return [
-                'data' => $this->serializeModels($models, $columns, $actions),
+            return $this->paginationEnvelope($models, $columns, $actions, $selectableTotal, [
                 'currentPage' => 1,
                 'from' => $total > 0 ? 1 : null,
                 'lastPage' => 1,
-                'links' => [],
                 'perPage' => $total,
                 'to' => $total > 0 ? $total : null,
                 'total' => $total,
-                'selectableTotal' => $selectableTotal,
-                'hasPreviousPage' => false,
-                'hasNextPage' => false,
-                'previousCursor' => null,
-                'nextCursor' => null,
-            ];
+            ]);
         }
 
         return match ($this->resolvedPaginationType()) {
@@ -1142,8 +1135,7 @@ abstract class Table implements Arrayable
             total: $total,
         )->withQueryString();
 
-        return [
-            'data' => $this->serializeModels($paginator->items(), $columns, $actions),
+        return $this->paginationEnvelope($paginator->items(), $columns, $actions, $selectableTotal, [
             'currentPage' => $paginator->currentPage(),
             'from' => $paginator->firstItem(),
             'lastPage' => $paginator->lastPage(),
@@ -1151,12 +1143,9 @@ abstract class Table implements Arrayable
             'perPage' => $paginator->perPage(),
             'to' => $paginator->lastItem(),
             'total' => $paginator->total(),
-            'selectableTotal' => $selectableTotal,
             'hasPreviousPage' => ! $paginator->onFirstPage(),
             'hasNextPage' => $paginator->hasMorePages(),
-            'previousCursor' => null,
-            'nextCursor' => null,
-        ];
+        ]);
     }
 
     /**
@@ -1178,21 +1167,14 @@ abstract class Table implements Arrayable
             page: $state->page,
         )->withQueryString();
 
-        return [
-            'data' => $this->serializeModels($paginator->items(), $columns, $actions),
+        return $this->paginationEnvelope($paginator->items(), $columns, $actions, $selectableTotal, [
             'currentPage' => $paginator->currentPage(),
             'from' => $paginator->firstItem(),
-            'lastPage' => null,
-            'links' => [],
             'perPage' => $paginator->perPage(),
             'to' => $paginator->lastItem(),
-            'total' => null,
-            'selectableTotal' => $selectableTotal,
             'hasPreviousPage' => ! $paginator->onFirstPage(),
             'hasNextPage' => $paginator->hasMorePages(),
-            'previousCursor' => null,
-            'nextCursor' => null,
-        ];
+        ]);
     }
 
     /**
@@ -1216,20 +1198,44 @@ abstract class Table implements Arrayable
             cursor: Cursor::fromEncoded($state->cursor),
         )->withQueryString();
 
-        return [
-            'data' => $this->serializeModels($paginator->items(), $columns, $actions),
-            'currentPage' => null,
-            'from' => null,
-            'lastPage' => null,
-            'links' => [],
+        return $this->paginationEnvelope($paginator->items(), $columns, $actions, $selectableTotal, [
             'perPage' => $paginator->perPage(),
-            'to' => null,
-            'total' => null,
-            'selectableTotal' => $selectableTotal,
             'hasPreviousPage' => ! $paginator->onFirstPage(),
             'hasNextPage' => $paginator->hasMorePages(),
             'previousCursor' => $paginator->previousCursor()?->encode(),
             'nextCursor' => $paginator->nextCursor()?->encode(),
+        ]);
+    }
+
+    /**
+     * @param  iterable<int, Model>  $models
+     * @param  array<int, Column>  $columns
+     * @param  array<int, Action>  $actions
+     * @param  array<string, mixed>  $details
+     * @return array<string, mixed>
+     */
+    private function paginationEnvelope(
+        iterable $models,
+        array $columns,
+        array $actions,
+        int $selectableTotal,
+        array $details,
+    ): array {
+        return [
+            'data' => $this->serializeModels($models, $columns, $actions),
+            'currentPage' => null,
+            'from' => null,
+            'lastPage' => null,
+            'links' => [],
+            'perPage' => 0,
+            'to' => null,
+            'total' => null,
+            'selectableTotal' => $selectableTotal,
+            'hasPreviousPage' => false,
+            'hasNextPage' => false,
+            'previousCursor' => null,
+            'nextCursor' => null,
+            ...$details,
         ];
     }
 

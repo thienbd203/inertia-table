@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -185,6 +186,15 @@ class CustomPerPageTopicsTable extends TopicsTable
 
     /** @var array<int, int> */
     protected ?array $perPageOptions = [1, 2];
+}
+
+class LinkedTopicsTable extends CustomPerPageTopicsTable
+{
+    /** @return array<int, array{url: string|null, label: string, active: bool}> */
+    protected function paginationLinks(LengthAwarePaginator $paginator): array
+    {
+        return [['url' => '/custom-page', 'label' => 'Custom', 'active' => true]];
+    }
 }
 
 class SimplePaginationTopicsTable extends TopicsTable
@@ -708,6 +718,19 @@ it('lets a table override the global per-page default and options', function () 
     expect($default['options']['perPage'])->toBe([1, 2])
         ->and($default['results']['perPage'])->toBe(1)
         ->and($rejected['results']['perPage'])->toBe(1);
+});
+
+it('keeps custom full-pagination links in the result envelope', function () {
+    $resource = (new LinkedTopicsTable)->resolve(tableRequest())->toArray();
+
+    expect($resource['results'])->toMatchArray([
+        'currentPage' => 1,
+        'lastPage' => 3,
+        'links' => [['url' => '/custom-page', 'label' => 'Custom', 'active' => true]],
+        'total' => 3,
+        'previousCursor' => null,
+        'nextCursor' => null,
+    ]);
 });
 
 it('supports simple pagination without an exact result count', function () {
