@@ -156,6 +156,24 @@ describe("DataTable shadcn renderer", () => {
                 .get('th[data-column="__actions"] .tb-sort-button')
                 .classes(),
         ).toContain("-me-3");
+        expect(wrapper.get(".tb-header-row").classes()).not.toContain(
+            "hover:bg-transparent",
+        );
+        expect(wrapper.get(".tb-header-row").classes()).toContain(
+            "transition-colors",
+        );
+        expect(
+            wrapper
+                .findAll(".tb-sort-button")
+                .every(
+                    (button) => button.attributes("data-variant") === "ghost",
+                ),
+        ).toBe(true);
+        expect(
+            wrapper
+                .get('th[data-column="name"] .tb-sort-button')
+                .attributes("data-active"),
+        ).toBe("");
     });
 
     it("disables the sticky backdrop filter for one table", () => {
@@ -327,6 +345,15 @@ describe("DataTable shadcn renderer", () => {
         });
         const handle = wrapper.get('[aria-label="Resize Name"]');
 
+        await handle.trigger("pointerenter");
+        expect(
+            wrapper.findAll('[data-column="name"].tb-column-resize-active'),
+        ).toHaveLength(resource.results.data.length + 1);
+        await handle.trigger("pointerleave");
+        expect(
+            wrapper.findAll('[data-column="name"].tb-column-resize-active'),
+        ).toHaveLength(0);
+
         handle.element.dispatchEvent(
             new PointerEvent("pointerdown", {
                 bubbles: true,
@@ -336,6 +363,10 @@ describe("DataTable shadcn renderer", () => {
                 pointerType: "touch",
             }),
         );
+        await wrapper.vm.$nextTick();
+        expect(
+            wrapper.findAll('[data-column="name"].tb-column-resize-active'),
+        ).toHaveLength(resource.results.data.length + 1);
         window.dispatchEvent(
             new PointerEvent("pointermove", {
                 clientX: 150,
@@ -356,6 +387,10 @@ describe("DataTable shadcn renderer", () => {
                 pointerType: "touch",
             }),
         );
+        await wrapper.vm.$nextTick();
+        expect(
+            wrapper.findAll('[data-column="name"].tb-column-resize-active'),
+        ).toHaveLength(0);
         requestFrame.mockRestore();
         cancelFrame.mockRestore();
     });

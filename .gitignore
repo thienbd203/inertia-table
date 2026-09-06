@@ -34,3 +34,5 @@ testbench.yaml
 !/docs/architecture.md
 !/docs/customization.md
 /coverage
+
+.refactor

@@ -122,9 +122,10 @@ function reorderKeydown(event: KeyboardEvent, attribute: string) {
 
 <template>
     <UiTableHeader
+        class="tb-table-header"
         :data-sticky-header="resource.options.stickyHeader || undefined"
     >
-        <UiTableRow>
+        <UiTableRow class="tb-header-row">
             <UiTableHead
                 v-if="canSelect"
                 :ref="
@@ -134,7 +135,7 @@ function reorderKeydown(event: KeyboardEvent, attribute: string) {
                             element,
                         )
                 "
-                class="tb-selection-cell"
+                class="tb-header-cell tb-selection-cell"
                 :class="{
                     'tb-sticky-cell': sticky.selectionPinned.value,
                     'tb-sticky-header-cell': resource.options.stickyHeader,
@@ -173,6 +174,7 @@ function reorderKeydown(event: KeyboardEvent, attribute: string) {
                     dropTarget === column.attribute ? '' : undefined
                 "
                 :class="[
+                    'tb-header-cell',
                     column.headerClass,
                     alignmentClass(column.alignment),
                     {
@@ -184,6 +186,8 @@ function reorderKeydown(event: KeyboardEvent, attribute: string) {
                         'tb-reorderable-column':
                             resource.options.columnReordering !== false &&
                             column.reorderable,
+                        'tb-column-resize-active':
+                            table.resizingColumn.value === column.attribute,
                     },
                 ]"
                 :style="[
@@ -212,13 +216,9 @@ function reorderKeydown(event: KeyboardEvent, attribute: string) {
                         >
                             <UiDropdownMenuTrigger as-child>
                                 <UiButton
-                                    :variant="
-                                        sortDirection(column.attribute)
-                                            ? 'secondary'
-                                            : 'ghost'
-                                    "
+                                    variant="ghost"
                                     size="sm"
-                                    class="tb-sort-button font-semibold"
+                                    class="tb-sort-button font-semibold transition-colors"
                                     :class="
                                         buttonMarginClassByAlignment(
                                             column.alignment,

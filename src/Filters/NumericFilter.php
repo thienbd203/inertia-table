@@ -14,7 +14,14 @@ class NumericFilter extends Filter
     public function normalize(mixed $value, ?string $clause = null): int|float|array|null
     {
         if (in_array($clause, [Clause::Between->value, Clause::NotBetween->value], true)) {
-            if (! is_array($value) || count($value) !== 2 || ! is_numeric($value[0]) || ! is_numeric($value[1])) {
+            if (
+                ! is_array($value)
+                || count($value) !== 2
+                || ! array_key_exists(0, $value)
+                || ! array_key_exists(1, $value)
+                || ! is_numeric($value[0])
+                || ! is_numeric($value[1])
+            ) {
                 return null;
             }
 

@@ -14,6 +14,8 @@ use Throwable;
 
 final class Export
 {
+    public const DEFAULT_FAILURE_MESSAGE = 'The export could not be completed.';
+
     private bool|Closure $authorize;
 
     private string|Closure $label;

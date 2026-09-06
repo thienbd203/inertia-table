@@ -16,11 +16,16 @@ type ExportCallbacks = {
     onError?: (definition: TableExport, error: Error) => void;
 };
 
+type ExportActions<T extends TableItem> = Pick<
+    UseActions<T>,
+    "selectedCount" | "selection"
+>;
+
 const queuedExportPollDelay = 1_500;
 
 export function useExports<T extends TableItem>(
     table: UseTable<T>,
-    actions: UseActions<T>,
+    actions: ExportActions<T>,
     callbacks: ExportCallbacks = {},
 ) {
     const isExporting = ref(false);

@@ -5,6 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Musing\InertiaTable\Columns\NumberColumn;
 use Musing\InertiaTable\Columns\TextColumn;
@@ -114,11 +115,37 @@ class NamedViewTopicsTable extends ViewTopicsTable
 
 class CustomTableView extends TableView {}
 
+class SecondaryConnectionTableView extends TableView
+{
+    protected $connection = 'view_secondary';
+
+    public static bool $throwWhenSavingDefault = false;
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $view): void {
+            if (self::$throwWhenSavingDefault && $view->is_default) {
+                throw new RuntimeException('Simulated default view save failure.');
+            }
+        });
+    }
+}
+
 class CustomModelViewTopicsTable extends ViewTopicsTable
 {
     public function views(): ?Views
     {
         return Views::make()->scopeUser(false)->modelClass(CustomTableView::class);
+    }
+}
+
+class SecondaryConnectionViewTopicsTable extends ViewTopicsTable
+{
+    public function views(): ?Views
+    {
+        return Views::make()
+            ->scopeUser(false)
+            ->modelClass(SecondaryConnectionTableView::class);
     }
 }
 
@@ -135,6 +162,13 @@ class RestrictedViewTopicsTable extends ViewTopicsTable
 }
 
 beforeEach(function () {
+    config()->set('database.connections.view_secondary', [
+        'driver' => 'sqlite',
+        'database' => ':memory:',
+        'prefix' => '',
+    ]);
+    DB::purge('view_secondary');
+
     Schema::create('view_users', function (Blueprint $table) {
         $table->id();
         $table->string('name');
@@ -147,12 +181,37 @@ beforeEach(function () {
     });
     $migration = require dirname(__DIR__).'/database/migrations/create_table_views_table.php.stub';
     $migration->up();
+    Schema::connection('view_secondary')->create('table_views', function (Blueprint $table) {
+        $table->id();
+        $table->string('table_key');
+        $table->string('table_name', 120)->nullable();
+        $table->string('user_id')->nullable();
+        $table->string('name', 120);
+        $table->json('state');
+        $table->json('attributes')->nullable();
+        $table->char('context_hash', 64);
+        $table->char('scope_hash', 64);
+        $table->boolean('is_shared')->default(false);
+        $table->boolean('is_default')->default(false);
+        $table->unsignedInteger('lock_version')->default(0);
+        $table->timestamps();
+
+        $table->index(['table_key', 'user_id']);
+        $table->index(['context_hash', 'is_shared']);
+        $table->index(['scope_hash', 'is_default']);
+        $table->unique(['scope_hash', 'name']);
+    });
 
     ViewTopicRecord::query()->insert([
         ['name' => 'Alpha', 'score' => 10, 'is_featured' => false],
         ['name' => 'Beta', 'score' => 30, 'is_featured' => true],
         ['name' => 'Gamma', 'score' => 20, 'is_featured' => true],
     ]);
+});
+
+afterEach(function () {
+    SecondaryConnectionTableView::$throwWhenSavingDefault = false;
+    DB::purge('view_secondary');
 });
 
 function viewRequest(string $table = 'view_topics', array $state = []): Request
@@ -427,4 +486,23 @@ it('authorizes view operations independently and changes defaults atomically', f
     expect($first->fresh()->is_default)->toBeFalse()
         ->and($second->fresh()->is_default)->toBeTrue()
         ->and($restrictedView->fresh())->not->toBeNull();
+});
+
+it('rolls back default switching on the configured view model connection', function () {
+    $table = new SecondaryConnectionViewTopicsTable;
+    $first = saveTableView($table, viewRequest(), 'First', [], default: true);
+    $second = saveTableView($table, viewRequest(), 'Second', []);
+    $secondItem = collect($table->resolve(viewRequest())->toArray()['views']['items'])
+        ->firstWhere('id', $second->getKey());
+
+    SecondaryConnectionTableView::$throwWhenSavingDefault = true;
+    $this->withoutExceptionHandling();
+
+    expect(fn () => $this->post($secondItem['endpoints']['default'], ['version' => 0]))
+        ->toThrow(RuntimeException::class, 'Simulated default view save failure.');
+
+    expect($first->fresh()->is_default)->toBeTrue()
+        ->and($second->fresh()->is_default)->toBeFalse()
+        ->and($first->fresh()->lock_version)->toBe(0)
+        ->and($second->fresh()->lock_version)->toBe(0);
 });

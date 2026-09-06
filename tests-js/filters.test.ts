@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { clauseSymbol, filterDisplayValue } from "../resources/js/filters";
+import {
+    clauseSymbol,
+    filterDisplayValue,
+    isRangeClause,
+    isValuelessClause,
+} from "../resources/js/filters";
 import type { TableFilter } from "../resources/js/types";
 
 const statusFilter: TableFilter = {
@@ -35,5 +40,14 @@ describe("filter display", () => {
                 value: true,
             }),
         ).toBe("");
+    });
+
+    it("shares range and valueless clause semantics", () => {
+        expect(isRangeClause("between")).toBe(true);
+        expect(isRangeClause("not_between")).toBe(true);
+        expect(isRangeClause("equals")).toBe(false);
+        expect(isValuelessClause("is_true")).toBe(true);
+        expect(isValuelessClause("is_not_set")).toBe(true);
+        expect(isValuelessClause("equals")).toBe(false);
     });
 });

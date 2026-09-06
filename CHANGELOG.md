@@ -19,9 +19,18 @@ All notable changes to `inertia-table` will be documented in this file.
   aggregate query.
 - A sticky-aware summary footer with per-cell/whole-footer slots, loading state,
   locale-aware formatting, and opt-in native CSV summary rows.
+- Signed, server-driven `SetFilter` option sources with debounced search, opaque
+  cursor pagination, dependency allowlists and independent authorization.
+- Optional facet counts derived from the normalized table query, selected-label
+  hydration, bounded client caching and loading/error/retry option states.
 
 ### Changed
 
+- Queued exports now retain the dispatch locale through generation and lifecycle
+  callbacks, expose a safe public failure message, and preserve a terminal
+  failed status when preparation fails after idempotency reservation.
+- Remote set-filter cursor pages append the model key as a deterministic
+  tie-breaker when callers supply a non-unique order.
 - Expanded release validation across supported PHP, Laravel, Inertia, Node and
   database versions, with dependency audits before npm publishing.
 

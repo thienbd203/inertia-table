@@ -2,6 +2,7 @@
 
 namespace Musing\InertiaTable\Exports;
 
+use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Support\Facades\Cache;
 
 final class QueuedExportRepository
@@ -34,6 +35,11 @@ final class QueuedExportRepository
         return is_string($existing) ? $existing : null;
     }
 
+    public function executionLock(string $id, int $seconds): Lock
+    {
+        return Cache::lock("inertia-table:queued-export:lock:{$id}", max($seconds, 1));
+    }
+
     /** @param array<string, mixed> $status */
     public function put(string $id, array $status, int $ttl): void
     {
@@ -45,7 +51,24 @@ final class QueuedExportRepository
     {
         $status = Cache::get($this->statusKey($id));
 
-        return is_array($status) ? $status : null;
+        if (! is_array($status)) {
+            return null;
+        }
+
+        $expiresAt = $status['expiresAt'] ?? null;
+
+        if (is_int($expiresAt) && $expiresAt <= time() && ($status['status'] ?? null) !== 'expired') {
+            $status = [
+                ...$status,
+                'status' => 'expired',
+                'url' => null,
+                'redirect' => null,
+                'message' => null,
+            ];
+            $this->put($id, $status, 86400);
+        }
+
+        return $status;
     }
 
     public function forget(string $id): void

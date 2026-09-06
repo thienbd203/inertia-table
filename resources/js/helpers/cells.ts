@@ -5,7 +5,11 @@ export function cellValue(item: TableItem, attribute: string): unknown {
 }
 
 export function cellUrl(item: TableItem, attribute: string): TableUrl | null {
-    return normalizeUrl(item._table?.columns[attribute]);
+    const columns = item._table?.columns;
+
+    return normalizeUrl(
+        Array.isArray(columns) ? undefined : columns?.[attribute],
+    );
 }
 
 export function rowUrl(item: TableItem): TableUrl | null {
@@ -50,5 +54,7 @@ export function cellMeta(
     item: TableItem,
     attribute: string,
 ): Record<string, unknown> {
-    return item._table?.cells?.[attribute] ?? {};
+    const cells = item._table?.cells;
+
+    return Array.isArray(cells) ? {} : (cells?.[attribute] ?? {});
 }

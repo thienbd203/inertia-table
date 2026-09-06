@@ -4,10 +4,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Musing\InertiaTable\Actions\Action;
 use Musing\InertiaTable\Columns\ActionColumn;
+use Musing\InertiaTable\Columns\BadgeColumn;
 use Musing\InertiaTable\Columns\BooleanColumn;
 use Musing\InertiaTable\Columns\DateTimeColumn;
 use Musing\InertiaTable\Columns\NumberColumn;
 use Musing\InertiaTable\Columns\TextColumn;
+use Musing\InertiaTable\Variant;
 
 function anonymousModel(): Model
 {
@@ -150,6 +152,14 @@ it('serializes boolean column presentation overrides', function () {
         'trueIcon' => 'Check',
         'falseIcon' => 'X',
     ]);
+});
+
+it('serializes a direct badge variant enum', function () {
+    $model = anonymousModel();
+    $model->setAttribute('status', 'published');
+
+    expect(BadgeColumn::make('status')->variant(Variant::Success)->resolveCellMeta($model))
+        ->toMatchArray(['variant' => 'success']);
 });
 
 it('translates package-owned Laravel defaults', function () {

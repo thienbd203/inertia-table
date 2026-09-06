@@ -11,7 +11,7 @@ import {
     UiTooltipProvider,
     UiTooltipTrigger,
 } from "@/components/ui/tooltip";
-import { filterFullDisplayValue } from "@/filters";
+import { filterFullDisplayValue, isValuelessClause } from "@/filters";
 import type { TableFilter } from "@/types";
 import { useTableContext } from "@/context/tableContext";
 import FilterChip from "./FilterChip.vue";
@@ -44,8 +44,6 @@ const isCompact = computed(() => {
 const compactTooltip = computed(() =>
     filterFullDisplayValue(props.filter, state.value),
 );
-const valuelessClauses = ["is_true", "is_false", "is_set", "is_not_set"];
-
 watch(state, () => {
     displayValue.value = null;
 });
@@ -64,7 +62,7 @@ watch(
 );
 
 async function focusValueControl(event: Event) {
-    if (valuelessClauses.includes(state.value?.clause ?? "")) {
+    if (isValuelessClause(state.value?.clause ?? "")) {
         return;
     }
 

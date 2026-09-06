@@ -1,0 +1,359 @@
+{
+    "schemaVersion": 1,
+    "cases": [
+        {
+            "id": "full-layout-and-filters",
+            "resource": "full",
+            "currentUrl": "/contract-topics?host=kept&table%5Bauthors%5D%5Bpage%5D=3&table%5Bcontract_topics%5D%5Bsearch%5D=stale#results",
+            "state": {
+                "search": "0, false & {\"kind\":\"json\"}",
+                "sort": "-amount",
+                "filters": {
+                    "status": {
+                        "enabled": true,
+                        "clause": "in",
+                        "value": ["open", "closed"]
+                    },
+                    "amount": {
+                        "enabled": true,
+                        "clause": "between",
+                        "value": [0, 20]
+                    },
+                    "published_at": {
+                        "enabled": true,
+                        "clause": "between",
+                        "value": ["2025-01-01", "2025-12-31"]
+                    },
+                    "is_featured": {
+                        "enabled": true,
+                        "clause": "is_false",
+                        "value": null
+                    }
+                },
+                "columns": {
+                    "name": true,
+                    "amount": false,
+                    "status": true
+                },
+                "pinnedColumns": {
+                    "left": ["name"],
+                    "right": ["status"]
+                },
+                "columnOrder": ["status", "amount", "name"],
+                "columnWidths": {
+                    "name": 320,
+                    "amount": 180
+                },
+                "page": 2,
+                "perPage": 2
+            },
+            "expectedTableParams": [
+                [
+                    "table[contract_topics][search]",
+                    "0, false & {\"kind\":\"json\"}"
+                ],
+                ["table[contract_topics][sort]", "-amount"],
+                ["table[contract_topics][page]", "2"],
+                ["table[contract_topics][perPage]", "2"],
+                ["table[contract_topics][filters][status][enabled]", "1"],
+                ["table[contract_topics][filters][status][clause]", "in"],
+                ["table[contract_topics][filters][status][value][]", "open"],
+                ["table[contract_topics][filters][status][value][]", "closed"],
+                ["table[contract_topics][filters][amount][enabled]", "1"],
+                ["table[contract_topics][filters][amount][clause]", "between"],
+                ["table[contract_topics][filters][amount][value][]", "0"],
+                ["table[contract_topics][filters][amount][value][]", "20"],
+                ["table[contract_topics][filters][published_at][enabled]", "1"],
+                [
+                    "table[contract_topics][filters][published_at][clause]",
+                    "between"
+                ],
+                [
+                    "table[contract_topics][filters][published_at][value][]",
+                    "2025-01-01"
+                ],
+                [
+                    "table[contract_topics][filters][published_at][value][]",
+                    "2025-12-31"
+                ],
+                ["table[contract_topics][filters][is_featured][enabled]", "1"],
+                [
+                    "table[contract_topics][filters][is_featured][clause]",
+                    "is_false"
+                ],
+                ["table[contract_topics][columns][name]", "1"],
+                ["table[contract_topics][columns][amount]", "0"],
+                ["table[contract_topics][columns][status]", "1"],
+                ["table[contract_topics][pinnedColumns][left][]", "name"],
+                ["table[contract_topics][pinnedColumns][right][]", "status"],
+                ["table[contract_topics][columnOrder][]", "status"],
+                ["table[contract_topics][columnOrder][]", "amount"],
+                ["table[contract_topics][columnOrder][]", "name"],
+                ["table[contract_topics][columnWidths][name]", "320"],
+                ["table[contract_topics][columnWidths][amount]", "180"]
+            ],
+            "expectedState": {
+                "search": "0, false & {\"kind\":\"json\"}",
+                "sort": "-amount",
+                "filters": {
+                    "status": {
+                        "enabled": true,
+                        "clause": "in",
+                        "value": ["open", "closed"]
+                    },
+                    "amount": {
+                        "enabled": true,
+                        "clause": "between",
+                        "value": [0, 20]
+                    },
+                    "published_at": {
+                        "enabled": true,
+                        "clause": "between",
+                        "value": ["2025-01-01", "2025-12-31"]
+                    },
+                    "is_featured": {
+                        "enabled": true,
+                        "clause": "is_false",
+                        "value": null
+                    }
+                },
+                "columns": {
+                    "name": true,
+                    "amount": false,
+                    "status": true
+                },
+                "pinnedColumns": {
+                    "left": ["name"],
+                    "right": ["status"]
+                },
+                "columnOrder": ["name", "amount", "status"],
+                "columnWidths": {
+                    "name": 320,
+                    "amount": 180
+                },
+                "page": 2,
+                "perPage": 2,
+                "view": null,
+                "cursor": null
+            }
+        },
+        {
+            "id": "selected-view-clears-layout",
+            "resource": "full",
+            "currentUrl": "/contract-topics?host=kept",
+            "state": {
+                "search": "",
+                "sort": null,
+                "filters": {
+                    "status": {
+                        "enabled": false,
+                        "clause": "equals",
+                        "value": null
+                    },
+                    "amount": {
+                        "enabled": false,
+                        "clause": "equals",
+                        "value": null
+                    },
+                    "published_at": {
+                        "enabled": false,
+                        "clause": "equals",
+                        "value": null
+                    },
+                    "is_featured": {
+                        "enabled": false,
+                        "clause": "is_false",
+                        "value": null
+                    }
+                },
+                "columns": {
+                    "name": true,
+                    "amount": true,
+                    "status": true
+                },
+                "pinnedColumns": {
+                    "left": [],
+                    "right": []
+                },
+                "columnOrder": [],
+                "columnWidths": {},
+                "page": 1,
+                "perPage": 2,
+                "view": 1
+            },
+            "expectedTableParams": [
+                ["table[contract_topics][view]", "1"],
+                ["table[contract_topics][search]", ""],
+                ["table[contract_topics][sort]", ""],
+                ["table[contract_topics][perPage]", "2"],
+                ["table[contract_topics][filters][status][enabled]", "0"],
+                ["table[contract_topics][filters][status][clause]", "equals"],
+                ["table[contract_topics][filters][amount][enabled]", "0"],
+                ["table[contract_topics][filters][amount][clause]", "equals"],
+                ["table[contract_topics][filters][published_at][enabled]", "0"],
+                [
+                    "table[contract_topics][filters][published_at][clause]",
+                    "equals"
+                ],
+                ["table[contract_topics][filters][is_featured][enabled]", "0"],
+                [
+                    "table[contract_topics][filters][is_featured][clause]",
+                    "is_false"
+                ],
+                ["table[contract_topics][columns][name]", "1"],
+                ["table[contract_topics][columns][amount]", "1"],
+                ["table[contract_topics][columns][status]", "1"],
+                ["table[contract_topics][pinnedColumns][left][]", ""],
+                ["table[contract_topics][pinnedColumns][right][]", ""],
+                ["table[contract_topics][columnWidths][__reset]", "1"]
+            ],
+            "expectedState": {
+                "search": "",
+                "sort": "name",
+                "filters": {
+                    "status": {
+                        "enabled": false,
+                        "clause": "in",
+                        "value": null
+                    },
+                    "amount": {
+                        "enabled": false,
+                        "clause": "equals",
+                        "value": null
+                    },
+                    "published_at": {
+                        "enabled": false,
+                        "clause": "before",
+                        "value": null
+                    },
+                    "is_featured": {
+                        "enabled": false,
+                        "clause": "is_true",
+                        "value": null
+                    }
+                },
+                "columns": {
+                    "name": true,
+                    "amount": true,
+                    "status": true
+                },
+                "pinnedColumns": {
+                    "left": [],
+                    "right": []
+                },
+                "columnOrder": ["name", "amount", "status"],
+                "columnWidths": {
+                    "name": 240,
+                    "amount": 160
+                },
+                "page": 1,
+                "perPage": 2,
+                "view": 1,
+                "cursor": null
+            }
+        },
+        {
+            "id": "cursor-replaces-page",
+            "resource": "cursor",
+            "currentUrl": "/contract-topics?table%5Bcontract_topics%5D%5Bpage%5D=9&table%5Bauthors%5D%5Bcursor%5D=other",
+            "state": {
+                "search": "",
+                "sort": "name",
+                "filters": {
+                    "status": {
+                        "enabled": false,
+                        "clause": "in",
+                        "value": null
+                    },
+                    "amount": {
+                        "enabled": false,
+                        "clause": "equals",
+                        "value": null
+                    },
+                    "published_at": {
+                        "enabled": false,
+                        "clause": "before",
+                        "value": null
+                    },
+                    "is_featured": {
+                        "enabled": false,
+                        "clause": "is_true",
+                        "value": null
+                    }
+                },
+                "columns": {
+                    "name": true,
+                    "amount": true,
+                    "status": true
+                },
+                "pinnedColumns": {
+                    "left": [],
+                    "right": []
+                },
+                "columnOrder": ["name", "amount", "status"],
+                "columnWidths": {},
+                "page": 9,
+                "perPage": 2,
+                "cursor": "eyJjb250cmFjdF90b3BpY3MubmFtZSI6IkFscGhhIiwiY29udHJhY3RfdG9waWNzLmlkIjoxLCJfcG9pbnRzVG9OZXh0SXRlbXMiOnRydWV9"
+            },
+            "expectedTableParams": [
+                ["table[contract_topics][sort]", "name"],
+                [
+                    "table[contract_topics][cursor]",
+                    "eyJjb250cmFjdF90b3BpY3MubmFtZSI6IkFscGhhIiwiY29udHJhY3RfdG9waWNzLmlkIjoxLCJfcG9pbnRzVG9OZXh0SXRlbXMiOnRydWV9"
+                ],
+                ["table[contract_topics][perPage]", "2"],
+                ["table[contract_topics][columns][name]", "1"],
+                ["table[contract_topics][columns][amount]", "1"],
+                ["table[contract_topics][columns][status]", "1"],
+                ["table[contract_topics][columnOrder][]", "name"],
+                ["table[contract_topics][columnOrder][]", "amount"],
+                ["table[contract_topics][columnOrder][]", "status"]
+            ],
+            "expectedState": {
+                "search": "",
+                "sort": "name",
+                "filters": {
+                    "status": {
+                        "enabled": false,
+                        "clause": "in",
+                        "value": null
+                    },
+                    "amount": {
+                        "enabled": false,
+                        "clause": "equals",
+                        "value": null
+                    },
+                    "published_at": {
+                        "enabled": false,
+                        "clause": "before",
+                        "value": null
+                    },
+                    "is_featured": {
+                        "enabled": false,
+                        "clause": "is_true",
+                        "value": null
+                    }
+                },
+                "columns": {
+                    "name": true,
+                    "amount": true,
+                    "status": true
+                },
+                "pinnedColumns": {
+                    "left": [],
+                    "right": []
+                },
+                "columnOrder": ["name", "amount", "status"],
+                "columnWidths": {
+                    "name": 240,
+                    "amount": 160
+                },
+                "page": 1,
+                "perPage": 2,
+                "view": null,
+                "cursor": "eyJjb250cmFjdF90b3BpY3MubmFtZSI6IkFscGhhIiwiY29udHJhY3RfdG9waWNzLmlkIjoxLCJfcG9pbnRzVG9OZXh0SXRlbXMiOnRydWV9"
+            }
+        }
+    ]
+}

@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Musing Inertia Table is a two-package monorepo: a Laravel/PHP package (`musing/inertia-table`, root namespace `Musing\InertiaTable`) that defines server-driven data tables, and a Vue renderer (`@musing/inertia-table-vue`) that consumes the serialized table resource and renders it with Inertia.js. The PHP side is authoritative — the frontend can only request search/sort/filter/action operations the server has explicitly declared and allowlisted (via Spatie Laravel Query Builder). See [docs/architecture.md](docs/architecture.md) for the full design contract (resource shape, URL contract, layering rules) before making cross-cutting changes.
 
-The package is pre-`v1.0` and the resource/API contract is still versioned as a spike (`schemaVersion: 1`).
+The package is pre-`v1.0`; the resource/API contract currently uses
+`schemaVersion: 2`. Treat documented resource fields, URL state, queued
+snapshots, Saved Views, exports and extension hooks as compatibility-sensitive.
 
 ## Commands
 
@@ -35,7 +37,10 @@ npm run build               # vite build -> dist/
 
 Run a single Vitest file: `npx vitest run tests-js/useTable.test.ts`.
 
-CI (`.github/workflows/run-tests.yml`, `run-js-tests.yml`) runs PHP tests only against PHP 8.4 / Laravel 13 / Testbench 11, and JS tests separately — mirror that when validating changes.
+CI runs PHP compatibility jobs across the supported PHP, Laravel, Testbench and
+Inertia combinations, including SQLite plus dedicated MySQL/PostgreSQL jobs.
+JavaScript checks run separately on the supported Node versions. Run focused
+checks locally; rely on the workflows for the full matrix.
 
 ## Architecture
 

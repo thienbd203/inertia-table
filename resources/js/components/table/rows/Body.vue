@@ -145,6 +145,8 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                         'tb-cell-wrap': column.wrap,
                         'tb-cell-truncate': column.truncate,
                         'tb-sticky-cell': sticky.pinSide(column.attribute),
+                        'tb-column-resize-active':
+                            table.resizingColumn.value === column.attribute,
                     },
                 ]"
                 :style="[

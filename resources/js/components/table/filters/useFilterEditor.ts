@@ -1,8 +1,8 @@
 import { computed, ref, watch } from "vue";
 import { useTableContext } from "@/context/tableContext";
+import { isRangeClause, isValuelessClause } from "@/filters";
 import type { TableFilter } from "@/types";
 
-const valuelessClauses = ["is_true", "is_false", "is_set", "is_not_set"];
 const clauseMessageKeys = {
     after: "clauseAfter",
     before: "clauseBefore",
@@ -70,12 +70,8 @@ export function useFilterEditor(filter: TableFilter) {
                   value: String(option.value),
               })),
     );
-    const isRangeClause = computed(() =>
-        ["between", "not_between"].includes(clause.value),
-    );
-    const isValuelessClause = computed(() =>
-        valuelessClauses.includes(clause.value),
-    );
+    const isRange = computed(() => isRangeClause(clause.value));
+    const isValueless = computed(() => isValuelessClause(clause.value));
 
     function update(nextValue: unknown = value.value) {
         value.value = nextValue;
@@ -83,13 +79,11 @@ export function useFilterEditor(filter: TableFilter) {
     }
 
     function updateClause(nextClause: string) {
-        const wasRangeClause = isRangeClause.value;
-        const becomesRangeClause = ["between", "not_between"].includes(
-            nextClause,
-        );
+        const wasRangeClause = isRange.value;
+        const becomesRangeClause = isRangeClause(nextClause);
         clause.value = nextClause;
 
-        if (valuelessClauses.includes(nextClause)) {
+        if (isValuelessClause(nextClause)) {
             table.setFilter(filter.attribute, true, nextClause);
             return;
         }
@@ -131,8 +125,8 @@ export function useFilterEditor(filter: TableFilter) {
     return {
         clause,
         clauseOptions,
-        isRangeClause,
-        isValuelessClause,
+        isRangeClause: isRange,
+        isValuelessClause: isValueless,
         rangeValue,
         state,
         table,

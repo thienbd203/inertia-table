@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Storage;
 use LogicException;
 use Musing\InertiaTable\Contracts\ExportContext;
@@ -30,9 +31,42 @@ final class GenerateQueuedExport implements ShouldQueue
 
     public function handle(ExportManager $manager, QueuedExportRepository $repository): void
     {
+        $lock = $repository->executionLock($this->snapshot->id, $this->executionLockSeconds());
+
+        if (! $lock->get()) {
+            $status = $this->status($repository);
+
+            if (! in_array($status['status'] ?? null, ['ready', 'failed', 'expired'], true)) {
+                $this->release(5);
+            }
+
+            return;
+        }
+
+        try {
+            $this->generate($manager, $repository);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function generate(ExportManager $manager, QueuedExportRepository $repository): void
+    {
         $ttl = max($this->snapshot->expiresAt - time() + 86400, 86400);
+        $status = $this->status($repository);
+
+        if (in_array($status['status'] ?? null, ['ready', 'failed', 'expired'], true)) {
+            return;
+        }
+
+        if ($this->snapshot->expiresAt <= time()) {
+            $this->expire($repository, $status);
+
+            return;
+        }
+
         $repository->put($this->snapshot->id, [
-            ...$this->status($repository),
+            ...$status,
             'status' => 'processing',
         ], $ttl);
         $context = app($this->snapshot->contextClass);
@@ -41,8 +75,11 @@ final class GenerateQueuedExport implements ShouldQueue
             throw new LogicException('The queued export context is invalid.');
         }
 
+        $previousLocale = App::getLocale();
+
         try {
             $context->restore($this->snapshot->actorId, $this->snapshot->scopeAttributes);
+            $this->restoreLocale();
             [$request, $table, $export] = $this->resolveDefinition();
             $manager->store(
                 $request,
@@ -54,18 +91,28 @@ final class GenerateQueuedExport implements ShouldQueue
                 $this->snapshot->path,
             );
             $url = $export->resolvedDeliveryUrl($this->snapshot);
-            $repository->put($this->snapshot->id, [
-                ...$this->status($repository),
-                'status' => 'ready',
-                'url' => $url,
-            ], $ttl);
-            $export->notifyReady($this->snapshot, $url);
+            $status = $this->status($repository);
+
+            if ($this->snapshot->expiresAt <= time() || ($status['status'] ?? null) === 'expired') {
+                Storage::disk($this->snapshot->disk)->delete($this->snapshot->path);
+                $this->expire($repository, $status);
+
+                return;
+            }
+
             CleanupQueuedExport::dispatch(
                 $this->snapshot->id,
                 $this->snapshot->disk,
                 $this->snapshot->path,
             )->delay(Carbon::createFromTimestamp($this->snapshot->expiresAt));
+            $repository->put($this->snapshot->id, [
+                ...$status,
+                'status' => 'ready',
+                'url' => $url,
+            ], $ttl);
+            $export->notifyReady($this->snapshot, $url);
         } finally {
+            App::setLocale($previousLocale);
             $context->release();
         }
     }
@@ -73,14 +120,22 @@ final class GenerateQueuedExport implements ShouldQueue
     public function failed(?Throwable $exception): void
     {
         $exception ??= new LogicException('The queued export failed.');
-        Storage::disk($this->snapshot->disk)->delete($this->snapshot->path);
         $repository = app(QueuedExportRepository::class);
+        $status = $this->status($repository);
+
+        if (in_array($status['status'] ?? null, ['ready', 'expired'], true)) {
+            return;
+        }
+
+        Storage::disk($this->snapshot->disk)->delete($this->snapshot->path);
         $repository->put($this->snapshot->id, [
-            ...$this->status($repository),
+            ...$status,
             'status' => 'failed',
             'url' => null,
-            'message' => $exception->getMessage(),
+            'message' => Export::DEFAULT_FAILURE_MESSAGE,
         ], 86400);
+
+        $previousLocale = App::getLocale();
 
         try {
             $context = app($this->snapshot->contextClass);
@@ -91,9 +146,11 @@ final class GenerateQueuedExport implements ShouldQueue
 
             try {
                 $context->restore($this->snapshot->actorId, $this->snapshot->scopeAttributes);
+                $this->restoreLocale();
                 [, , $export] = $this->resolveDefinition();
                 $export->notifyFailure($this->snapshot, $exception);
             } finally {
+                App::setLocale($previousLocale);
                 $context->release();
             }
         } catch (Throwable) {
@@ -140,5 +197,36 @@ final class GenerateQueuedExport implements ShouldQueue
             'url' => null,
             'expiresAt' => $this->snapshot->expiresAt,
         ];
+    }
+
+    private function restoreLocale(): void
+    {
+        if (isset($this->snapshot->locale) && $this->snapshot->locale !== '') {
+            App::setLocale($this->snapshot->locale);
+        }
+    }
+
+    private function executionLockSeconds(): int
+    {
+        $connection = is_string($this->connection) && $this->connection !== ''
+            ? $this->connection
+            : config('queue.default');
+        $retryAfter = is_string($connection)
+            ? config("queue.connections.{$connection}.retry_after")
+            : null;
+
+        return max((int) $retryAfter + 60, 120);
+    }
+
+    /** @param array<string, mixed> $status */
+    private function expire(QueuedExportRepository $repository, array $status): void
+    {
+        $repository->put($this->snapshot->id, [
+            ...$status,
+            'status' => 'expired',
+            'url' => null,
+            'redirect' => null,
+            'message' => null,
+        ], 86400);
     }
 }

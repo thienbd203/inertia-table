@@ -16,9 +16,10 @@ Vue packages must be upgraded together.
   `_table.dataAttributes`.
 
 Existing state, selection, action, view and export payloads retain their field
-names and semantics. Saved View records continue using their own
-`state.schemaVersion: 1`; that version is intentionally independent from the
-table resource version.
+names and semantics. Saved View records use their own `state.schemaVersion: 2`;
+that persistence version is intentionally independent from the table resource
+version. Readers continue to normalize older persisted view state through the
+current table declarations.
 
 ### Custom renderers
 
@@ -30,3 +31,10 @@ functional after updating the schema literal.
 Do not derive a genuine empty state from `results.total === 0`: that total may
 be zero because of search or filters. The server-owned `emptyState` field is the
 authoritative distinction.
+
+## Queued exports
+
+Queued export status responses now use `The export could not be completed.` for
+dispatch and worker failures. Keep operational detail in `onFailure` callbacks
+and application logging. New snapshots also capture the dispatch locale; deploy
+the updated workers before allowing updated producers to enqueue exports.

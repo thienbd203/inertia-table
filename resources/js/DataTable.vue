@@ -5,6 +5,7 @@ import { FilterList } from "@/components/table/filters";
 import { Pagination, Toolbar, Viewport } from "@/components/table/layout";
 import { SlotOutlet } from "@/components/table/shared";
 import { provideTableContext } from "@/context/tableContext";
+import { isValuelessClause } from "@/filters";
 import type { IconResolver } from "@/icons";
 import {
     createTableI18n,
@@ -144,10 +145,7 @@ async function addFilter(attribute: string) {
         (filter) => filter.attribute === attribute,
     );
     const clause = definition?.clauses[0];
-    if (
-        clause &&
-        ["is_true", "is_false", "is_set", "is_not_set"].includes(clause)
-    ) {
+    if (clause && isValuelessClause(clause)) {
         table.setFilter(attribute, true, clause);
     }
 }

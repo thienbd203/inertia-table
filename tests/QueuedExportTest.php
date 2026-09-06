@@ -18,6 +18,7 @@ use Musing\InertiaTable\Columns\TextColumn;
 use Musing\InertiaTable\Contracts\ExportContext;
 use Musing\InertiaTable\Exports\Export;
 use Musing\InertiaTable\Exports\ExportManager;
+use Musing\InertiaTable\Exports\QueuedExportDispatcher;
 use Musing\InertiaTable\Exports\QueuedExportRepository;
 use Musing\InertiaTable\Exports\QueuedExportSnapshot;
 use Musing\InertiaTable\Filters\BooleanFilter;
@@ -91,8 +92,15 @@ class QueuedExportTopicsTable extends Table
 
     public static bool $changeQueuedExport = false;
 
+    public static bool $throwWhenResolvingFilename = false;
+
+    public static int $filenameResolutionCount = 0;
+
     /** @var array<int, array<int, mixed>> */
     public static array $events = [];
+
+    /** @var array<int, string> */
+    public static array $callbackLocales = [];
 
     protected ?string $name = 'queued_export_topics';
 
@@ -125,7 +133,15 @@ class QueuedExportTopicsTable extends Table
             return $exports;
         }
 
-        $queued = Export::make('queued', 'Queued', 'topics.csv')
+        $queued = Export::make('queued', 'Queued', function () {
+            self::$filenameResolutionCount++;
+
+            if (self::$throwWhenResolvingFilename) {
+                throw new RuntimeException('Filename resolver exposed implementation details.');
+            }
+
+            return 'topics.csv';
+        })
             ->filtered()
             ->withSummaries()
             ->queue(
@@ -140,7 +156,10 @@ class QueuedExportTopicsTable extends Table
             ->redirectAfterDispatch('/exports/history')
             ->deliveryUrlUsing(fn (QueuedExportSnapshot $snapshot) => "/downloads/{$snapshot->id}")
             ->chain([new QueuedExportFollowUp])
-            ->onReady(fn (QueuedExportSnapshot $snapshot, ?string $url) => self::$events[] = ['ready', $snapshot->id, $url])
+            ->onReady(function (QueuedExportSnapshot $snapshot, ?string $url) {
+                self::$events[] = ['ready', $snapshot->id, $url];
+                self::$callbackLocales[] = app()->getLocale();
+            })
             ->onFailure(fn (QueuedExportSnapshot $snapshot, Throwable $exception) => self::$events[] = ['failed', $snapshot->id, $exception->getMessage()])
             ->authorize(fn () => Auth::user()?->name === 'Allowed');
 
@@ -167,7 +186,10 @@ beforeEach(function () {
     QueuedExportTopicsTable::$tenant = 'tenant-one';
     QueuedExportTopicsTable::$removeQueuedExport = false;
     QueuedExportTopicsTable::$changeQueuedExport = false;
+    QueuedExportTopicsTable::$throwWhenResolvingFilename = false;
+    QueuedExportTopicsTable::$filenameResolutionCount = 0;
     QueuedExportTopicsTable::$events = [];
+    QueuedExportTopicsTable::$callbackLocales = [];
     QueuedExportTestContext::$restored = [];
 
     Schema::create('queued_export_users', function (Blueprint $table) {
@@ -298,6 +320,21 @@ it('restores actor and tenant, writes the same filtered CSV with summaries, and 
     $this->getJson($dispatch->json('export.statusEndpoint'))->assertNotFound();
 });
 
+it('restores the dispatch locale while generating an export and calling its callbacks', function () {
+    $user = QueuedExportUser::query()->create(['name' => 'Allowed']);
+    $this->actingAs($user);
+    app()->setLocale('vi');
+    $this->postJson(queuedExportEndpoint('queued'), queuedExportPayload())->assertStatus(202);
+    $job = capturedQueuedExportJob();
+
+    app()->setLocale('en');
+    $job->handle(app(ExportManager::class), app(QueuedExportRepository::class));
+
+    expect($job->snapshot->locale)->toBe('vi')
+        ->and(QueuedExportTopicsTable::$callbackLocales)->toBe(['vi'])
+        ->and(app()->getLocale())->toBe('en');
+});
+
 it('protects queued status endpoints with the export authorization and signature', function () {
     $user = QueuedExportUser::query()->create(['name' => 'Allowed']);
     $this->actingAs($user);
@@ -353,6 +390,46 @@ it('deduplicates repeated submissions before a second job is created', function 
     Queue::assertPushed(GenerateQueuedExport::class, 1);
 });
 
+it('keeps a terminal safe failure after a filename resolver fails following reservation', function () {
+    $user = QueuedExportUser::query()->create(['name' => 'Allowed']);
+    $this->actingAs($user);
+    QueuedExportTopicsTable::$throwWhenResolvingFilename = true;
+    $request = Request::create('/', 'POST');
+    $request->setUserResolver(fn () => $user);
+    $table = app(QueuedExportTopicsTable::class);
+    $export = $table->export('queued');
+    $state = queuedExportPayload()['state'];
+
+    expect(fn () => app(QueuedExportDispatcher::class)->dispatch(
+        $request,
+        $table,
+        $export,
+        $state,
+        null,
+        'request-one',
+    ))
+        ->toThrow(RuntimeException::class, 'Filename resolver exposed implementation details.');
+    Queue::assertNothingPushed();
+
+    QueuedExportTopicsTable::$throwWhenResolvingFilename = false;
+    $retry = app(QueuedExportDispatcher::class)->dispatch(
+        $request,
+        $table,
+        $export,
+        $state,
+        null,
+        'request-one',
+    );
+
+    expect($retry)
+        ->status->toBe('failed')
+        ->message->toBe(Export::DEFAULT_FAILURE_MESSAGE)
+        ->duplicate->toBeTrue()
+        ->and($retry['message'])
+        ->not->toContain('Filename resolver exposed implementation details.')
+        ->and(QueuedExportTopicsTable::$filenameResolutionCount)->toBe(1);
+});
+
 it('fails safely when the queued definition changes or is removed', function (string $mode) {
     $user = QueuedExportUser::query()->create(['name' => 'Allowed']);
     $this->actingAs($user);
@@ -391,7 +468,7 @@ it('cleans partial files, restores context, and invokes the failure hook', funct
     Storage::disk('queued-exports')->assertMissing($job->snapshot->path);
     expect(app(QueuedExportRepository::class)->get($job->snapshot->id))
         ->status->toBe('failed')
-        ->message->toBe('Generation stopped.')
+        ->message->toBe(Export::DEFAULT_FAILURE_MESSAGE)
         ->and(QueuedExportTopicsTable::$events)->toBe([
             ['failed', $job->snapshot->id, 'Generation stopped.'],
         ])
@@ -414,4 +491,56 @@ it('cleans up expired files and marks the status expired', function () {
     expect($repository->get('export-id'))
         ->status->toBe('expired')
         ->url->toBeNull();
+});
+
+it('invalidates an expired queued export status without refreshing its delivery data', function () {
+    $repository = app(QueuedExportRepository::class);
+    $repository->put('expired-export', [
+        'id' => 'expired-export',
+        'status' => 'ready',
+        'url' => '/download',
+        'redirect' => '/exports/history',
+        'message' => 'stale',
+        'expiresAt' => time() - 1,
+    ], 3600);
+
+    expect($repository->get('expired-export'))
+        ->status->toBe('expired')
+        ->url->toBeNull()
+        ->redirect->toBeNull()
+        ->message->toBeNull();
+});
+
+it('does not let a late failure delete or overwrite a ready export', function () {
+    $user = QueuedExportUser::query()->create(['name' => 'Allowed']);
+    $this->actingAs($user);
+    $this->postJson(queuedExportEndpoint('queued'), queuedExportPayload())->assertStatus(202);
+    $job = capturedQueuedExportJob();
+    $job->handle(app(ExportManager::class), app(QueuedExportRepository::class));
+
+    $job->failed(new RuntimeException('Late worker failure.'));
+
+    Storage::disk('queued-exports')->assertExists($job->snapshot->path);
+    expect(app(QueuedExportRepository::class)->get($job->snapshot->id))
+        ->status->toBe('ready');
+});
+
+it('does not generate an export while another worker owns its execution lock', function () {
+    $user = QueuedExportUser::query()->create(['name' => 'Allowed']);
+    $this->actingAs($user);
+    $this->postJson(queuedExportEndpoint('queued'), queuedExportPayload())->assertStatus(202);
+    $job = capturedQueuedExportJob();
+    $repository = app(QueuedExportRepository::class);
+    $lock = $repository->executionLock($job->snapshot->id, 120);
+
+    expect($lock->get())->toBeTrue();
+
+    try {
+        $job->handle(app(ExportManager::class), $repository);
+    } finally {
+        $lock->release();
+    }
+
+    Storage::disk('queued-exports')->assertMissing($job->snapshot->path);
+    expect($repository->get($job->snapshot->id))->status->toBe('dispatched');
 });

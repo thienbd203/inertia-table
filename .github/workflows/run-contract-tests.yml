@@ -1,0 +1,72 @@
+name: run-contract-tests
+
+on:
+  workflow_call:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'resources/js/url.ts'
+      - 'resources/js/types.ts'
+      - 'tests-js/contractUrl.test.ts'
+      - 'tests-js/contracts/resource.generated.ts'
+      - 'tests/ContractUrlTest.php'
+      - 'tests/ContractResourceTest.php'
+      - 'tests/Support/ContractTable.php'
+      - 'tests/Fixtures/url-contract-cases.json'
+      - '.github/workflows/run-contract-tests.yml'
+      - 'composer.json'
+      - 'package.json'
+      - 'package-lock.json'
+  pull_request:
+    paths:
+      - 'resources/js/url.ts'
+      - 'resources/js/types.ts'
+      - 'tests-js/contractUrl.test.ts'
+      - 'tests-js/contracts/resource.generated.ts'
+      - 'tests/ContractUrlTest.php'
+      - 'tests/ContractResourceTest.php'
+      - 'tests/Support/ContractTable.php'
+      - 'tests/Fixtures/url-contract-cases.json'
+      - '.github/workflows/run-contract-tests.yml'
+      - 'composer.json'
+      - 'package.json'
+      - 'package-lock.json'
+
+concurrency:
+  group: run-contract-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  url-round-trip:
+    name: Node 22.12.0 · PHP 8.5 URL round-trip
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+
+      - name: Install JavaScript dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install PHP dependencies
+        run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress
+
+      - name: Generate frontend URL contract artifact
+        run: INERTIA_TABLE_URL_CONTRACT_OUTPUT=build/contracts/urls.json npm test -- tests-js/contractUrl.test.ts
+
+      - name: Verify PHP URL normalization
+        run: INERTIA_TABLE_URL_CONTRACT_INPUT=build/contracts/urls.json vendor/bin/pest tests/ContractUrlTest.php

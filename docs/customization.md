@@ -39,10 +39,11 @@ incomplete translation during development.
 
 ## Icons
 
-Built-in Lucide names resolve automatically. Use `iconResolver` on one table or
-`setIconResolver()` for application-wide aliases and custom components. The
-resolver receives both the icon name and its context, such as a column, action,
-empty state or empty-state action.
+Icons are library-agnostic. Use `iconResolver` on one table or
+`setIconResolver()` for application-wide aliases, Lucide maps and custom
+components. Without a resolver, an icon name is not resolved automatically.
+The resolver receives both the icon name and its context, such as a column,
+action, empty state or empty-state action.
 
 ## Rendering and styles
 
@@ -64,7 +65,14 @@ Column layout exposes `tb-resizable-column`, `tb-reorderable-column`,
 `--tb-resize-handle-hit-area`, `--tb-resize-handle-width`,
 `--tb-resize-handle-inset`, `--tb-resize-handle-color`,
 `--tb-reorder-handle-size`, `--tb-column-header-gap` and
-`--tb-column-drop-color`.
+`--tb-column-drop-color`. Header interactions use three visual layers: the
+whole header row, the active button, then the resize guide. They can be tuned
+with `--tb-header-hover-background`, `--tb-header-button-hover-background`,
+`--tb-header-hover-foreground`, `--tb-header-active-background`, and
+`--tb-header-active-foreground`.
+
+Sticky headers always use an opaque background; the optional backdrop filter
+applies only to horizontally sticky body and summary-footer cells.
 
 Summary footers expose `tb-summary-footer`, `tb-summary-row`, and
 `tb-summary-value`. Their surface can be adjusted with
