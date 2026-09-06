@@ -943,6 +943,24 @@ it('supports mapped and custom column sorts', function () {
     expect($query->pluck('name')->all())->toBe(['Beta', 'Gamma', 'Alpha']);
 });
 
+it('keeps unmapped mapped-sort values after mapped values in either direction', function () {
+    TopicRecord::query()->insert([
+        ['name' => 'Delta', 'score' => 40, 'is_featured' => false],
+    ]);
+    $column = NumberColumn::make('score')
+        ->sortable()
+        ->sortUsingMap([10 => 'B', 20 => 'A']);
+    $ascending = TopicRecord::query();
+    $column->applySort($ascending, 'asc');
+    $descending = TopicRecord::query();
+    $column->applySort($descending, 'desc');
+
+    expect($ascending->pluck('name')->all())
+        ->toBe(['Gamma', 'Alpha', 'Beta', 'Delta'])
+        ->and($descending->pluck('name')->all())
+        ->toBe(['Alpha', 'Gamma', 'Delta', 'Beta']);
+});
+
 it('serializes URL navigation options for clickable columns', function () {
     $topic = TopicRecord::query()->firstOrFail();
     $url = TextColumn::make('name')->url(
