@@ -241,6 +241,69 @@ final class Views
         return $table->normalizeViewState($state, $this->persistSearch);
     }
 
+    /** @internal */
+    public function createRecord(Table $table, Request $request, string $name, array $state): TableView
+    {
+        return $this->newQuery()->create($this->valuesFor($table, $request, $name, $state));
+    }
+
+    /** @param array{name?: string, state?: array<string, mixed>} $changes @internal */
+    public function updateRecord(Table $table, TableView $view, array $changes, int $version): void
+    {
+        $view->getConnection()->transaction(function () use ($table, $view, $changes, $version): void {
+            $locked = $this->lockCurrentView($view, $version);
+
+            if (array_key_exists('name', $changes)) {
+                $locked->name = $changes['name'];
+            }
+
+            if (array_key_exists('state', $changes)) {
+                $locked->state = $this->normalizeState($table, $changes['state']);
+            }
+
+            $locked->lock_version++;
+            $locked->save();
+        });
+    }
+
+    /** @internal */
+    public function deleteRecord(TableView $view, int $version): void
+    {
+        $view->getConnection()->transaction(function () use ($view, $version): void {
+            $this->lockCurrentView($view, $version)->delete();
+        });
+    }
+
+    /** @internal */
+    public function setDefaultRecord(TableView $view, int $version): void
+    {
+        $view->getConnection()->transaction(function () use ($view, $version): void {
+            $locked = $this->lockCurrentView($view, $version);
+            $this->newQuery()
+                ->where('scope_hash', $locked->scope_hash)
+                ->lockForUpdate()
+                ->get();
+            $this->newQuery()
+                ->where('scope_hash', $locked->scope_hash)
+                ->whereKeyNot($locked->getKey())
+                ->update(['is_default' => false]);
+            $locked->is_default = true;
+            $locked->lock_version++;
+            $locked->save();
+        });
+    }
+
+    /** @internal */
+    public function shareRecord(TableView $view, int $version, bool $shared): void
+    {
+        $view->getConnection()->transaction(function () use ($view, $version, $shared): void {
+            $locked = $this->lockCurrentView($view, $version);
+            $locked->is_shared = $shared;
+            $locked->lock_version++;
+            $locked->save();
+        });
+    }
+
     public function authorized(
         string $operation,
         Request $request,
@@ -302,6 +365,22 @@ final class Views
         $modelClass = $this->viewModel;
 
         return $modelClass::query();
+    }
+
+    private function lockCurrentView(TableView $view, int $version): TableView
+    {
+        $locked = $this->newQuery()
+            ->whereKey($view->getKey())
+            ->lockForUpdate()
+            ->first();
+
+        if (! $locked instanceof TableView || $locked->lock_version !== $version) {
+            throw ValidationException::withMessages([
+                'view' => 'This view changed in another request. Reload it and try again.',
+            ]);
+        }
+
+        return $locked;
     }
 
     private function setAuthorizer(string $operation, bool|Closure $authorizer): self
