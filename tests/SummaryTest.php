@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Schema;
 use Musing\InertiaTable\Columns\NumberColumn;
 use Musing\InertiaTable\Columns\TextColumn;
 use Musing\InertiaTable\Filters\TextFilter;
+use Musing\InertiaTable\Summaries\SummaryAggregate;
 use Musing\InertiaTable\Table;
 
 class SummaryOrderRecord extends Model
@@ -144,6 +145,15 @@ beforeEach(function () {
         ['order_id' => 1],
         ['order_id' => 2],
     ]);
+});
+
+it('builds built-in aggregate expressions without owning query execution', function () {
+    expect(SummaryAggregate::Count->expression(null))->toBe('COUNT(*)')
+        ->and(SummaryAggregate::CountDistinct->expression('"customer_id"'))->toBe('COUNT(DISTINCT "customer_id")')
+        ->and(SummaryAggregate::Sum->expression('"amount"'))->toBe('SUM("amount")');
+
+    expect(fn () => SummaryAggregate::Custom->expression('"amount"'))
+        ->toThrow(LogicException::class);
 });
 
 it('resolves all built-in summaries for the filtered dataset in one query', function () {

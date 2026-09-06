@@ -26,6 +26,11 @@ All notable changes to `inertia-table` will be documented in this file.
 
 ### Changed
 
+- Queued exports now retain the dispatch locale through generation and lifecycle
+  callbacks, expose a safe public failure message, and preserve a terminal
+  failed status when preparation fails after idempotency reservation.
+- Remote set-filter cursor pages append the model key as a deterministic
+  tie-breaker when callers supply a non-unique order.
 - Expanded release validation across supported PHP, Laravel, Inertia, Node and
   database versions, with dependency audits before npm publishing.
 

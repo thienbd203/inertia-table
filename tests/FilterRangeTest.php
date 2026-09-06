@@ -108,6 +108,18 @@ it('ignores a non numeric numeric range value', function () {
         ->and($resource['results']['total'])->toBe(4);
 });
 
+it('ignores numeric ranges without both positional values', function (array $value) {
+    $resource = (new RangeFilterTable)->resolve(rangeRequest([
+        'score' => ['enabled' => true, 'clause' => 'between', 'value' => $value],
+    ]))->toArray();
+
+    expect($resource['state']['filters']['score']['enabled'])->toBeFalse()
+        ->and($resource['results']['total'])->toBe(4);
+})->with([
+    'sparse' => [[1 => 15, 2 => 35]],
+    'associative' => [['from' => 15, 'to' => 35]],
+]);
+
 it('applies a date between clause across the declared range', function () {
     $resource = (new RangeFilterTable)->resolve(rangeRequest([
         'published_at' => ['enabled' => true, 'clause' => 'between', 'value' => ['2024-01-15', '2024-03-15']],
@@ -132,3 +144,15 @@ it('ignores an incomplete date range value', function () {
     expect($resource['state']['filters']['published_at']['enabled'])->toBeFalse()
         ->and($resource['results']['total'])->toBe(4);
 });
+
+it('ignores date ranges without both positional values', function (array $value) {
+    $resource = (new RangeFilterTable)->resolve(rangeRequest([
+        'published_at' => ['enabled' => true, 'clause' => 'between', 'value' => $value],
+    ]))->toArray();
+
+    expect($resource['state']['filters']['published_at']['enabled'])->toBeFalse()
+        ->and($resource['results']['total'])->toBe(4);
+})->with([
+    'sparse' => [[1 => '2024-01-15', 2 => '2024-03-15']],
+    'associative' => [['from' => '2024-01-15', 'to' => '2024-03-15']],
+]);

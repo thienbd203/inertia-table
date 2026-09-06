@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Storage;
 use LogicException;
 use Musing\InertiaTable\Contracts\ExportContext;
@@ -41,8 +42,11 @@ final class GenerateQueuedExport implements ShouldQueue
             throw new LogicException('The queued export context is invalid.');
         }
 
+        $previousLocale = App::getLocale();
+
         try {
             $context->restore($this->snapshot->actorId, $this->snapshot->scopeAttributes);
+            $this->restoreLocale();
             [$request, $table, $export] = $this->resolveDefinition();
             $manager->store(
                 $request,
@@ -66,6 +70,7 @@ final class GenerateQueuedExport implements ShouldQueue
                 $this->snapshot->path,
             )->delay(Carbon::createFromTimestamp($this->snapshot->expiresAt));
         } finally {
+            App::setLocale($previousLocale);
             $context->release();
         }
     }
@@ -79,8 +84,10 @@ final class GenerateQueuedExport implements ShouldQueue
             ...$this->status($repository),
             'status' => 'failed',
             'url' => null,
-            'message' => $exception->getMessage(),
+            'message' => Export::DEFAULT_FAILURE_MESSAGE,
         ], 86400);
+
+        $previousLocale = App::getLocale();
 
         try {
             $context = app($this->snapshot->contextClass);
@@ -91,9 +98,11 @@ final class GenerateQueuedExport implements ShouldQueue
 
             try {
                 $context->restore($this->snapshot->actorId, $this->snapshot->scopeAttributes);
+                $this->restoreLocale();
                 [, , $export] = $this->resolveDefinition();
                 $export->notifyFailure($this->snapshot, $exception);
             } finally {
+                App::setLocale($previousLocale);
                 $context->release();
             }
         } catch (Throwable) {
@@ -140,5 +149,12 @@ final class GenerateQueuedExport implements ShouldQueue
             'url' => null,
             'expiresAt' => $this->snapshot->expiresAt,
         ];
+    }
+
+    private function restoreLocale(): void
+    {
+        if (isset($this->snapshot->locale) && is_string($this->snapshot->locale) && $this->snapshot->locale !== '') {
+            App::setLocale($this->snapshot->locale);
+        }
     }
 }

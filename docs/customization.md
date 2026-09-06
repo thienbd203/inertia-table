@@ -39,10 +39,11 @@ incomplete translation during development.
 
 ## Icons
 
-Built-in Lucide names resolve automatically. Use `iconResolver` on one table or
-`setIconResolver()` for application-wide aliases and custom components. The
-resolver receives both the icon name and its context, such as a column, action,
-empty state or empty-state action.
+Icons are library-agnostic. Use `iconResolver` on one table or
+`setIconResolver()` for application-wide aliases, Lucide maps and custom
+components. Without a resolver, an icon name is not resolved automatically.
+The resolver receives both the icon name and its context, such as a column,
+action, empty state or empty-state action.
 
 ## Rendering and styles
 

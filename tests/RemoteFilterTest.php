@@ -70,6 +70,35 @@ class RemoteProductsTable extends Table
     }
 }
 
+class OrderedRemoteProductsTable extends Table
+{
+    protected ?string $name = 'ordered_remote_products';
+
+    public function query(): Builder
+    {
+        return RemoteFilterProduct::query();
+    }
+
+    public function columns(): array
+    {
+        return [TextColumn::make('name')->searchable()];
+    }
+
+    public function filters(): array
+    {
+        return [
+            SetFilter::make('category_id', 'Category')
+                ->optionsUsing(fn () => RemoteFilterCategory::query()
+                    ->where('id', '>=', 6)
+                    ->orderBy('name'))
+                ->optionValue('id')
+                ->optionLabel('name')
+                ->optionPageSize(2)
+                ->clauses([Clause::Equals]),
+        ];
+    }
+}
+
 beforeEach(function () {
     RemoteProductsTable::$allowOptions = true;
 
@@ -167,6 +196,29 @@ it('searches literally, allowlists dependencies, and paginates with opaque curso
     ])->assertOk()->json();
     expect(array_column($second['options'], 'value'))->toBe([3, 4])
         ->and(array_column($second['options'], 'label'))->not->toContain('Archived only');
+});
+
+it('uses a unique tie-breaker for remotely ordered cursor pages', function () {
+    RemoteFilterCategory::query()->insert([
+        ['id' => 6, 'name' => 'Same label', 'available_status' => 'active'],
+        ['id' => 7, 'name' => 'Same label', 'available_status' => 'active'],
+        ['id' => 8, 'name' => 'Same label', 'available_status' => 'active'],
+    ]);
+    $resource = (new OrderedRemoteProductsTable)->resolve(Request::create('/products', 'GET', [
+        'table' => ['ordered_remote_products' => []],
+    ]))->toArray();
+    $definition = collect($resource['filters'])->firstWhere('attribute', 'category_id');
+
+    $first = $this->postJson($definition['remote']['endpoint'])
+        ->assertOk()
+        ->json();
+    $second = $this->postJson($definition['remote']['endpoint'], [
+        'cursor' => $first['nextCursor'],
+    ])->assertOk()->json();
+
+    expect(array_column($first['options'], 'value'))->toBe([6, 7])
+        ->and(array_column($second['options'], 'value'))->toBe([8])
+        ->and($second['nextCursor'])->toBeNull();
 });
 
 it('hydrates selected labels outside the current page and when restoring state', function () {

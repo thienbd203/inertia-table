@@ -245,9 +245,7 @@ class SetFilter extends Filter
             $this->applyOptionSearch($query, $request->search);
         }
 
-        if ($query->getQuery()->orders === null) {
-            $query->orderBy($query->qualifyColumn($this->optionValue));
-        }
+        $this->stabilizeOptionCursorOrder($query);
 
         $paginator = $query->cursorPaginate(
             $request->perPage,
@@ -317,6 +315,29 @@ class SetFilter extends Filter
         }
 
         return $query;
+    }
+
+    private function stabilizeOptionCursorOrder(Builder $query): void
+    {
+        $model = $query->getModel();
+        $key = $model->getKeyName();
+        $qualifiedKey = $query->qualifyColumn($key);
+        $orders = $query->getQuery()->orders ?? [];
+
+        if ($orders === []) {
+            $query->orderBy($query->qualifyColumn($this->optionValue));
+            $orders = $query->getQuery()->orders ?? [];
+        }
+
+        foreach ($orders as $order) {
+            $column = is_array($order) ? ($order['column'] ?? null) : null;
+
+            if (in_array($column, [$key, $qualifiedKey], true)) {
+                return;
+            }
+        }
+
+        $query->orderBy($qualifiedKey);
     }
 
     private function applyOptionSearch(Builder $query, string $search): void

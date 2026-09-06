@@ -635,15 +635,8 @@ abstract class Table implements Arrayable
             $attribute = $summary?->attribute();
             $wrappedAttribute = $attribute === null ? null : $grammar->wrap($attribute);
             $alias = "inertia_table_summary_{$index}";
-            $expression = match ($aggregate) {
-                SummaryAggregate::Count => 'COUNT(*)',
-                SummaryAggregate::CountDistinct => "COUNT(DISTINCT {$wrappedAttribute})",
-                SummaryAggregate::Sum => "SUM({$wrappedAttribute})",
-                SummaryAggregate::Average => "AVG({$wrappedAttribute})",
-                SummaryAggregate::Minimum => "MIN({$wrappedAttribute})",
-                SummaryAggregate::Maximum => "MAX({$wrappedAttribute})",
-                default => throw new LogicException('Unsupported built-in table summary.'),
-            };
+            $expression = $aggregate?->expression($wrappedAttribute)
+                ?? throw new LogicException('Unsupported built-in table summary.');
             $summaryQuery->selectRaw("{$expression} AS {$grammar->wrap($alias)}");
             $aliases[$column->attribute] = [$alias, $aggregate];
         }

@@ -63,7 +63,7 @@ class BadgeColumn extends Column
         return [...parent::toArray(), 'type' => 'badge'];
     }
 
-    private function resolveMappedProperty(Closure|array|string|null $property, mixed $value, Model $model): mixed
+    private function resolveMappedProperty(Closure|array|string|Variant|null $property, mixed $value, Model $model): mixed
     {
         if ($property instanceof Closure) {
             return $property($value, $model);

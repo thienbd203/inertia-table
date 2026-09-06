@@ -50,38 +50,13 @@ final class QueuedExportDispatcher
         ], JSON_THROW_ON_ERROR);
         $repository = app(QueuedExportRepository::class);
         $id = (string) Str::uuid();
-        $existingId = $repository->reserve($fingerprint, $id, $configuration['expiresAfter'] + 86400);
-
-        if ($existingId !== null) {
-            return $repository->forResponse([
-                ...($repository->get($existingId) ?? ['id' => $existingId, 'status' => 'dispatched']),
-                'duplicate' => true,
-            ]);
-        }
-
-        $filename = $export->resolvedFilename($request, $table);
-        $snapshot = new QueuedExportSnapshot(
-            id: $id,
-            tableClass: $table::class,
-            exportKey: $export->key,
-            type: $export->typeName(),
-            scope: $export->scope()->value,
-            state: $normalizedState,
-            selection: $normalizedSelection,
-            actorId: $actorId,
-            scopeAttributes: $attributes,
-            contextClass: $export->contextClass(),
-            disk: $configuration['disk'],
-            path: $configuration['path'].'/'.$id.'/'.$filename,
-            filename: $filename,
-            expiresAt: time() + $configuration['expiresAfter'],
-        );
+        $expiresAt = time() + $configuration['expiresAfter'];
         $status = [
             'id' => $id,
             'status' => 'dispatched',
-            'filename' => $filename,
+            'filename' => $this->fallbackFilename($export),
             'url' => null,
-            'expiresAt' => $snapshot->expiresAt,
+            'expiresAt' => $expiresAt,
             'statusEndpoint' => URL::temporarySignedRoute(
                 'inertia-table.export-status',
                 now()->addSeconds($configuration['expiresAfter'] + 86400),
@@ -92,7 +67,7 @@ final class QueuedExportDispatcher
                 ],
                 absolute: false,
             ),
-            'redirect' => $export->resolvedDispatchRedirect($request, $table),
+            'redirect' => null,
             'duplicate' => false,
             '_accessHash' => $repository->accessHash(
                 $table::class,
@@ -101,21 +76,57 @@ final class QueuedExportDispatcher
                 $attributes,
             ),
         ];
-        $repository->put($id, $status, $configuration['expiresAfter'] + 86400);
-        $job = new GenerateQueuedExport($snapshot);
-        $job->onConnection($configuration['connection']);
-        $job->onQueue($configuration['queue']);
-        $job->delay($configuration['delay']);
-        $job->chain($export->resolvedChain($request, $table, $snapshot));
+        $existingId = $repository->reserve($fingerprint, $id, $configuration['expiresAfter'] + 86400);
+
+        if ($existingId !== null) {
+            return $repository->forResponse([
+                ...($repository->get($existingId) ?? ['id' => $existingId, 'status' => 'dispatched']),
+                'duplicate' => true,
+            ]);
+        }
 
         try {
+            $filename = $export->resolvedFilename($request, $table);
+            $snapshot = new QueuedExportSnapshot(
+                id: $id,
+                tableClass: $table::class,
+                exportKey: $export->key,
+                type: $export->typeName(),
+                scope: $export->scope()->value,
+                state: $normalizedState,
+                selection: $normalizedSelection,
+                actorId: $actorId,
+                scopeAttributes: $attributes,
+                contextClass: $export->contextClass(),
+                disk: $configuration['disk'],
+                path: $configuration['path'].'/'.$id.'/'.$filename,
+                filename: $filename,
+                expiresAt: $expiresAt,
+                locale: app()->getLocale(),
+            );
+            $status = [
+                ...$status,
+                'filename' => $filename,
+                'redirect' => $export->resolvedDispatchRedirect($request, $table),
+            ];
+            $repository->put($id, $status, $configuration['expiresAfter'] + 86400);
+            $job = new GenerateQueuedExport($snapshot);
+            $job->onConnection($configuration['connection']);
+            $job->onQueue($configuration['queue']);
+            $job->delay($configuration['delay']);
+            $job->chain($export->resolvedChain($request, $table, $snapshot));
             dispatch($job);
         } catch (Throwable $exception) {
-            $repository->put($id, [
-                ...$status,
-                'status' => 'failed',
-                'message' => $exception->getMessage(),
-            ], 86400);
+            try {
+                $repository->put($id, [
+                    ...$status,
+                    'status' => 'failed',
+                    'url' => null,
+                    'message' => Export::DEFAULT_FAILURE_MESSAGE,
+                ], 86400);
+            } catch (Throwable) {
+                // The original preparation or dispatch failure remains authoritative.
+            }
 
             throw $exception;
         }
@@ -136,5 +147,10 @@ final class QueuedExportDispatcher
         }
 
         return $table->selection($selection)->toArray();
+    }
+
+    private function fallbackFilename(Export $export): string
+    {
+        return $export->key.'.'.$export->typeName();
     }
 }

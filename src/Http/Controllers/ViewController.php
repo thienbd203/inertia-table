@@ -5,7 +5,6 @@ namespace Musing\InertiaTable\Http\Controllers;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Musing\InertiaTable\Support\TableReference;
 use Musing\InertiaTable\Table;
@@ -57,7 +56,7 @@ final class ViewController
         }
 
         try {
-            DB::transaction(function () use ($model, $tableInstance, $validated, $views) {
+            $model->getConnection()->transaction(function () use ($model, $tableInstance, $validated, $views) {
                 $locked = $this->lockCurrentView($views, $model, $validated['version']);
 
                 if (array_key_exists('name', $validated)) {
@@ -92,7 +91,7 @@ final class ViewController
         $validated = $request->validate([
             'version' => ['required', 'integer', 'min:0'],
         ]);
-        DB::transaction(function () use ($model, $validated, $views) {
+        $model->getConnection()->transaction(function () use ($model, $validated, $views) {
             $this->lockCurrentView($views, $model, $validated['version'])->delete();
         });
 
@@ -108,7 +107,7 @@ final class ViewController
             'version' => ['required', 'integer', 'min:0'],
         ]);
 
-        DB::transaction(function () use ($model, $validated, $views) {
+        $model->getConnection()->transaction(function () use ($model, $validated, $views) {
             $locked = $this->lockCurrentView($views, $model, $validated['version']);
             $views->newQuery()
                 ->where('scope_hash', $locked->scope_hash)
@@ -136,7 +135,7 @@ final class ViewController
             'shared' => ['required', 'boolean'],
             'version' => ['required', 'integer', 'min:0'],
         ]);
-        DB::transaction(function () use ($model, $validated, $views) {
+        $model->getConnection()->transaction(function () use ($model, $validated, $views) {
             $locked = $this->lockCurrentView($views, $model, $validated['version']);
             $locked->is_shared = $validated['shared'];
             $locked->lock_version++;

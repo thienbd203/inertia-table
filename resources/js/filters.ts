@@ -35,15 +35,21 @@ export function clauseSymbol(clause: string): string {
     return clauseSymbols[clause] ?? clause.replaceAll("_", " ");
 }
 
+export function isRangeClause(clause: string): boolean {
+    return ["between", "not_between"].includes(clause);
+}
+
+export function isValuelessClause(clause: string): boolean {
+    return ["is_true", "is_false", "is_set", "is_not_set"].includes(clause);
+}
+
 export function filterDisplayValue(
     filter: TableFilter,
     state: TableFilterState | undefined,
 ): string {
     if (!state) return "";
 
-    if (
-        ["is_true", "is_false", "is_set", "is_not_set"].includes(state.clause)
-    ) {
+    if (isValuelessClause(state.clause)) {
         return "";
     }
 

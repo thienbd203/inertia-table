@@ -31,6 +31,7 @@ final readonly class QueuedExportSnapshot implements Arrayable
         public string $path,
         public string $filename,
         public int $expiresAt,
+        public ?string $locale = null,
     ) {}
 
     public function toArray(): array
