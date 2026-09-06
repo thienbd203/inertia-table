@@ -1,15 +1,17 @@
 export type TableKey = string | number;
 
+type TableMap<T> = Record<string, T> | [];
+
 export type TableItem = {
     id?: TableKey;
     _table?: {
         key?: TableKey;
         selectable?: boolean;
         url: TableUrl | string | null;
-        columns: Record<string, TableUrl | string>;
-        cells?: Record<string, Record<string, unknown>>;
+        columns: TableMap<TableUrl | string>;
+        cells?: TableMap<Record<string, unknown>>;
         actions: TableAction[];
-        dataAttributes?: Record<string, string | number | boolean | null>;
+        dataAttributes?: TableMap<string | number | boolean | null>;
     };
 };
 
@@ -57,7 +59,7 @@ export type TableColumn = {
     falseLabel?: string;
     trueIcon?: string | null;
     falseIcon?: string | null;
-    meta: Record<string, unknown>;
+    meta: TableMap<unknown>;
     asDropdown?: boolean;
 };
 
@@ -89,7 +91,7 @@ export type TableFilter = {
     compactDisplayLabel?: string | null;
     showClause?: boolean;
     hasDefaultValue?: boolean;
-    meta: Record<string, unknown>;
+    meta: TableMap<unknown>;
 };
 
 export type TableFilterState = {
@@ -122,7 +124,7 @@ export type TableAction = {
         method: "get" | "post" | "put" | "patch" | "delete";
         url: string;
     } | null;
-    meta: Record<string, unknown>;
+    meta: TableMap<unknown>;
 };
 
 export type QueuedActionStatus = {
@@ -155,7 +157,7 @@ export type TableState = {
     pinnedColumns?: { left: string[]; right: string[] };
     cursor?: string | null;
     columnOrder?: string[];
-    columnWidths?: Record<string, number>;
+    columnWidths?: TableMap<number>;
 };
 
 export type TableViewState = {
@@ -165,7 +167,7 @@ export type TableViewState = {
     columns: Record<string, boolean>;
     pinnedColumns: { left: string[]; right: string[] };
     columnOrder?: string[];
-    columnWidths?: Record<string, number>;
+    columnWidths?: TableMap<number>;
     perPage: number;
     search?: string;
 };
@@ -215,7 +217,7 @@ export type TableExport = {
     queued?: boolean;
     includesSummaries?: boolean;
     endpoint: string;
-    meta: Record<string, unknown>;
+    meta: TableMap<unknown>;
 };
 
 export type TableEmptyStateAction = {
@@ -224,8 +226,8 @@ export type TableEmptyStateAction = {
     variant: "default" | "danger" | "info" | "success" | "warning";
     icon: string | null;
     buttonClass: string | null;
-    dataAttributes: Record<string, string | number | boolean | null>;
-    meta: Record<string, unknown>;
+    dataAttributes: TableMap<string | number | boolean | null>;
+    meta: TableMap<unknown>;
 };
 
 export type TableEmptyState = {
@@ -233,8 +235,8 @@ export type TableEmptyState = {
     message: string | null;
     icon: string | false | null;
     actions: TableEmptyStateAction[];
-    dataAttributes: Record<string, string | number | boolean | null>;
-    meta: Record<string, unknown>;
+    dataAttributes: TableMap<string | number | boolean | null>;
+    meta: TableMap<unknown>;
 };
 
 export type QueuedExportStatus = {
@@ -310,7 +312,7 @@ export type TableResource<T extends TableItem = TableItem> = {
     views?: TableViewsResource | null;
     exports?: TableExport[];
     emptyState?: TableEmptyState | null;
-    summaries?: Record<string, unknown>;
+    summaries?: TableMap<unknown>;
 };
 
 export type TableOptions<T extends TableItem> = {

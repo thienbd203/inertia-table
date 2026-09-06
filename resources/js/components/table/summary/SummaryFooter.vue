@@ -17,7 +17,9 @@ function alignmentClass(alignment: "left" | "center" | "right"): string {
 }
 
 function valueFor(column: TableColumn): unknown {
-    return resource.value.summaries?.[column.attribute];
+    const summaries = resource.value.summaries;
+
+    return Array.isArray(summaries) ? undefined : summaries?.[column.attribute];
 }
 
 function formattedValue(column: TableColumn): string {

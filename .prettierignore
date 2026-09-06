@@ -1,0 +1,2 @@
+# PHP owns this fixture's deterministic serialization and its freshness test.
+tests-js/contracts/resource.generated.ts

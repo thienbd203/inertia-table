@@ -1324,6 +1324,15 @@ npm test
 npm run build
 ```
 
+The PHP resource contract fixture is checked for freshness by the normal PHP
+suite. Refresh it only after an intentional resource-contract change, then run
+the check again without the environment variable:
+
+```bash
+INERTIA_TABLE_UPDATE_CONTRACTS=1 vendor/bin/pest tests/ContractResourceTest.php
+vendor/bin/pest tests/ContractResourceTest.php
+```
+
 The design and resource contract are described in
 [docs/architecture.md](docs/architecture.md). Public compatibility guarantees
 are documented in [docs/api-stability.md](docs/api-stability.md).

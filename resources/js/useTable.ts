@@ -26,7 +26,7 @@ export function useTable<T extends TableItem>(
         ),
     );
     const columnWidths = ref<Record<string, number>>({
-        ...(toValue(resource).state.columnWidths ?? {}),
+        ...normalizedColumnWidths(toValue(resource).state.columnWidths),
     });
     let debounceTimer: ReturnType<typeof setTimeout> | undefined;
     let layoutTimer: ReturnType<typeof setTimeout> | undefined;
@@ -72,10 +72,16 @@ export function useTable<T extends TableItem>(
         ({ order, widths }) => {
             const current = toValue(resource);
             columnOrder.value = normalizeColumnOrder(order, current);
-            columnWidths.value = { ...(widths ?? {}) };
+            columnWidths.value = { ...normalizedColumnWidths(widths) };
         },
         { deep: true },
     );
+
+    function normalizedColumnWidths(
+        widths: TableState["columnWidths"],
+    ): Record<string, number> {
+        return Array.isArray(widths) ? {} : (widths ?? {});
+    }
 
     function visit(state: TableState, replace = true) {
         const current = toValue(resource);
