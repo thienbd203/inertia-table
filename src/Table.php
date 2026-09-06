@@ -983,7 +983,9 @@ abstract class Table implements Arrayable
             $eloquent->select($eloquent->getModel()->qualifyColumn('*'));
         }
 
-        $eloquent->distinct($eloquent->getModel()->getQualifiedKeyName());
+        // Select only base-model columns above, so a regular DISTINCT removes rows
+        // repeated by joins without PostgreSQL's DISTINCT ON ordering restriction.
+        $eloquent->distinct();
 
         return $query;
     }
@@ -1082,10 +1084,16 @@ abstract class Table implements Arrayable
         array $actions,
         int $selectableTotal,
     ): array {
+        $eloquent = $query->getEloquentBuilder();
+        $total = $eloquent->getQuery()->distinct === true
+            ? (clone $eloquent)->reorder()->count($eloquent->getModel()->getQualifiedKeyName())
+            : null;
+
         $paginator = $query->paginate(
             perPage: $state->perPage,
             pageName: "table[{$this->name()}][page]",
             page: $state->page,
+            total: $total,
         )->withQueryString();
 
         return [

@@ -201,7 +201,7 @@ final class GenerateQueuedExport implements ShouldQueue
 
     private function restoreLocale(): void
     {
-        if (isset($this->snapshot->locale) && is_string($this->snapshot->locale) && $this->snapshot->locale !== '') {
+        if (isset($this->snapshot->locale) && $this->snapshot->locale !== '') {
             App::setLocale($this->snapshot->locale);
         }
     }
