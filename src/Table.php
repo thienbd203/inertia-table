@@ -298,39 +298,20 @@ abstract class Table implements Arrayable
             ),
             actions: $bulkActions,
             search: array_map(fn (Column $column) => $column->attribute, $searchable),
-            capabilities: [
-                'searchable' => $searchable !== [],
-                'selectable' => $selectable,
-                'paginated' => $this->pagination,
-                'hasSearch' => $searchable !== [],
-                'hasFilters' => $filters !== [],
-                'hasActions' => $actions !== [],
-                'hasBulkActions' => $bulkActions !== [],
-                'hasExports' => $resolvedExports !== [],
-                'hasToggleableColumns' => collect($columns)->contains(fn (Column $column) => $column->isToggleable()),
-                'hasStickableColumns' => collect($columns)->contains(fn (Column $column) => $column->isStickable()),
-                'hasResizableColumns' => $this->resolvedColumnResizing()
-                    && collect($columns)->contains(fn (Column $column) => $column->isResizable()),
-                'hasReorderableColumns' => $this->resolvedColumnReordering()
-                    && collect($columns)->contains(fn (Column $column) => $column->isReorderable()),
-                'hasSummaries' => $summaries !== [],
-                'hasEmptyState' => $emptyState !== null,
-            ],
+            capabilities: $this->capabilities(
+                $columns,
+                $filters,
+                $actions,
+                $searchable,
+                $bulkActions,
+                $resolvedExports,
+                $summaries,
+                $emptyState,
+                $selectable,
+            ),
             state: $state,
             results: $results,
-            options: [
-                'debounceTime' => $this->debounceTime ?? (int) config('inertia-table.debounce', 300),
-                'perPage' => $perPageOptions,
-                'paginationType' => $paginationType->value,
-                'reloadProps' => $this->reloadProps,
-                'stickyHeader' => $this->stickyHeader ?? false,
-                'stickyFooter' => $this->stickyFooter
-                    ?? (bool) config('inertia-table.sticky.footer', false),
-                'stickyBackdropFilter' => $this->stickyBackdropFilter
-                    ?? (bool) config('inertia-table.sticky.backdrop_filter', true),
-                'columnResizing' => $this->resolvedColumnResizing(),
-                'columnReordering' => $this->resolvedColumnReordering(),
-            ],
+            options: $this->options($perPageOptions, $paginationType),
             views: $resolvedViews['resource'] ?? null,
             exports: $resolvedExports,
             emptyState: $resolvedEmptyState,
@@ -341,6 +322,71 @@ abstract class Table implements Arrayable
     public function toArray(): array
     {
         return $this->resolve()->toArray();
+    }
+
+    /**
+     * @param  array<int, Column>  $columns
+     * @param  array<int, Filter>  $filters
+     * @param  array<int, Action>  $actions
+     * @param  array<int, Column>  $searchable
+     * @param  array<int, array<string, mixed>>  $bulkActions
+     * @param  array<int, array<string, mixed>>  $exports
+     * @param  array<string, mixed>  $summaries
+     * @return array<string, bool>
+     */
+    private function capabilities(
+        array $columns,
+        array $filters,
+        array $actions,
+        array $searchable,
+        array $bulkActions,
+        array $exports,
+        array $summaries,
+        ?EmptyState $emptyState,
+        bool $selectable,
+    ): array {
+        $hasResizableColumns = $this->resolvedColumnResizing()
+            && collect($columns)->contains(fn (Column $column) => $column->isResizable());
+        $hasReorderableColumns = $this->resolvedColumnReordering()
+            && collect($columns)->contains(fn (Column $column) => $column->isReorderable());
+
+        return [
+            'searchable' => $searchable !== [],
+            'selectable' => $selectable,
+            'paginated' => $this->pagination,
+            'hasSearch' => $searchable !== [],
+            'hasFilters' => $filters !== [],
+            'hasActions' => $actions !== [],
+            'hasBulkActions' => $bulkActions !== [],
+            'hasExports' => $exports !== [],
+            'hasToggleableColumns' => collect($columns)->contains(fn (Column $column) => $column->isToggleable()),
+            'hasStickableColumns' => collect($columns)->contains(fn (Column $column) => $column->isStickable()),
+            'hasResizableColumns' => $hasResizableColumns,
+            'hasReorderableColumns' => $hasReorderableColumns,
+            'hasSummaries' => $summaries !== [],
+            'hasEmptyState' => $emptyState !== null,
+        ];
+    }
+
+    /**
+     * @param  array<int, int>  $perPageOptions
+     * @return array<string, bool|int|array<int, int>|array<int, string>|string>
+     */
+    private function options(array $perPageOptions, PaginationType $paginationType): array
+    {
+        return [
+            'debounceTime' => $this->debounceTime ?? (int) config('inertia-table.debounce', 300),
+            'perPage' => $perPageOptions,
+            'paginationType' => $paginationType->value,
+            'reloadProps' => $this->reloadProps,
+            'stickyHeader' => $this->stickyHeader ?? false,
+            'stickyFooter' => $this->stickyFooter
+                ?? (bool) config('inertia-table.sticky.footer', false),
+            'stickyBackdropFilter' => $this->stickyBackdropFilter
+                ?? (bool) config('inertia-table.sticky.backdrop_filter', true),
+            'columnResizing' => $this->resolvedColumnResizing(),
+            'columnReordering' => $this->resolvedColumnReordering(),
+        ];
     }
 
     /** @param array<string, mixed> $payload */
