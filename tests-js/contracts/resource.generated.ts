@@ -6,6 +6,8 @@ export type ContractTopic = TableItem & {
     name: string;
     status: string;
     amount: number;
+    is_featured: boolean;
+    published_at: string;
 };
 
 const resources = {
@@ -20,13 +22,13 @@ const resources = {
                 "sortable": true,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
-                "width": null,
+                "width": 240,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": null,
                 "alignment": "left",
                 "wrap": false,
@@ -43,13 +45,13 @@ const resources = {
                 "sortable": true,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
-                "width": null,
+                "width": 160,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": {
                     "type": "sum",
                     "format": null
@@ -69,13 +71,13 @@ const resources = {
                 "sortable": false,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
                 "width": null,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": null,
                 "alignment": "left",
                 "wrap": false,
@@ -91,13 +93,16 @@ const resources = {
                 "attribute": "status",
                 "label": "Status",
                 "clauses": [
-                    "equals"
+                    "in",
+                    "not_in",
+                    "equals",
+                    "not_equals"
                 ],
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
                 "compactDisplayLabel": null,
-                "type": "select",
+                "type": "set",
                 "options": [
                     {
                         "value": "open",
@@ -108,7 +113,61 @@ const resources = {
                         "label": "Closed"
                     }
                 ],
-                "multiple": false
+                "multiple": true
+            },
+            {
+                "attribute": "amount",
+                "label": "Amount",
+                "clauses": [
+                    "equals",
+                    "not_equals",
+                    "greater_than",
+                    "greater_than_or_equal",
+                    "less_than",
+                    "less_than_or_equal",
+                    "between",
+                    "not_between"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "numeric",
+                "options": []
+            },
+            {
+                "attribute": "published_at",
+                "label": "Published at",
+                "clauses": [
+                    "before",
+                    "after",
+                    "equal_or_before",
+                    "equal_or_after",
+                    "equals",
+                    "not_equals",
+                    "between",
+                    "not_between"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "date",
+                "options": []
+            },
+            {
+                "attribute": "is_featured",
+                "label": "Featured",
+                "clauses": [
+                    "is_true",
+                    "is_false"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "boolean",
+                "options": []
             }
         ],
         "actions": [
@@ -146,9 +205,9 @@ const resources = {
             "hasBulkActions": true,
             "hasExports": true,
             "hasToggleableColumns": true,
-            "hasStickableColumns": false,
-            "hasResizableColumns": false,
-            "hasReorderableColumns": false,
+            "hasStickableColumns": true,
+            "hasResizableColumns": true,
+            "hasReorderableColumns": true,
             "hasSummaries": true,
             "hasEmptyState": false
         },
@@ -158,7 +217,22 @@ const resources = {
             "filters": {
                 "status": {
                     "enabled": false,
+                    "clause": "in",
+                    "value": null
+                },
+                "amount": {
+                    "enabled": false,
                     "clause": "equals",
+                    "value": null
+                },
+                "published_at": {
+                    "enabled": false,
+                    "clause": "before",
+                    "value": null
+                },
+                "is_featured": {
+                    "enabled": false,
+                    "clause": "is_true",
                     "value": null
                 }
             },
@@ -180,7 +254,10 @@ const resources = {
                 "amount",
                 "status"
             ],
-            "columnWidths": []
+            "columnWidths": {
+                "name": 240,
+                "amount": 160
+            }
         },
         "results": {
             "data": [
@@ -189,6 +266,8 @@ const resources = {
                     "name": "Alpha",
                     "status": "open",
                     "amount": 10,
+                    "is_featured": false,
+                    "published_at": "2025-01-10T00:00:00.000000Z",
                     "_table": {
                         "key": 1,
                         "selectable": true,
@@ -265,7 +344,22 @@ const resources = {
                         "filters": {
                             "status": {
                                 "enabled": false,
+                                "clause": "in",
+                                "value": null
+                            },
+                            "amount": {
+                                "enabled": false,
                                 "clause": "equals",
+                                "value": null
+                            },
+                            "published_at": {
+                                "enabled": false,
+                                "clause": "before",
+                                "value": null
+                            },
+                            "is_featured": {
+                                "enabled": false,
+                                "clause": "is_true",
                                 "value": null
                             }
                         },
@@ -283,7 +377,10 @@ const resources = {
                             "amount",
                             "status"
                         ],
-                        "columnWidths": [],
+                        "columnWidths": {
+                            "name": 240,
+                            "amount": 160
+                        },
                         "perPage": 1
                     },
                     "isDefault": true,
@@ -336,13 +433,13 @@ const resources = {
                 "sortable": true,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
-                "width": null,
+                "width": 240,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": null,
                 "alignment": "left",
                 "wrap": false,
@@ -359,13 +456,13 @@ const resources = {
                 "sortable": true,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
-                "width": null,
+                "width": 160,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": {
                     "type": "sum",
                     "format": null
@@ -385,13 +482,13 @@ const resources = {
                 "sortable": false,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
                 "width": null,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": null,
                 "alignment": "left",
                 "wrap": false,
@@ -407,13 +504,16 @@ const resources = {
                 "attribute": "status",
                 "label": "Status",
                 "clauses": [
-                    "equals"
+                    "in",
+                    "not_in",
+                    "equals",
+                    "not_equals"
                 ],
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
                 "compactDisplayLabel": null,
-                "type": "select",
+                "type": "set",
                 "options": [
                     {
                         "value": "open",
@@ -424,7 +524,61 @@ const resources = {
                         "label": "Closed"
                     }
                 ],
-                "multiple": false
+                "multiple": true
+            },
+            {
+                "attribute": "amount",
+                "label": "Amount",
+                "clauses": [
+                    "equals",
+                    "not_equals",
+                    "greater_than",
+                    "greater_than_or_equal",
+                    "less_than",
+                    "less_than_or_equal",
+                    "between",
+                    "not_between"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "numeric",
+                "options": []
+            },
+            {
+                "attribute": "published_at",
+                "label": "Published at",
+                "clauses": [
+                    "before",
+                    "after",
+                    "equal_or_before",
+                    "equal_or_after",
+                    "equals",
+                    "not_equals",
+                    "between",
+                    "not_between"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "date",
+                "options": []
+            },
+            {
+                "attribute": "is_featured",
+                "label": "Featured",
+                "clauses": [
+                    "is_true",
+                    "is_false"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "boolean",
+                "options": []
             }
         ],
         "actions": [
@@ -462,9 +616,9 @@ const resources = {
             "hasBulkActions": true,
             "hasExports": true,
             "hasToggleableColumns": true,
-            "hasStickableColumns": false,
-            "hasResizableColumns": false,
-            "hasReorderableColumns": false,
+            "hasStickableColumns": true,
+            "hasResizableColumns": true,
+            "hasReorderableColumns": true,
             "hasSummaries": true,
             "hasEmptyState": false
         },
@@ -474,7 +628,22 @@ const resources = {
             "filters": {
                 "status": {
                     "enabled": false,
+                    "clause": "in",
+                    "value": null
+                },
+                "amount": {
+                    "enabled": false,
                     "clause": "equals",
+                    "value": null
+                },
+                "published_at": {
+                    "enabled": false,
+                    "clause": "before",
+                    "value": null
+                },
+                "is_featured": {
+                    "enabled": false,
+                    "clause": "is_true",
                     "value": null
                 }
             },
@@ -496,7 +665,10 @@ const resources = {
                 "amount",
                 "status"
             ],
-            "columnWidths": []
+            "columnWidths": {
+                "name": 240,
+                "amount": 160
+            }
         },
         "results": {
             "data": [
@@ -505,6 +677,8 @@ const resources = {
                     "name": "Alpha",
                     "status": "open",
                     "amount": 10,
+                    "is_featured": false,
+                    "published_at": "2025-01-10T00:00:00.000000Z",
                     "_table": {
                         "key": 1,
                         "selectable": true,
@@ -580,13 +754,13 @@ const resources = {
                 "sortable": true,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
-                "width": null,
+                "width": 240,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": null,
                 "alignment": "left",
                 "wrap": false,
@@ -603,13 +777,13 @@ const resources = {
                 "sortable": true,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
-                "width": null,
+                "width": 160,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": {
                     "type": "sum",
                     "format": null
@@ -629,13 +803,13 @@ const resources = {
                 "sortable": false,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
                 "width": null,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": null,
                 "alignment": "left",
                 "wrap": false,
@@ -651,13 +825,16 @@ const resources = {
                 "attribute": "status",
                 "label": "Status",
                 "clauses": [
-                    "equals"
+                    "in",
+                    "not_in",
+                    "equals",
+                    "not_equals"
                 ],
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
                 "compactDisplayLabel": null,
-                "type": "select",
+                "type": "set",
                 "options": [
                     {
                         "value": "open",
@@ -668,7 +845,61 @@ const resources = {
                         "label": "Closed"
                     }
                 ],
-                "multiple": false
+                "multiple": true
+            },
+            {
+                "attribute": "amount",
+                "label": "Amount",
+                "clauses": [
+                    "equals",
+                    "not_equals",
+                    "greater_than",
+                    "greater_than_or_equal",
+                    "less_than",
+                    "less_than_or_equal",
+                    "between",
+                    "not_between"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "numeric",
+                "options": []
+            },
+            {
+                "attribute": "published_at",
+                "label": "Published at",
+                "clauses": [
+                    "before",
+                    "after",
+                    "equal_or_before",
+                    "equal_or_after",
+                    "equals",
+                    "not_equals",
+                    "between",
+                    "not_between"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "date",
+                "options": []
+            },
+            {
+                "attribute": "is_featured",
+                "label": "Featured",
+                "clauses": [
+                    "is_true",
+                    "is_false"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "boolean",
+                "options": []
             }
         ],
         "actions": [
@@ -706,9 +937,9 @@ const resources = {
             "hasBulkActions": true,
             "hasExports": true,
             "hasToggleableColumns": true,
-            "hasStickableColumns": false,
-            "hasResizableColumns": false,
-            "hasReorderableColumns": false,
+            "hasStickableColumns": true,
+            "hasResizableColumns": true,
+            "hasReorderableColumns": true,
             "hasSummaries": true,
             "hasEmptyState": false
         },
@@ -718,7 +949,22 @@ const resources = {
             "filters": {
                 "status": {
                     "enabled": false,
+                    "clause": "in",
+                    "value": null
+                },
+                "amount": {
+                    "enabled": false,
                     "clause": "equals",
+                    "value": null
+                },
+                "published_at": {
+                    "enabled": false,
+                    "clause": "before",
+                    "value": null
+                },
+                "is_featured": {
+                    "enabled": false,
+                    "clause": "is_true",
                     "value": null
                 }
             },
@@ -740,7 +986,10 @@ const resources = {
                 "amount",
                 "status"
             ],
-            "columnWidths": []
+            "columnWidths": {
+                "name": 240,
+                "amount": 160
+            }
         },
         "results": {
             "data": [
@@ -749,6 +998,8 @@ const resources = {
                     "name": "Alpha",
                     "status": "open",
                     "amount": 10,
+                    "is_featured": false,
+                    "published_at": "2025-01-10T00:00:00.000000Z",
                     "_table": {
                         "key": 1,
                         "selectable": true,
@@ -824,13 +1075,13 @@ const resources = {
                 "sortable": true,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
-                "width": null,
+                "width": 240,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": null,
                 "alignment": "left",
                 "wrap": false,
@@ -847,13 +1098,13 @@ const resources = {
                 "sortable": true,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
-                "width": null,
+                "width": 160,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": {
                     "type": "sum",
                     "format": null
@@ -873,13 +1124,13 @@ const resources = {
                 "sortable": false,
                 "toggleable": true,
                 "visibleByDefault": true,
-                "stickable": false,
+                "stickable": true,
                 "sticky": false,
                 "width": null,
                 "minWidth": null,
                 "maxWidth": null,
-                "resizable": false,
-                "reorderable": false,
+                "resizable": true,
+                "reorderable": true,
                 "summary": null,
                 "alignment": "left",
                 "wrap": false,
@@ -895,13 +1146,16 @@ const resources = {
                 "attribute": "status",
                 "label": "Status",
                 "clauses": [
-                    "equals"
+                    "in",
+                    "not_in",
+                    "equals",
+                    "not_equals"
                 ],
                 "meta": [],
                 "hasDefaultValue": false,
                 "showClause": true,
                 "compactDisplayLabel": null,
-                "type": "select",
+                "type": "set",
                 "options": [
                     {
                         "value": "open",
@@ -912,7 +1166,61 @@ const resources = {
                         "label": "Closed"
                     }
                 ],
-                "multiple": false
+                "multiple": true
+            },
+            {
+                "attribute": "amount",
+                "label": "Amount",
+                "clauses": [
+                    "equals",
+                    "not_equals",
+                    "greater_than",
+                    "greater_than_or_equal",
+                    "less_than",
+                    "less_than_or_equal",
+                    "between",
+                    "not_between"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "numeric",
+                "options": []
+            },
+            {
+                "attribute": "published_at",
+                "label": "Published at",
+                "clauses": [
+                    "before",
+                    "after",
+                    "equal_or_before",
+                    "equal_or_after",
+                    "equals",
+                    "not_equals",
+                    "between",
+                    "not_between"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "date",
+                "options": []
+            },
+            {
+                "attribute": "is_featured",
+                "label": "Featured",
+                "clauses": [
+                    "is_true",
+                    "is_false"
+                ],
+                "meta": [],
+                "hasDefaultValue": false,
+                "showClause": true,
+                "compactDisplayLabel": null,
+                "type": "boolean",
+                "options": []
             }
         ],
         "actions": [
@@ -950,9 +1258,9 @@ const resources = {
             "hasBulkActions": true,
             "hasExports": true,
             "hasToggleableColumns": true,
-            "hasStickableColumns": false,
-            "hasResizableColumns": false,
-            "hasReorderableColumns": false,
+            "hasStickableColumns": true,
+            "hasResizableColumns": true,
+            "hasReorderableColumns": true,
             "hasSummaries": true,
             "hasEmptyState": false
         },
@@ -962,7 +1270,22 @@ const resources = {
             "filters": {
                 "status": {
                     "enabled": false,
+                    "clause": "in",
+                    "value": null
+                },
+                "amount": {
+                    "enabled": false,
                     "clause": "equals",
+                    "value": null
+                },
+                "published_at": {
+                    "enabled": false,
+                    "clause": "before",
+                    "value": null
+                },
+                "is_featured": {
+                    "enabled": false,
+                    "clause": "is_true",
                     "value": null
                 }
             },
@@ -984,7 +1307,10 @@ const resources = {
                 "amount",
                 "status"
             ],
-            "columnWidths": []
+            "columnWidths": {
+                "name": 240,
+                "amount": 160
+            }
         },
         "results": {
             "data": [
@@ -993,6 +1319,8 @@ const resources = {
                     "name": "Alpha",
                     "status": "open",
                     "amount": 10,
+                    "is_featured": false,
+                    "published_at": "2025-01-10T00:00:00.000000Z",
                     "_table": {
                         "key": 1,
                         "selectable": true,
@@ -1014,6 +1342,8 @@ const resources = {
                     "name": "Beta",
                     "status": "closed",
                     "amount": 20,
+                    "is_featured": true,
+                    "published_at": "2025-02-20T00:00:00.000000Z",
                     "_table": {
                         "key": 2,
                         "selectable": true,

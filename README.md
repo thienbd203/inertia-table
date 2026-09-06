@@ -1333,6 +1333,15 @@ INERTIA_TABLE_UPDATE_CONTRACTS=1 vendor/bin/pest tests/ContractResourceTest.php
 vendor/bin/pest tests/ContractResourceTest.php
 ```
 
+The URL round-trip contract keeps the browser serializer and PHP normalizer in
+separate processes. It is required in `run-contract-tests`; run both commands
+locally when changing URL state behavior:
+
+```bash
+INERTIA_TABLE_URL_CONTRACT_OUTPUT=build/contracts/urls.json npm test -- tests-js/contractUrl.test.ts
+INERTIA_TABLE_URL_CONTRACT_INPUT=build/contracts/urls.json vendor/bin/pest tests/ContractUrlTest.php
+```
+
 The design and resource contract are described in
 [docs/architecture.md](docs/architecture.md). Public compatibility guarantees
 are documented in [docs/api-stability.md](docs/api-stability.md).

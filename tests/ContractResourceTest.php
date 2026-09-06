@@ -23,13 +23,27 @@ beforeEach(function () {
         $table->string('name');
         $table->string('status');
         $table->unsignedInteger('amount');
+        $table->boolean('is_featured');
+        $table->date('published_at');
     });
     $migration = require dirname(__DIR__).'/database/migrations/create_table_views_table.php.stub';
     $migration->up();
 
     ContractTopicRecord::query()->insert([
-        ['name' => 'Alpha', 'status' => 'open', 'amount' => 10],
-        ['name' => 'Beta', 'status' => 'closed', 'amount' => 20],
+        [
+            'name' => 'Alpha',
+            'status' => 'open',
+            'amount' => 10,
+            'is_featured' => false,
+            'published_at' => '2025-01-10',
+        ],
+        [
+            'name' => 'Beta',
+            'status' => 'closed',
+            'amount' => 20,
+            'is_featured' => true,
+            'published_at' => '2025-02-20',
+        ],
     ]);
 });
 
@@ -80,6 +94,8 @@ function contractFixtureContents(array $resources): string
             name: string;
             status: string;
             amount: number;
+            is_featured: boolean;
+            published_at: string;
         };
 
         const resources = {$resourcesJson} satisfies Record<

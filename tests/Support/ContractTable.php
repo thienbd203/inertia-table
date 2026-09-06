@@ -9,7 +9,10 @@ use Musing\InertiaTable\Columns\BadgeColumn;
 use Musing\InertiaTable\Columns\NumberColumn;
 use Musing\InertiaTable\Columns\TextColumn;
 use Musing\InertiaTable\Exports\Export;
-use Musing\InertiaTable\Filters\SelectFilter;
+use Musing\InertiaTable\Filters\BooleanFilter;
+use Musing\InertiaTable\Filters\DateFilter;
+use Musing\InertiaTable\Filters\NumericFilter;
+use Musing\InertiaTable\Filters\SetFilter;
 use Musing\InertiaTable\PaginationType;
 use Musing\InertiaTable\Table;
 use Musing\InertiaTable\Variant;
@@ -25,7 +28,11 @@ class ContractTopicRecord extends Model
 
     protected function casts(): array
     {
-        return ['amount' => 'integer'];
+        return [
+            'amount' => 'integer',
+            'is_featured' => 'boolean',
+            'published_at' => 'date',
+        ];
     }
 }
 
@@ -48,19 +55,38 @@ class ContractTopicsTable extends Table
     public function columns(): array
     {
         return [
-            TextColumn::make('name', 'Name')->searchable()->sortable(),
-            NumberColumn::make('amount', 'Amount')->sortable()->summary('sum'),
-            BadgeColumn::make('status', 'Status')->variant(Variant::Success),
+            TextColumn::make('name', 'Name')
+                ->searchable()
+                ->sortable()
+                ->stickable()
+                ->resizable()
+                ->reorderable()
+                ->width(240),
+            NumberColumn::make('amount', 'Amount')
+                ->sortable()
+                ->summary('sum')
+                ->stickable()
+                ->resizable()
+                ->reorderable()
+                ->width(160),
+            BadgeColumn::make('status', 'Status')
+                ->variant(Variant::Success)
+                ->stickable()
+                ->resizable()
+                ->reorderable(),
         ];
     }
 
     public function filters(): array
     {
         return [
-            SelectFilter::make('status', 'Status')->options([
+            SetFilter::make('status', 'Status')->options([
                 'open' => 'Open',
                 'closed' => 'Closed',
-            ]),
+            ])->multiple(),
+            NumericFilter::make('amount', 'Amount'),
+            DateFilter::make('published_at', 'Published at'),
+            BooleanFilter::make('is_featured', 'Featured'),
         ];
     }
 
