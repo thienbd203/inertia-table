@@ -48,23 +48,45 @@ final class QueuedActionDispatcher
         $id = (string) Str::uuid();
         $ttl = $configuration['expiresAfter'] + $configuration['statusRetention'];
         $now = time();
+        $expiresAt = $now + $configuration['expiresAfter'];
+        $status = $this->fallbackStatus(
+            $table,
+            $action,
+            $id,
+            $expiresAt,
+            $ttl,
+            $actorId,
+            $attributes,
+            $configuration['statusRetention'],
+            $repository,
+        );
         $existingId = $repository->reserve($idempotencyFingerprint, $id, $ttl);
 
         if ($existingId !== null) {
-            $status = $repository->get($existingId) ?? $this->initialStatus(
-                $request,
+            $status = $repository->get($existingId) ?? $this->fallbackStatus(
                 $table,
                 $action,
-                $selection,
                 $existingId,
-                $now + $configuration['expiresAfter'],
+                $expiresAt,
                 $ttl,
                 $actorId,
                 $attributes,
                 $configuration['statusRetention'],
                 $repository,
             );
-            $repository->putIfMissing($existingId, $status, $ttl);
+
+            if (($status['total'] ?? null) === null) {
+                $status = [
+                    ...$status,
+                    'total' => $selection->count(),
+                    'processed' => $action->handlesSelection() ? null : 0,
+                    'succeeded' => $action->handlesSelection() ? null : 0,
+                    'skipped' => $action->handlesSelection() ? null : 0,
+                ];
+                $repository->put($existingId, $status, $ttl);
+            } else {
+                $repository->putIfMissing($existingId, $status, $ttl);
+            }
 
             return $repository->forResponse([
                 ...$status,
@@ -87,41 +109,53 @@ final class QueuedActionDispatcher
             expiresAt: $now + $configuration['expiresAfter'],
             idempotencyFingerprint: $idempotencyFingerprint,
         );
-        $status = $this->initialStatus(
-            $request,
-            $table,
-            $action,
-            $selection,
-            $id,
-            $snapshot->expiresAt,
-            $ttl,
-            $actorId,
-            $attributes,
-            $configuration['statusRetention'],
-            $repository,
-        );
-        $repository->put($id, $status, $ttl);
-        $job = new ExecuteQueuedAction(
-            $snapshot,
-            $configuration['statusRetention'],
-            $action->resolvedTags($request, $table, $snapshot),
-        );
-        $job->onConnection($configuration['connection']);
-        $job->onQueue($configuration['queue']);
-        $job->delay($configuration['delay']);
-        $configuration['afterCommit'] ? $job->afterCommit() : $job->beforeCommit();
-        $job->through($action->resolvedMiddleware($request, $table, $snapshot));
-        $job->chain($action->resolvedChain($request, $table, $snapshot));
 
         try {
+            $status = [
+                ...$status,
+                'total' => $selection->count(),
+                'processed' => $action->handlesSelection() ? null : 0,
+                'succeeded' => $action->handlesSelection() ? null : 0,
+                'skipped' => $action->handlesSelection() ? null : 0,
+            ];
+            $repository->put($id, $status, $ttl);
+            $status = $this->initialStatus(
+                $request,
+                $table,
+                $action,
+                $id,
+                $snapshot->expiresAt,
+                $ttl,
+                $actorId,
+                $attributes,
+                $configuration['statusRetention'],
+                $repository,
+                $status,
+            );
+            $repository->put($id, $status, $ttl);
+            $job = new ExecuteQueuedAction(
+                $snapshot,
+                $configuration['statusRetention'],
+                $action->resolvedTags($request, $table, $snapshot),
+            );
+            $job->onConnection($configuration['connection']);
+            $job->onQueue($configuration['queue']);
+            $job->delay($configuration['delay']);
+            $configuration['afterCommit'] ? $job->afterCommit() : $job->beforeCommit();
+            $job->through($action->resolvedMiddleware($request, $table, $snapshot));
+            $job->chain($action->resolvedChain($request, $table, $snapshot));
             dispatch($job);
         } catch (Throwable $exception) {
-            $repository->put($id, [
-                ...$status,
-                'status' => 'failed',
-                'message' => $action->publicFailureMessage(),
-                'failedAt' => time(),
-            ], $ttl);
+            try {
+                $repository->put($id, [
+                    ...$status,
+                    'status' => 'failed',
+                    'message' => $action->publicFailureMessage(),
+                    'failedAt' => time(),
+                ], $ttl);
+            } catch (Throwable) {
+                // The original preparation or dispatch failure remains authoritative.
+            }
 
             throw $exception;
         }
@@ -137,7 +171,31 @@ final class QueuedActionDispatcher
         Request $request,
         Table $table,
         Action $action,
-        Selection $selection,
+        string $id,
+        int $expiresAt,
+        int $signedUrlTtl,
+        int|string|null $actorId,
+        array $attributes,
+        int $statusRetention,
+        QueuedActionRepository $repository,
+        array $fallback,
+    ): array {
+        $resolved = $action->resolve(request: $request);
+
+        return [
+            ...$fallback,
+            'label' => $resolved['label'],
+            'redirect' => $action->resolvedDispatchRedirect($request, $table),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function fallbackStatus(
+        Table $table,
+        Action $action,
         string $id,
         int $expiresAt,
         int $signedUrlTtl,
@@ -146,17 +204,15 @@ final class QueuedActionDispatcher
         int $statusRetention,
         QueuedActionRepository $repository,
     ): array {
-        $resolved = $action->resolve(request: $request);
-
         return [
             'id' => $id,
             'action' => $action->key,
-            'label' => $resolved['label'],
+            'label' => str($action->key)->headline()->toString(),
             'status' => 'queued',
-            'total' => $selection->count(),
-            'processed' => $action->handlesSelection() ? null : 0,
-            'succeeded' => $action->handlesSelection() ? null : 0,
-            'skipped' => $action->handlesSelection() ? null : 0,
+            'total' => null,
+            'processed' => null,
+            'succeeded' => null,
+            'skipped' => null,
             'result' => null,
             'message' => null,
             'expiresAt' => $expiresAt,
@@ -170,7 +226,7 @@ final class QueuedActionDispatcher
                 ],
                 absolute: false,
             ),
-            'redirect' => $action->resolvedDispatchRedirect($request, $table),
+            'redirect' => null,
             'duplicate' => false,
             '_accessHash' => $repository->accessHash(
                 $table::class,
