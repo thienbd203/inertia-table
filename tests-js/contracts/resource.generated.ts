@@ -419,7 +419,7 @@ const resources = {
         ],
         "emptyState": null,
         "summaries": {
-            "amount": 30
+            "amount": "30"
         }
     },
     "simple": {
@@ -740,7 +740,7 @@ const resources = {
         ],
         "emptyState": null,
         "summaries": {
-            "amount": 30
+            "amount": "30"
         }
     },
     "cursor": {
@@ -1061,7 +1061,7 @@ const resources = {
         ],
         "emptyState": null,
         "summaries": {
-            "amount": 30
+            "amount": "30"
         }
     },
     "unpaginated": {
@@ -1405,7 +1405,7 @@ const resources = {
         ],
         "emptyState": null,
         "summaries": {
-            "amount": 30
+            "amount": "30"
         }
     }
 } satisfies Record<

@@ -69,12 +69,26 @@ function contractResources(): array
     ));
     $view->forceFill(['is_default' => true])->save();
 
-    return [
+    $resources = [
         'full' => $fullTable->resolve($request)->toArray(),
         'simple' => (new ContractTopicsSimpleTable)->resolve(contractRequest())->toArray(),
         'cursor' => (new ContractTopicsCursorTable)->resolve(contractRequest())->toArray(),
         'unpaginated' => (new ContractTopicsUnpaginatedTable)->resolve(contractRequest())->toArray(),
     ];
+
+    foreach ($resources as &$resource) {
+        $summary = $resource['summaries']['amount'] ?? null;
+
+        // PDO returns SQL aggregates as a string on SQLite and as an integer on
+        // MySQL. Keep the generated, cross-driver fixture canonical while the
+        // normal test matrix continues to exercise each driver's real resource.
+        if (is_numeric($summary)) {
+            $resource['summaries']['amount'] = (string) $summary;
+        }
+    }
+    unset($resource);
+
+    return $resources;
 }
 
 /** @param array<string, array<string, mixed>> $resources */
