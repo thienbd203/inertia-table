@@ -31,8 +31,11 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite build --watch",
-        "format": "prettier --write resources/js tests-js vite.config.ts tsconfig.json package.json",
-        "format:check": "prettier --check resources/js tests-js vite.config.ts tsconfig.json package.json",
+        "docs:build": "vitepress build docs",
+        "docs:dev": "vitepress dev docs",
+        "docs:preview": "vitepress preview docs",
+        "format": "prettier --write resources/js tests-js docs/.vitepress README.md vite.config.ts tsconfig.json package.json",
+        "format:check": "prettier --check resources/js tests-js docs/.vitepress README.md vite.config.ts tsconfig.json package.json",
         "prepack": "npm run build",
         "test": "vitest run",
         "types:check": "vue-tsc --noEmit"
@@ -56,6 +59,7 @@
         "typescript": "^5.2.0",
         "vite": "^8.0.0",
         "vite-plugin-dts": "^4.0.0",
+        "vitepress": "^1.6.4",
         "vitest": "^4.0.0",
         "vue": "^3.5.0",
         "vue-tsc": "^2.2.0"

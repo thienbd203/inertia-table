@@ -1,5 +1,7 @@
 # API stability
 
+> Maintainer documentation for compatibility and versioning decisions.
+
 Musing Inertia Table follows semantic versioning. These guarantees apply from
 the `1.0.0` release; pre-release builds may still change when the upgrade guide
 calls out the migration.

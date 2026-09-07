@@ -17,11 +17,16 @@ jobs:
     name: JavaScript release gate
     uses: ./.github/workflows/run-js-tests.yml
 
+  docs-checks:
+    name: Documentation release gate
+    uses: ./.github/workflows/run-docs.yml
+
   publish-npm:
     name: Publish npm package
     needs:
       - php-checks
       - js-checks
+      - docs-checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
