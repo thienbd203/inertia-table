@@ -1,4 +1,6 @@
-# Musing Inertia Table — Architecture v0.1
+# Architecture
+
+> Maintainer documentation for the package resource and execution contracts.
 
 Status: resource schema v2 implemented; public APIs are stabilizing for v1.0.
 
