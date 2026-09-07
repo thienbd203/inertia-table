@@ -56,7 +56,6 @@ export type {
     TableItem,
     TableKey,
     TableResource,
-    TableRemoteFilter,
     TableResults,
     TableSelection,
     TableState,

@@ -173,11 +173,16 @@ export function useActions<T extends TableItem>(
                     if (status.redirect) {
                         router.visit(status.redirect, { method: "get" });
                     } else {
+                        const headers = table.lazyFilterHeaders();
+
                         router.reload({
                             only: [
                                 table.resource.value.name,
                                 ...table.resource.value.options.reloadProps,
                             ],
+                            ...(Object.keys(headers).length > 0
+                                ? { headers }
+                                : {}),
                         });
                     }
                 } else {

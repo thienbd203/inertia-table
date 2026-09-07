@@ -17,16 +17,6 @@ return [
         'resizable' => true,
         'reorderable' => true,
     ],
-    'filter_option_path' => '_inertia-table/filter-options',
-    'filters' => [
-        'remote' => [
-            'per_page' => 25,
-            'max_per_page' => 100,
-            'debounce' => 250,
-            'cache_ttl' => 30000,
-            'max_cache_entries' => 50,
-        ],
-    ],
     'action_path' => '_inertia-table/actions',
     'actions' => [
         'queue' => [

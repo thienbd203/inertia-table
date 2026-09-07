@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useDebounceFn } from "@vueuse/core";
 import { computed, ref, watch } from "vue";
-import { Search } from "@lucide/vue";
+import { LoaderCircle, Search } from "@lucide/vue";
 import { UiInput } from "@/components/ui/input";
 import { UiButton } from "@/components/ui/button";
 import {
@@ -19,7 +19,6 @@ import { useTableContext } from "@/context/tableContext";
 import { filterClauseValueKind } from "@/filters";
 import FilterDateCalendar from "./FilterDateCalendar.vue";
 import FilterDateRangeCalendar from "./FilterDateRangeCalendar.vue";
-import RemoteFilterValueControl from "./RemoteFilterValueControl.vue";
 
 const props = defineProps<{
     filter: TableFilter;
@@ -28,7 +27,7 @@ const props = defineProps<{
     debounceTime: number;
 }>();
 const emit = defineEmits<{ "update:modelValue": [value: unknown] }>();
-const { i18n } = useTableContext();
+const { i18n, table } = useTableContext();
 const emitInputValue = useDebounceFn(
     (value: unknown) => emit("update:modelValue", value),
     props.debounceTime,
@@ -99,6 +98,9 @@ const draftRange = ref<[string, string]>(range.value);
 const draftInput = ref(String(props.modelValue ?? ""));
 const isInputFocused = ref(false);
 const valueControl = ref<{ focus: () => void } | null>(null);
+const isLoadingOptions = computed(() =>
+    table.isFilterOptionsLoading(props.filter.attribute),
+);
 
 watch(range, (nextRange) => {
     draftRange.value = nextRange;
@@ -149,6 +151,12 @@ function toggleSetOption(value: string) {
     );
 }
 
+function ensureLazyOptions(): void {
+    if (props.filter.lazy && !props.filter.lazyLoaded) {
+        table.loadFilterOptions(props.filter.attribute);
+    }
+}
+
 function updateRange(index: 0 | 1, value: string | number) {
     const next = [...draftRange.value] as [string, string];
     next[index] = String(value);
@@ -163,7 +171,10 @@ function updateRangeValue(value: [string, string]) {
 }
 
 defineExpose({
-    focus: () => valueControl.value?.focus(),
+    focus: () => {
+        ensureLazyOptions();
+        valueControl.value?.focus();
+    },
 });
 </script>
 
@@ -171,17 +182,9 @@ defineExpose({
     <div v-if="control !== 'none'" class="flex items-center gap-2 mt-2">
         <Search v-if="showsSearchIcon" class="size-5" />
 
-        <RemoteFilterValueControl
-            v-if="control === 'select' && filter.remote"
-            ref="valueControl"
-            :filter="filter"
-            :clause="clause"
-            :model-value="modelValue"
-            @update:model-value="emit('update:modelValue', $event)"
-        />
-
         <UiDropdownMenu
-            v-else-if="control === 'select' && allowsMultipleValues"
+            v-if="control === 'select' && allowsMultipleValues"
+            @update:open="(open) => open && ensureLazyOptions()"
         >
             <UiDropdownMenuTrigger as-child>
                 <UiButton
@@ -191,17 +194,30 @@ defineExpose({
                     :data-filter-value="filter.attribute"
                 >
                     <span class="truncate">{{ multipleSelectLabel }}</span>
+                    <LoaderCircle
+                        v-if="isLoadingOptions"
+                        class="size-4 animate-spin"
+                    />
                 </UiButton>
             </UiDropdownMenuTrigger>
             <UiDropdownMenuContent align="start" class="min-w-56">
-                <UiDropdownMenuCheckboxItem
-                    v-for="option in filter.options"
-                    :key="String(option.value)"
-                    :model-value="setValue.includes(String(option.value))"
-                    @select.prevent="toggleSetOption(String(option.value))"
+                <div
+                    v-if="isLoadingOptions && filter.options.length === 0"
+                    class="text-muted-foreground flex items-center gap-2 px-3 py-3 text-sm"
                 >
-                    {{ option.label }}
-                </UiDropdownMenuCheckboxItem>
+                    <LoaderCircle class="size-4 animate-spin" />
+                    {{ i18n.t("loading") }}
+                </div>
+                <template v-else>
+                    <UiDropdownMenuCheckboxItem
+                        v-for="option in filter.options"
+                        :key="String(option.value)"
+                        :model-value="setValue.includes(String(option.value))"
+                        @select.prevent="toggleSetOption(String(option.value))"
+                    >
+                        {{ option.label }}
+                    </UiDropdownMenuCheckboxItem>
+                </template>
             </UiDropdownMenuContent>
         </UiDropdownMenu>
 
@@ -211,6 +227,8 @@ defineExpose({
             class="flex-1"
             :model-value="setValue"
             :data-filter-value="filter.attribute"
+            :disabled="isLoadingOptions"
+            @focus="ensureLazyOptions"
             @update:model-value="updateSetValue"
         >
             <NativeSelectOption

@@ -4,10 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
 
-const { visit } = vi.hoisted(() => ({ visit: vi.fn() }));
+const { reload, visit } = vi.hoisted(() => ({
+    reload: vi.fn(),
+    visit: vi.fn(),
+}));
 
 vi.mock("@inertiajs/vue3", () => ({
-    router: { visit },
+    router: { reload, visit },
     usePage: () => ({ url: "/admin/topics?keep=yes" }),
 }));
 
@@ -15,6 +18,7 @@ import { useTable } from "../resources/js/useTable";
 
 describe("useTable", () => {
     beforeEach(() => {
+        reload.mockReset();
         visit.mockReset();
     });
 
@@ -83,6 +87,51 @@ describe("useTable", () => {
         expect(visit.mock.calls[0][0]).toContain(
             "table%5Btopics%5D%5Bfilters%5D%5Bstatus%5D%5Bclause%5D=equals",
         );
+    });
+
+    it("loads lazy filter options once and keeps them on later visits", () => {
+        const { resource, table } = mountTable();
+        resource.value.filters.push({
+            attribute: "category_id",
+            label: "Category",
+            type: "set",
+            clauses: ["in"],
+            options: [],
+            multiple: true,
+            lazy: true,
+            lazyLoaded: false,
+            meta: {},
+        });
+
+        table.loadFilterOptions("category_id");
+
+        expect(reload).toHaveBeenCalledOnce();
+        expect(reload.mock.calls[0][0].only).toEqual(["topics"]);
+        expect(
+            JSON.parse(
+                reload.mock.calls[0][0].headers[
+                    "X-Musing-Inertia-Table-Lazy-Filters"
+                ],
+            ),
+        ).toEqual({ topics: ["category_id"] });
+        expect(table.isFilterOptionsLoading("category_id")).toBe(true);
+
+        resource.value.filters[1].lazyLoaded = true;
+        resource.value.filters[1].options = [{ value: 1, label: "Books" }];
+        reload.mock.calls[0][0].onFinish();
+
+        expect(table.isFilterOptionsLoading("category_id")).toBe(false);
+        table.loadFilterOptions("category_id");
+        expect(reload).toHaveBeenCalledOnce();
+
+        table.setSort("name");
+        expect(
+            JSON.parse(
+                visit.mock.calls[0][1].headers[
+                    "X-Musing-Inertia-Table-Lazy-Filters"
+                ],
+            ),
+        ).toEqual({ topics: ["category_id"] });
     });
 
     it("toggles only declared toggleable columns", () => {
