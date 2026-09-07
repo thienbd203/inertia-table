@@ -4,13 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TableResource, TableView } from "../resources/js/types";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
-
-const { visit } = vi.hoisted(() => ({ visit: vi.fn() }));
-
-vi.mock("@inertiajs/vue3", () => ({
-    router: { visit, on: vi.fn(() => vi.fn()) },
-    usePage: () => ({ url: "/admin/topics?team=one" }),
-}));
+import { inertiaVisit as visit, resetInertiaMock } from "./inertiaMock";
 
 import { useTable } from "../resources/js/useTable";
 import { useViews } from "../resources/js/useViews";
@@ -73,7 +67,7 @@ function resourceWithViews(
 }
 
 describe("useViews", () => {
-    beforeEach(() => visit.mockReset());
+    beforeEach(() => resetInertiaMock("/admin/topics?team=one"));
 
     function mountViews(initial = resourceWithViews()) {
         const resource = ref(initial);

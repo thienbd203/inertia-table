@@ -3,23 +3,17 @@ import { defineComponent, h, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
-
-const { reload, visit } = vi.hoisted(() => ({
-    reload: vi.fn(),
-    visit: vi.fn(),
-}));
-
-vi.mock("@inertiajs/vue3", () => ({
-    router: { reload, visit },
-    usePage: () => ({ url: "/admin/topics?keep=yes" }),
-}));
+import {
+    inertiaReload as reload,
+    inertiaVisit as visit,
+    resetInertiaMock,
+} from "./inertiaMock";
 
 import { useTable } from "../resources/js/useTable";
 
 describe("useTable", () => {
     beforeEach(() => {
-        reload.mockReset();
-        visit.mockReset();
+        resetInertiaMock("/admin/topics?keep=yes");
     });
 
     afterEach(() => vi.useRealTimers());

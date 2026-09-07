@@ -21,7 +21,14 @@ export default defineConfig({
         },
     },
     test: {
+        alias: {
+            "@inertiajs/vue3": new URL(
+                "./tests-js/inertiaMock.ts",
+                import.meta.url,
+            ).pathname,
+        },
         environment: "happy-dom",
         include: ["tests-js/**/*.test.ts"],
+        isolate: false,
     },
 });

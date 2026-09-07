@@ -1,20 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-const { visit, listeners } = vi.hoisted(() => ({
-    visit: vi.fn(),
-    listeners: new Map<string, () => void>(),
-}));
-
-vi.mock("@inertiajs/vue3", () => ({
-    router: {
-        visit,
-        on: vi.fn((event: string, callback: () => void) => {
-            listeners.set(event, callback);
-            return vi.fn();
-        }),
-    },
-    usePage: () => ({ url: "/admin/topics" }),
-}));
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { inertiaVisit as visit, resetInertiaMock } from "./inertiaMock";
 
 import Pagination from "../resources/js/components/table/layout/Pagination.vue";
 import { topicResource } from "./fixtures";
@@ -22,8 +7,7 @@ import { mountWithTableContext } from "./harness";
 
 describe("Pagination", () => {
     beforeEach(() => {
-        visit.mockReset();
-        listeners.clear();
+        resetInertiaMock();
     });
 
     afterEach(() => {
