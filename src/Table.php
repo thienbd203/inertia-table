@@ -298,39 +298,20 @@ abstract class Table implements Arrayable
             ),
             actions: $bulkActions,
             search: array_map(fn (Column $column) => $column->attribute, $searchable),
-            capabilities: [
-                'searchable' => $searchable !== [],
-                'selectable' => $selectable,
-                'paginated' => $this->pagination,
-                'hasSearch' => $searchable !== [],
-                'hasFilters' => $filters !== [],
-                'hasActions' => $actions !== [],
-                'hasBulkActions' => $bulkActions !== [],
-                'hasExports' => $resolvedExports !== [],
-                'hasToggleableColumns' => collect($columns)->contains(fn (Column $column) => $column->isToggleable()),
-                'hasStickableColumns' => collect($columns)->contains(fn (Column $column) => $column->isStickable()),
-                'hasResizableColumns' => $this->resolvedColumnResizing()
-                    && collect($columns)->contains(fn (Column $column) => $column->isResizable()),
-                'hasReorderableColumns' => $this->resolvedColumnReordering()
-                    && collect($columns)->contains(fn (Column $column) => $column->isReorderable()),
-                'hasSummaries' => $summaries !== [],
-                'hasEmptyState' => $emptyState !== null,
-            ],
+            capabilities: $this->capabilities(
+                $columns,
+                $filters,
+                $actions,
+                $searchable,
+                $bulkActions,
+                $resolvedExports,
+                $summaries,
+                $emptyState,
+                $selectable,
+            ),
             state: $state,
             results: $results,
-            options: [
-                'debounceTime' => $this->debounceTime ?? (int) config('inertia-table.debounce', 300),
-                'perPage' => $perPageOptions,
-                'paginationType' => $paginationType->value,
-                'reloadProps' => $this->reloadProps,
-                'stickyHeader' => $this->stickyHeader ?? false,
-                'stickyFooter' => $this->stickyFooter
-                    ?? (bool) config('inertia-table.sticky.footer', false),
-                'stickyBackdropFilter' => $this->stickyBackdropFilter
-                    ?? (bool) config('inertia-table.sticky.backdrop_filter', true),
-                'columnResizing' => $this->resolvedColumnResizing(),
-                'columnReordering' => $this->resolvedColumnReordering(),
-            ],
+            options: $this->options($perPageOptions, $paginationType),
             views: $resolvedViews['resource'] ?? null,
             exports: $resolvedExports,
             emptyState: $resolvedEmptyState,
@@ -341,6 +322,71 @@ abstract class Table implements Arrayable
     public function toArray(): array
     {
         return $this->resolve()->toArray();
+    }
+
+    /**
+     * @param  array<int, Column>  $columns
+     * @param  array<int, Filter>  $filters
+     * @param  array<int, Action>  $actions
+     * @param  array<int, Column>  $searchable
+     * @param  array<int, array<string, mixed>>  $bulkActions
+     * @param  array<int, array<string, mixed>>  $exports
+     * @param  array<string, mixed>  $summaries
+     * @return array<string, bool>
+     */
+    private function capabilities(
+        array $columns,
+        array $filters,
+        array $actions,
+        array $searchable,
+        array $bulkActions,
+        array $exports,
+        array $summaries,
+        ?EmptyState $emptyState,
+        bool $selectable,
+    ): array {
+        $hasResizableColumns = $this->resolvedColumnResizing()
+            && collect($columns)->contains(fn (Column $column) => $column->isResizable());
+        $hasReorderableColumns = $this->resolvedColumnReordering()
+            && collect($columns)->contains(fn (Column $column) => $column->isReorderable());
+
+        return [
+            'searchable' => $searchable !== [],
+            'selectable' => $selectable,
+            'paginated' => $this->pagination,
+            'hasSearch' => $searchable !== [],
+            'hasFilters' => $filters !== [],
+            'hasActions' => $actions !== [],
+            'hasBulkActions' => $bulkActions !== [],
+            'hasExports' => $exports !== [],
+            'hasToggleableColumns' => collect($columns)->contains(fn (Column $column) => $column->isToggleable()),
+            'hasStickableColumns' => collect($columns)->contains(fn (Column $column) => $column->isStickable()),
+            'hasResizableColumns' => $hasResizableColumns,
+            'hasReorderableColumns' => $hasReorderableColumns,
+            'hasSummaries' => $summaries !== [],
+            'hasEmptyState' => $emptyState !== null,
+        ];
+    }
+
+    /**
+     * @param  array<int, int>  $perPageOptions
+     * @return array<string, bool|int|array<int, int>|array<int, string>|string>
+     */
+    private function options(array $perPageOptions, PaginationType $paginationType): array
+    {
+        return [
+            'debounceTime' => $this->debounceTime ?? (int) config('inertia-table.debounce', 300),
+            'perPage' => $perPageOptions,
+            'paginationType' => $paginationType->value,
+            'reloadProps' => $this->reloadProps,
+            'stickyHeader' => $this->stickyHeader ?? false,
+            'stickyFooter' => $this->stickyFooter
+                ?? (bool) config('inertia-table.sticky.footer', false),
+            'stickyBackdropFilter' => $this->stickyBackdropFilter
+                ?? (bool) config('inertia-table.sticky.backdrop_filter', true),
+            'columnResizing' => $this->resolvedColumnResizing(),
+            'columnReordering' => $this->resolvedColumnReordering(),
+        ];
     }
 
     /** @param array<string, mixed> $payload */
@@ -1048,21 +1094,14 @@ abstract class Table implements Arrayable
             $models = $query->get();
             $total = $models->count();
 
-            return [
-                'data' => $this->serializeModels($models, $columns, $actions),
+            return $this->paginationEnvelope($models, $columns, $actions, $selectableTotal, [
                 'currentPage' => 1,
                 'from' => $total > 0 ? 1 : null,
                 'lastPage' => 1,
-                'links' => [],
                 'perPage' => $total,
                 'to' => $total > 0 ? $total : null,
                 'total' => $total,
-                'selectableTotal' => $selectableTotal,
-                'hasPreviousPage' => false,
-                'hasNextPage' => false,
-                'previousCursor' => null,
-                'nextCursor' => null,
-            ];
+            ]);
         }
 
         return match ($this->resolvedPaginationType()) {
@@ -1096,8 +1135,7 @@ abstract class Table implements Arrayable
             total: $total,
         )->withQueryString();
 
-        return [
-            'data' => $this->serializeModels($paginator->items(), $columns, $actions),
+        return $this->paginationEnvelope($paginator->items(), $columns, $actions, $selectableTotal, [
             'currentPage' => $paginator->currentPage(),
             'from' => $paginator->firstItem(),
             'lastPage' => $paginator->lastPage(),
@@ -1105,12 +1143,9 @@ abstract class Table implements Arrayable
             'perPage' => $paginator->perPage(),
             'to' => $paginator->lastItem(),
             'total' => $paginator->total(),
-            'selectableTotal' => $selectableTotal,
             'hasPreviousPage' => ! $paginator->onFirstPage(),
             'hasNextPage' => $paginator->hasMorePages(),
-            'previousCursor' => null,
-            'nextCursor' => null,
-        ];
+        ]);
     }
 
     /**
@@ -1132,21 +1167,14 @@ abstract class Table implements Arrayable
             page: $state->page,
         )->withQueryString();
 
-        return [
-            'data' => $this->serializeModels($paginator->items(), $columns, $actions),
+        return $this->paginationEnvelope($paginator->items(), $columns, $actions, $selectableTotal, [
             'currentPage' => $paginator->currentPage(),
             'from' => $paginator->firstItem(),
-            'lastPage' => null,
-            'links' => [],
             'perPage' => $paginator->perPage(),
             'to' => $paginator->lastItem(),
-            'total' => null,
-            'selectableTotal' => $selectableTotal,
             'hasPreviousPage' => ! $paginator->onFirstPage(),
             'hasNextPage' => $paginator->hasMorePages(),
-            'previousCursor' => null,
-            'nextCursor' => null,
-        ];
+        ]);
     }
 
     /**
@@ -1170,20 +1198,44 @@ abstract class Table implements Arrayable
             cursor: Cursor::fromEncoded($state->cursor),
         )->withQueryString();
 
-        return [
-            'data' => $this->serializeModels($paginator->items(), $columns, $actions),
-            'currentPage' => null,
-            'from' => null,
-            'lastPage' => null,
-            'links' => [],
+        return $this->paginationEnvelope($paginator->items(), $columns, $actions, $selectableTotal, [
             'perPage' => $paginator->perPage(),
-            'to' => null,
-            'total' => null,
-            'selectableTotal' => $selectableTotal,
             'hasPreviousPage' => ! $paginator->onFirstPage(),
             'hasNextPage' => $paginator->hasMorePages(),
             'previousCursor' => $paginator->previousCursor()?->encode(),
             'nextCursor' => $paginator->nextCursor()?->encode(),
+        ]);
+    }
+
+    /**
+     * @param  iterable<int, Model>  $models
+     * @param  array<int, Column>  $columns
+     * @param  array<int, Action>  $actions
+     * @param  array<string, mixed>  $details
+     * @return array<string, mixed>
+     */
+    private function paginationEnvelope(
+        iterable $models,
+        array $columns,
+        array $actions,
+        int $selectableTotal,
+        array $details,
+    ): array {
+        return [
+            'data' => $this->serializeModels($models, $columns, $actions),
+            'currentPage' => null,
+            'from' => null,
+            'lastPage' => null,
+            'links' => [],
+            'perPage' => 0,
+            'to' => null,
+            'total' => null,
+            'selectableTotal' => $selectableTotal,
+            'hasPreviousPage' => false,
+            'hasNextPage' => false,
+            'previousCursor' => null,
+            'nextCursor' => null,
+            ...$details,
         ];
     }
 

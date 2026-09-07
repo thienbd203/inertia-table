@@ -3,10 +3,17 @@
 namespace Musing\InertiaTable\Exports;
 
 use Illuminate\Contracts\Cache\Lock;
-use Illuminate\Support\Facades\Cache;
+use Musing\InertiaTable\Support\QueuedOperationCache;
 
 final class QueuedExportRepository
 {
+    private QueuedOperationCache $cache;
+
+    public function __construct()
+    {
+        $this->cache = new QueuedOperationCache('inertia-table:queued-export');
+    }
+
     /** @param array<string, mixed> $attributes */
     public function accessHash(
         string $tableClass,
@@ -24,34 +31,26 @@ final class QueuedExportRepository
 
     public function reserve(string $fingerprint, string $id, int $ttl): ?string
     {
-        $key = $this->idempotencyKey($fingerprint);
-
-        if (Cache::add($key, $id, $ttl)) {
-            return null;
-        }
-
-        $existing = Cache::get($key);
-
-        return is_string($existing) ? $existing : null;
+        return $this->cache->reserve($fingerprint, $id, $ttl);
     }
 
     public function executionLock(string $id, int $seconds): Lock
     {
-        return Cache::lock("inertia-table:queued-export:lock:{$id}", max($seconds, 1));
+        return $this->cache->executionLock($id, $seconds);
     }
 
     /** @param array<string, mixed> $status */
     public function put(string $id, array $status, int $ttl): void
     {
-        Cache::put($this->statusKey($id), $status, $ttl);
+        $this->cache->put($id, $status, $ttl);
     }
 
     /** @return array<string, mixed>|null */
     public function get(string $id): ?array
     {
-        $status = Cache::get($this->statusKey($id));
+        $status = $this->cache->get($id);
 
-        if (! is_array($status)) {
+        if ($status === null) {
             return null;
         }
 
@@ -73,7 +72,7 @@ final class QueuedExportRepository
 
     public function forget(string $id): void
     {
-        Cache::forget($this->statusKey($id));
+        $this->cache->forget($id);
     }
 
     /**
@@ -85,15 +84,5 @@ final class QueuedExportRepository
         unset($status['_accessHash']);
 
         return $status;
-    }
-
-    private function idempotencyKey(string $fingerprint): string
-    {
-        return 'inertia-table:queued-export:request:'.hash('sha256', $fingerprint);
-    }
-
-    private function statusKey(string $id): string
-    {
-        return "inertia-table:queued-export:status:{$id}";
     }
 }

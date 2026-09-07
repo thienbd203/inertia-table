@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     clauseSymbol,
+    filterClauseValueKind,
     filterDisplayValue,
     isRangeClause,
     isValuelessClause,
@@ -17,6 +18,15 @@ const statusFilter: TableFilter = {
         { label: "Inactive", value: "inactive" },
     ],
     meta: {},
+};
+
+const customClauseFilter: TableFilter = {
+    ...statusFilter,
+    clauses: ["equals", "matches_range", "is_blank"],
+    clauseValueKinds: {
+        matches_range: "range",
+        is_blank: "none",
+    },
 };
 
 describe("filter display", () => {
@@ -49,5 +59,15 @@ describe("filter display", () => {
         expect(isValuelessClause("is_true")).toBe(true);
         expect(isValuelessClause("is_not_set")).toBe(true);
         expect(isValuelessClause("equals")).toBe(false);
+    });
+
+    it("uses declared value kinds for custom clauses and falls back for older resources", () => {
+        expect(filterClauseValueKind(customClauseFilter, "matches_range")).toBe(
+            "range",
+        );
+        expect(filterClauseValueKind(customClauseFilter, "is_blank")).toBe(
+            "none",
+        );
+        expect(filterClauseValueKind(statusFilter, "is_true")).toBe("none");
     });
 });

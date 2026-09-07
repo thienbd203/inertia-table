@@ -1,6 +1,6 @@
 import { computed, ref, watch } from "vue";
 import { useTableContext } from "@/context/tableContext";
-import { isRangeClause, isValuelessClause } from "@/filters";
+import { filterClauseValueKind } from "@/filters";
 import type { TableFilter } from "@/types";
 
 const clauseMessageKeys = {
@@ -70,8 +70,10 @@ export function useFilterEditor(filter: TableFilter) {
                   value: String(option.value),
               })),
     );
-    const isRange = computed(() => isRangeClause(clause.value));
-    const isValueless = computed(() => isValuelessClause(clause.value));
+    const valueKind = (candidate: string) =>
+        filterClauseValueKind(filter, candidate);
+    const isRange = computed(() => valueKind(clause.value) === "range");
+    const isValueless = computed(() => valueKind(clause.value) === "none");
 
     function update(nextValue: unknown = value.value) {
         value.value = nextValue;
@@ -80,10 +82,10 @@ export function useFilterEditor(filter: TableFilter) {
 
     function updateClause(nextClause: string) {
         const wasRangeClause = isRange.value;
-        const becomesRangeClause = isRangeClause(nextClause);
+        const becomesRangeClause = valueKind(nextClause) === "range";
         clause.value = nextClause;
 
-        if (isValuelessClause(nextClause)) {
+        if (valueKind(nextClause) === "none") {
             table.setFilter(filter.attribute, true, nextClause);
             return;
         }

@@ -50,6 +50,37 @@ final readonly class TableState implements Arrayable
     ): self {
         $input = data_get($request->query(), "table.{$tableName}", []);
         $input = is_array($input) ? $input : [];
+
+        return self::fromArray(
+            $input,
+            $defaultSort,
+            $defaultPerPage,
+            $perPageOptions,
+            $defaultColumns,
+            $defaultPinnedColumns,
+            $defaultColumnOrder,
+            $defaultColumnWidths,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @param  array<int, int>  $perPageOptions
+     * @param  array<string, bool>  $defaultColumns
+     * @param  array{left: array<int, string>, right: array<int, string>}  $defaultPinnedColumns
+     * @param  array<int, string>  $defaultColumnOrder
+     * @param  array<string, int>  $defaultColumnWidths
+     */
+    public static function fromArray(
+        array $input,
+        ?string $defaultSort,
+        int $defaultPerPage,
+        array $perPageOptions,
+        array $defaultColumns = [],
+        array $defaultPinnedColumns = ['left' => [], 'right' => []],
+        array $defaultColumnOrder = [],
+        array $defaultColumnWidths = [],
+    ): self {
         $search = is_scalar($input['search'] ?? null) ? trim((string) $input['search']) : '';
         $sort = is_string($input['sort'] ?? null) && $input['sort'] !== ''
             ? $input['sort']

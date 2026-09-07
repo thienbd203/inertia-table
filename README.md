@@ -682,6 +682,22 @@ DateFilter::make('created_at', 'Created at');
 
 `SetFilter` presents a multi-select UI for `in` and `not_in`. `DateFilter` presents an inline calendar for a single date and a two-month range calendar for `between` and `not_between`.
 
+Custom clauses can declare the value shape that the Vue renderer should collect.
+Use `value` for one control, `range` for a two-value range, or `none` for a
+clause that applies immediately without a value:
+
+```php
+$filter->clauses(['equals', 'matches_range', 'is_blank'])
+    ->clauseValueKinds([
+        'matches_range' => 'range',
+        'is_blank' => 'none',
+    ]);
+```
+
+This only describes the client input. The custom filter implementation remains
+responsible for normalizing and applying those clauses. Built-in clauses keep
+their existing behavior when a resource does not include this additive field.
+
 For application-specific query logic, use `applyUsing()` and retain the declared option allowlist:
 
 ```php
@@ -1145,6 +1161,12 @@ scalar tenant identifiers with `scopeAttributes()` and provide an
 `ExportContext` implementation via `context()` to restore and release tenant
 state. Definitions removed or materially changed after dispatch fail safely
 instead of exporting with different semantics.
+
+Queued exports also capture the dispatch locale for generation and lifecycle
+callbacks. Deploy the PHP producer and queue workers together: pause dispatches
+or drain pending jobs before workers with older package code consume new export
+snapshots. Failed statuses expose a stable public message; report the original
+exception through the failure callback or Laravel's exception handler.
 
 The Vue renderer submits signed POST requests and reads Laravel's CSRF token from
 either `<meta name="csrf-token">` or the `XSRF-TOKEN` cookie. It exposes

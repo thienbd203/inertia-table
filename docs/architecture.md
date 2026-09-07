@@ -351,6 +351,11 @@ application context, resolves the current table definition, rejects missing or
 materially changed definitions, reruns authorization, then reconstructs the same
 query and columns used by synchronous exports.
 
+Snapshots carry the locale active at dispatch so formatters and lifecycle
+callbacks run in the same locale. Queue deployments must update producers and
+workers together, or pause dispatches and drain pending jobs before older workers
+can deserialize new snapshots.
+
 Dispatch is idempotent per table, export, actor, scope attributes and client
 idempotency key. Status is stored as `dispatched`, `processing`, `ready`, `failed`
 or `expired`; completed files receive an application-defined delivery URL and are

@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/native-select";
 import type { TableFilter } from "@/types";
 import { useTableContext } from "@/context/tableContext";
-import { isRangeClause, isValuelessClause } from "@/filters";
+import { filterClauseValueKind } from "@/filters";
 import FilterDateCalendar from "./FilterDateCalendar.vue";
 import FilterDateRangeCalendar from "./FilterDateRangeCalendar.vue";
 import RemoteFilterValueControl from "./RemoteFilterValueControl.vue";
@@ -33,8 +33,11 @@ const emitInputValue = useDebounceFn(
     (value: unknown) => emit("update:modelValue", value),
     props.debounceTime,
 );
-const isRange = computed(() => isRangeClause(props.clause));
-const isValueless = computed(() => isValuelessClause(props.clause));
+const valueKind = computed(() =>
+    filterClauseValueKind(props.filter, props.clause),
+);
+const isRange = computed(() => valueKind.value === "range");
+const isValueless = computed(() => valueKind.value === "none");
 const control = computed<"none" | "select" | "range" | "input">(() => {
     if (isValueless.value) {
         return "none";

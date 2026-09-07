@@ -3,10 +3,17 @@
 namespace Musing\InertiaTable\Actions;
 
 use Illuminate\Contracts\Cache\Lock;
-use Illuminate\Support\Facades\Cache;
+use Musing\InertiaTable\Support\QueuedOperationCache;
 
 final class QueuedActionRepository
 {
+    private QueuedOperationCache $cache;
+
+    public function __construct()
+    {
+        $this->cache = new QueuedOperationCache('inertia-table:queued-action');
+    }
+
     /** @param array<string, mixed> $attributes */
     public function accessHash(
         string $tableClass,
@@ -24,40 +31,32 @@ final class QueuedActionRepository
 
     public function reserve(string $fingerprint, string $id, int $ttl): ?string
     {
-        $key = $this->idempotencyKey($fingerprint);
-
-        if (Cache::add($key, $id, $ttl)) {
-            return null;
-        }
-
-        $existing = Cache::get($key);
-
-        return is_string($existing) ? $existing : null;
+        return $this->cache->reserve($fingerprint, $id, $ttl);
     }
 
     public function executionLock(string $id, int $seconds): Lock
     {
-        return Cache::lock("inertia-table:queued-action:lock:{$id}", max($seconds, 1));
+        return $this->cache->executionLock($id, $seconds);
     }
 
     /** @param array<string, mixed> $status */
     public function put(string $id, array $status, int $ttl): void
     {
-        Cache::put($this->statusKey($id), $status, $ttl);
+        $this->cache->put($id, $status, $ttl);
     }
 
     /** @param array<string, mixed> $status */
     public function putIfMissing(string $id, array $status, int $ttl): void
     {
-        Cache::add($this->statusKey($id), $status, $ttl);
+        $this->cache->putIfMissing($id, $status, $ttl);
     }
 
     /** @return array<string, mixed>|null */
     public function get(string $id): ?array
     {
-        $status = Cache::get($this->statusKey($id));
+        $status = $this->cache->get($id);
 
-        if (! is_array($status)) {
+        if ($status === null) {
             return null;
         }
 
@@ -84,15 +83,5 @@ final class QueuedActionRepository
         unset($status['_accessHash'], $status['_statusRetention']);
 
         return $status;
-    }
-
-    private function idempotencyKey(string $fingerprint): string
-    {
-        return 'inertia-table:queued-action:request:'.hash('sha256', $fingerprint);
-    }
-
-    private function statusKey(string $id): string
-    {
-        return "inertia-table:queued-action:status:{$id}";
     }
 }

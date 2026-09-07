@@ -682,18 +682,27 @@ class Column implements Arrayable
         $grammar = $query->getQuery()->getGrammar();
         $attribute = $grammar->wrap($query->qualifyColumn($this->attribute));
         $cases = [];
+        $knownCases = [];
         $bindings = [];
+        $knownBindings = [];
 
         foreach ($this->sortMap as $value => $mappedValue) {
             $cases[] = 'when ? then ?';
             $bindings[] = $value;
             $bindings[] = $mappedValue;
+            $knownCases[] = 'when ? then 0';
+            $knownBindings[] = $value;
         }
 
         $query->orderByRaw(
-            "case {$attribute} ".implode(' ', $cases)." else ? end {$direction->value}",
-            [...$bindings, $this->attribute],
+            "case {$attribute} ".implode(' ', $knownCases).' else 1 end asc',
+            $knownBindings,
         );
+        $query->orderByRaw(
+            "case {$attribute} ".implode(' ', $cases)." else null end {$direction->value}",
+            $bindings,
+        );
+        $query->orderBy($query->qualifyColumn($this->attribute), $direction->value);
     }
 
     private function applyPrioritySort(Builder $query, SortDirection $direction): void

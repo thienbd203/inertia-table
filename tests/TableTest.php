@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -185,6 +186,15 @@ class CustomPerPageTopicsTable extends TopicsTable
 
     /** @var array<int, int> */
     protected ?array $perPageOptions = [1, 2];
+}
+
+class LinkedTopicsTable extends CustomPerPageTopicsTable
+{
+    /** @return array<int, array{url: string|null, label: string, active: bool}> */
+    protected function paginationLinks(LengthAwarePaginator $paginator): array
+    {
+        return [['url' => '/custom-page', 'label' => 'Custom', 'active' => true]];
+    }
 }
 
 class SimplePaginationTopicsTable extends TopicsTable
@@ -710,6 +720,19 @@ it('lets a table override the global per-page default and options', function () 
         ->and($rejected['results']['perPage'])->toBe(1);
 });
 
+it('keeps custom full-pagination links in the result envelope', function () {
+    $resource = (new LinkedTopicsTable)->resolve(tableRequest())->toArray();
+
+    expect($resource['results'])->toMatchArray([
+        'currentPage' => 1,
+        'lastPage' => 3,
+        'links' => [['url' => '/custom-page', 'label' => 'Custom', 'active' => true]],
+        'total' => 3,
+        'previousCursor' => null,
+        'nextCursor' => null,
+    ]);
+});
+
 it('supports simple pagination without an exact result count', function () {
     $first = (new SimplePaginationTopicsTable)->resolve(tableRequest())->toArray();
     $second = (new SimplePaginationTopicsTable)->resolve(tableRequest(['page' => 2]))->toArray();
@@ -876,6 +899,30 @@ it('supports set filter clauses, multiple values, and withoutClause', function (
         ->showClause->toBeFalse();
 });
 
+it('serializes declared clause value kinds for custom filter clauses', function () {
+    $filter = TextFilter::make('name')
+        ->clauses(['equals', 'matches_range', 'is_blank'])
+        ->clauseValueKinds([
+            'matches_range' => 'range',
+            'is_blank' => 'none',
+        ]);
+
+    expect($filter->toArray()['clauseValueKinds'])->toBe([
+        'equals' => 'value',
+        'matches_range' => 'range',
+        'is_blank' => 'none',
+    ])
+        ->and($filter->normalizeState([
+            'enabled' => true,
+            'clause' => 'is_blank',
+            'value' => null,
+        ]))->toBe([
+            'enabled' => true,
+            'clause' => 'is_blank',
+            'value' => null,
+        ]);
+});
+
 it('resolves row action visibility, availability, and custom actions', function () {
     $topic = TopicRecord::query()->firstOrFail();
 
@@ -941,6 +988,24 @@ it('supports mapped and custom column sorts', function () {
     $custom->applySort($query, 'desc');
 
     expect($query->pluck('name')->all())->toBe(['Beta', 'Gamma', 'Alpha']);
+});
+
+it('keeps unmapped mapped-sort values after mapped values in either direction', function () {
+    TopicRecord::query()->insert([
+        ['name' => 'Delta', 'score' => 40, 'is_featured' => false],
+    ]);
+    $column = NumberColumn::make('score')
+        ->sortable()
+        ->sortUsingMap([10 => 'B', 20 => 'A']);
+    $ascending = TopicRecord::query();
+    $column->applySort($ascending, 'asc');
+    $descending = TopicRecord::query();
+    $column->applySort($descending, 'desc');
+
+    expect($ascending->pluck('name')->all())
+        ->toBe(['Gamma', 'Alpha', 'Beta', 'Delta'])
+        ->and($descending->pluck('name')->all())
+        ->toBe(['Alpha', 'Gamma', 'Delta', 'Beta']);
 });
 
 it('serializes URL navigation options for clickable columns', function () {

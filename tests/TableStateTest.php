@@ -29,6 +29,35 @@ it('falls back to defaults when the table namespace is missing', function () {
         ->and($state->perPage)->toBe(25);
 });
 
+it('parses array state with the same rules as request state', function () {
+    $input = [
+        'search' => '  Laravel  ',
+        'sort' => '-score',
+        'filters' => ['status' => ['enabled' => true, 'clause' => 'is', 'value' => 'open']],
+        'columns' => ['name' => '0', 'unknown' => true],
+        'page' => '3',
+        'perPage' => '50',
+        'view' => 'view-7',
+        'pinnedColumns' => ['left' => ['name'], 'right' => []],
+        'columnOrder' => ['score', 'removed', 'score'],
+        'columnWidths' => ['name' => '320', 'score' => -1],
+    ];
+    $arguments = [
+        '-name',
+        25,
+        [10, 25, 50],
+        ['name' => true, 'score' => true],
+        ['left' => ['id'], 'right' => ['__actions']],
+        ['name', 'score', '__actions'],
+        ['name' => 240, 'score' => 100],
+    ];
+
+    $fromRequest = TableState::fromRequest(stateRequest($input), 'topics', ...$arguments);
+    $fromArray = TableState::fromArray($input, ...$arguments);
+
+    expect($fromArray->toArray())->toBe($fromRequest->toArray());
+});
+
 it('coerces a negative or zero page back to page one', function () {
     $negative = TableState::fromRequest(stateRequest(['page' => -5]), 'topics', null, 25, [25]);
     $zero = TableState::fromRequest(stateRequest(['page' => 0]), 'topics', null, 25, [25]);

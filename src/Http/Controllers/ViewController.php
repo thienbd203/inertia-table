@@ -28,9 +28,7 @@ final class ViewController
         }
 
         try {
-            $views->newQuery()->create(
-                $views->valuesFor($tableInstance, $request, $name, $validated['state']),
-            );
+            $views->createRecord($tableInstance, $request, $name, $validated['state']);
         } catch (QueryException $exception) {
             $this->throwDuplicateName($exception);
         }
@@ -55,27 +53,24 @@ final class ViewController
             ]);
         }
 
+        $changes = [];
+
+        if (array_key_exists('name', $validated)) {
+            $name = trim($validated['name']);
+
+            if ($name === '') {
+                throw ValidationException::withMessages(['name' => 'The view name is required.']);
+            }
+
+            $changes['name'] = $name;
+        }
+
+        if (array_key_exists('state', $validated)) {
+            $changes['state'] = $validated['state'];
+        }
+
         try {
-            $model->getConnection()->transaction(function () use ($model, $tableInstance, $validated, $views) {
-                $locked = $this->lockCurrentView($views, $model, $validated['version']);
-
-                if (array_key_exists('name', $validated)) {
-                    $name = trim($validated['name']);
-
-                    if ($name === '') {
-                        throw ValidationException::withMessages(['name' => 'The view name is required.']);
-                    }
-
-                    $locked->name = $name;
-                }
-
-                if (array_key_exists('state', $validated)) {
-                    $locked->state = $views->normalizeState($tableInstance, $validated['state']);
-                }
-
-                $locked->lock_version++;
-                $locked->save();
-            });
+            $views->updateRecord($tableInstance, $model, $changes, $validated['version']);
         } catch (QueryException $exception) {
             $this->throwDuplicateName($exception);
         }
@@ -91,9 +86,7 @@ final class ViewController
         $validated = $request->validate([
             'version' => ['required', 'integer', 'min:0'],
         ]);
-        $model->getConnection()->transaction(function () use ($model, $validated, $views) {
-            $this->lockCurrentView($views, $model, $validated['version'])->delete();
-        });
+        $views->deleteRecord($model, $validated['version']);
 
         return back();
     }
@@ -107,20 +100,7 @@ final class ViewController
             'version' => ['required', 'integer', 'min:0'],
         ]);
 
-        $model->getConnection()->transaction(function () use ($model, $validated, $views) {
-            $locked = $this->lockCurrentView($views, $model, $validated['version']);
-            $views->newQuery()
-                ->where('scope_hash', $locked->scope_hash)
-                ->lockForUpdate()
-                ->get();
-            $views->newQuery()
-                ->where('scope_hash', $locked->scope_hash)
-                ->whereKeyNot($locked->getKey())
-                ->update(['is_default' => false]);
-            $locked->is_default = true;
-            $locked->lock_version++;
-            $locked->save();
-        });
+        $views->setDefaultRecord($model, $validated['version']);
 
         return back();
     }
@@ -135,12 +115,7 @@ final class ViewController
             'shared' => ['required', 'boolean'],
             'version' => ['required', 'integer', 'min:0'],
         ]);
-        $model->getConnection()->transaction(function () use ($model, $validated, $views) {
-            $locked = $this->lockCurrentView($views, $model, $validated['version']);
-            $locked->is_shared = $validated['shared'];
-            $locked->lock_version++;
-            $locked->save();
-        });
+        $views->shareRecord($model, $validated['version'], $validated['shared']);
 
         return back();
     }
@@ -169,22 +144,6 @@ final class ViewController
         abort_unless($view instanceof TableView, 404);
 
         return $view;
-    }
-
-    private function lockCurrentView(Views $views, TableView $view, int $version): TableView
-    {
-        $locked = $views->newQuery()
-            ->whereKey($view->getKey())
-            ->lockForUpdate()
-            ->first();
-
-        if (! $locked instanceof TableView || $locked->lock_version !== $version) {
-            throw ValidationException::withMessages([
-                'view' => 'This view changed in another request. Reload it and try again.',
-            ]);
-        }
-
-        return $locked;
     }
 
     private function throwDuplicateName(QueryException $exception): never

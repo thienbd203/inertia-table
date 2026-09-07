@@ -1,4 +1,4 @@
-import { onScopeDispose, ref } from "vue";
+import { ref } from "vue";
 import { router } from "@inertiajs/vue3";
 import { createIdempotencyKey, csrfHeaders, responseMessage } from "./http";
 import type {
@@ -8,6 +8,7 @@ import type {
     TableSelection,
 } from "./types";
 import type { UseActions } from "./useActions";
+import { usePolling } from "./usePolling";
 import type { UseTable } from "./useTable";
 
 type ExportCallbacks = {
@@ -31,41 +32,13 @@ export function useExports<T extends TableItem>(
     const isExporting = ref(false);
     const error = ref<string | null>(null);
     const queuedExport = ref<QueuedExportStatus | null>(null);
-    let pollingTimer: number | null = null;
-    let pollingGeneration = 0;
-
-    function stopPolling() {
-        pollingGeneration += 1;
-
-        if (pollingTimer !== null) {
-            window.clearTimeout(pollingTimer);
-            pollingTimer = null;
-        }
-    }
-
     function terminal(status: QueuedExportStatus) {
         return ["ready", "failed", "expired"].includes(status.status);
     }
 
-    function schedulePoll(endpoint: string, generation: number) {
-        pollingTimer = window.setTimeout(() => {
-            void pollQueuedExport(endpoint, generation);
-        }, queuedExportPollDelay);
-    }
-
-    async function pollQueuedExport(endpoint: string, generation: number) {
-        try {
-            const response = await fetch(endpoint, {
-                method: "GET",
-                credentials: "same-origin",
-                headers: {
-                    Accept: "application/json",
-                    "X-Requested-With": "XMLHttpRequest",
-                },
-            });
-
-            if (generation !== pollingGeneration) return;
-
+    const polling = usePolling<QueuedExportStatus>({
+        delay: queuedExportPollDelay,
+        async parse(response) {
             if (!response.ok) {
                 throw new Error(
                     await responseMessage(
@@ -75,24 +48,17 @@ export function useExports<T extends TableItem>(
                 );
             }
 
-            const payload = (await response.json()) as {
-                export: QueuedExportStatus;
-            };
+            return ((await response.json()) as { export: QueuedExportStatus })
+                .export;
+        },
+        nextEndpoint(status, endpoint) {
+            queuedExport.value = status;
 
-            if (generation !== pollingGeneration) return;
-
-            queuedExport.value = payload.export;
-
-            if (terminal(payload.export)) {
-                stopPolling();
-
-                return;
-            }
-
-            schedulePoll(payload.export.statusEndpoint ?? endpoint, generation);
-        } catch (reason) {
-            if (generation !== pollingGeneration) return;
-
+            return terminal(status)
+                ? null
+                : (status.statusEndpoint ?? endpoint);
+        },
+        onError(reason) {
             const current = queuedExport.value;
             const resolved =
                 reason instanceof Error
@@ -106,9 +72,11 @@ export function useExports<T extends TableItem>(
                     message: resolved.message,
                 };
             }
+        },
+    });
 
-            stopPolling();
-        }
+    function stopPolling() {
+        polling.stop();
     }
 
     function startPolling(status: QueuedExportStatus) {
@@ -118,8 +86,7 @@ export function useExports<T extends TableItem>(
             return;
         }
 
-        const generation = pollingGeneration;
-        schedulePoll(status.statusEndpoint, generation);
+        polling.start(status.statusEndpoint);
     }
 
     function selectionFor(definition: TableExport): TableSelection | null {
@@ -222,8 +189,6 @@ export function useExports<T extends TableItem>(
         queuedExport.value = status;
         startPolling(status);
     }
-
-    onScopeDispose(stopPolling);
 
     return {
         clearError,
