@@ -23,6 +23,8 @@ All notable changes to `inertia-table` will be documented in this file.
   cursor pagination, dependency allowlists and independent authorization.
 - Optional facet counts derived from the normalized table query, selected-label
   hydration, bounded client caching and loading/error/retry option states.
+- Filter resources now expose optional `clauseValueKinds` metadata so custom
+  clauses can declare whether they accept one value, a range, or no value.
 
 ### Changed
 
@@ -33,6 +35,11 @@ All notable changes to `inertia-table` will be documented in this file.
   tie-breaker when callers supply a non-unique order.
 - Expanded release validation across supported PHP, Laravel, Inertia, Node and
   database versions, with dependency audits before npm publishing.
+
+### Fixed
+
+- Mapped column sorts now keep values that are outside the map after mapped
+  values in both ascending and descending order.
 
 ## 0.7.0 - 2026-09-01
 
