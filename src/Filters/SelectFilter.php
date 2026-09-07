@@ -10,8 +10,8 @@ class SelectFilter extends SetFilter
         return [Clause::Equals];
     }
 
-    public function toArray(): array
+    public function toArray(bool $loadLazyOptions = false): array
     {
-        return [...parent::toArray(), 'type' => 'select'];
+        return [...parent::toArray($loadLazyOptions), 'type' => 'select'];
     }
 }

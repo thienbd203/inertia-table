@@ -81,16 +81,6 @@ return [
         'resizable' => true,
         'reorderable' => true,
     ],
-    'filter_option_path' => '_inertia-table/filter-options',
-    'filters' => [
-        'remote' => [
-            'per_page' => 25,
-            'max_per_page' => 100,
-            'debounce' => 250,
-            'cache_ttl' => 30000,
-            'max_cache_entries' => 50,
-        ],
-    ],
     'action_path' => '_inertia-table/actions',
     'actions' => [
         'queue' => [
@@ -715,73 +705,21 @@ SetFilter::make('status')->options([
 
 `SelectFilter` is available as a deprecated alias for `SetFilter`.
 
-### Remote and faceted options
+### Lazy filter options
 
-Use a remote option source when a set is too large to serialize with the table
-resource. The initial resource contains only the signed endpoint and any labels
-needed by the current selection; option pages are loaded on demand.
+Use `lazy()` when a set is too large to serialize with the initial table
+resource. The options are loaded through an Inertia partial reload when the
+filter first opens and are retained for later table visits.
 
 ```php
-use Illuminate\Database\Eloquent\Builder;
-use Musing\InertiaTable\Filters\FilterOptionRequest;
-
 SetFilter::make('category_id', 'Category')
-    ->optionsUsing(function (FilterOptionRequest $request): Builder {
-        $statuses = array_values(array_filter(
-            (array) $request->dependency('status'),
-            fn (mixed $status): bool => is_string($status),
-        ));
-
-        return Category::query()
-            ->when(
-                $statuses !== [],
-                fn (Builder $query): Builder => $query
-                    ->whereHas('products', fn (Builder $products): Builder => $products
-                        ->whereIn('status', $statuses)),
-            )
-            ->orderBy('name');
-    })
-    ->optionValue('id')
-    ->optionLabel('name')
-    ->searchableOptions()
-    ->dependsOn(['status'])
-    ->withCounts()
-    ->optionPageSize(25)
-    ->multiple();
+    ->pluckOptionsFromModel(Category::class, 'name')
+    ->multiple()
+    ->lazy();
 ```
 
-`searchableOptions()` searches the label column by default; pass a column name
-or an array of allowlisted option-model columns to override it. Remote options
-use opaque cursor pagination, debounced latest-request-wins search, bounded
-client caching, loading/error/retry states and selected-label hydration. A
-dependency is exposed to `FilterOptionRequest` only when it was declared with
-`dependsOn()`.
-
-`withCounts()` calculates each option's count from the table's normalized query,
-including search and every active filter except the remote filter itself. The
-default counter supports a direct base-table attribute such as `category_id`.
-For relationship paths or domain-specific counting, pass a callback that returns
-an array keyed by option value:
-
-```php
-->withCounts(function (FilterOptionRequest $request, array $values): array {
-    // Build duplicate-safe counts from $request->table and return [value => count].
-})
-```
-
-Authorize option loading independently when needed:
-
-```php
-->authorizeOptionsUsing(
-    fn (Request $request, Table $table, SetFilter $filter): bool =>
-        $request->user()?->can('viewCategories') === true,
-)
-```
-
-The package route is signed and accepts only the declared table, filter,
-dependency and normalized filter state. Configure its path with
-`inertia-table.filter_option_path`; page limits, debounce and cache bounds live
-under `inertia-table.filters.remote`.
+The model helper uses its primary key for option values by default. Pass a third
+argument to select another value column.
 
 ### Relationship queries
 
@@ -1239,8 +1177,7 @@ NumericFilter::make('source_id', 'Source')->withoutClause();
 
 The package only owns the selected filter value and URL state in this case. The
 application owns the endpoint, loading state, debounce, result pagination and
-option creation. Prefer `SetFilter::optionsUsing()` for the built-in Eloquent
-remote-search, cursor-pagination and facet-count flow.
+option creation.
 
 For a fully custom renderer, use the composables instead:
 

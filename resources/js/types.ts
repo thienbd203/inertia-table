@@ -69,17 +69,6 @@ export type TableFilterOption = {
     count?: number;
 };
 
-export type TableRemoteFilter = {
-    endpoint: string;
-    searchable: boolean;
-    dependsOn: string[];
-    perPage: number;
-    debounceTime: number;
-    cacheTtl: number;
-    maxCacheEntries: number;
-    withCounts: boolean;
-};
-
 export type TableFilter = {
     attribute: string;
     label: string;
@@ -87,7 +76,8 @@ export type TableFilter = {
     clauses: string[];
     clauseValueKinds?: Partial<Record<string, "value" | "range" | "none">>;
     options: TableFilterOption[];
-    remote?: TableRemoteFilter;
+    lazy?: boolean;
+    lazyLoaded?: boolean;
     multiple?: boolean;
     compactDisplayLabel?: string | null;
     showClause?: boolean;

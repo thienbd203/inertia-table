@@ -104,6 +104,7 @@ export function useViews<T extends TableItem>(table: UseTable<T>) {
         if (!endpoint || isMutating.value) return;
 
         isMutating.value = true;
+        const headers = table.lazyFilterHeaders();
         router.visit(endpoint, {
             method,
             data: JSON.parse(JSON.stringify(data)) as RequestPayload,
@@ -112,6 +113,7 @@ export function useViews<T extends TableItem>(table: UseTable<T>) {
                 table.resource.value.name,
                 ...table.resource.value.options.reloadProps,
             ],
+            ...(Object.keys(headers).length > 0 ? { headers } : {}),
             onFinish: () => {
                 isMutating.value = false;
             },

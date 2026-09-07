@@ -18,6 +18,14 @@ export function useTable<T extends TableItem>(
     const page = usePage();
     const search = ref(toValue(resource).state.search);
     const isNavigating = ref(false);
+    const loadedLazyFilters = ref(
+        new Set(
+            toValue(resource)
+                .filters.filter((filter) => filter.lazyLoaded)
+                .map((filter) => filter.attribute),
+        ),
+    );
+    const loadingLazyFilters = ref(new Set<string>());
     const resizingColumn = ref<string | null>(null);
     const columnOrder = ref(
         normalizeColumnOrder(
@@ -77,6 +85,19 @@ export function useTable<T extends TableItem>(
         { deep: true },
     );
 
+    watch(
+        () =>
+            toValue(resource)
+                .filters.filter((filter) => filter.lazyLoaded)
+                .map((filter) => filter.attribute),
+        (attributes) => {
+            loadedLazyFilters.value = new Set([
+                ...loadedLazyFilters.value,
+                ...attributes,
+            ]);
+        },
+    );
+
     function normalizedColumnWidths(
         widths: TableState["columnWidths"],
     ): Record<string, number> {
@@ -97,6 +118,7 @@ export function useTable<T extends TableItem>(
                 preserveState: true,
                 replace,
                 only: [current.name, ...current.options.reloadProps],
+                headers: lazyFilterHeaders(),
                 onFinish: () => {
                     if (visitId === latestVisit) {
                         isNavigating.value = false;
@@ -110,6 +132,75 @@ export function useTable<T extends TableItem>(
 
             throw error;
         }
+    }
+
+    function lazyFilterHeaders(): Record<string, string> {
+        if (loadedLazyFilters.value.size === 0) return {};
+
+        return {
+            "X-Musing-Inertia-Table-Lazy-Filters": JSON.stringify({
+                [toValue(resource).name]: [...loadedLazyFilters.value],
+            }),
+        };
+    }
+
+    function loadFilterOptions(attribute: string): void {
+        const current = toValue(resource);
+        const filter = current.filters.find(
+            (candidate) => candidate.attribute === attribute,
+        );
+
+        if (
+            !filter?.lazy ||
+            filter.lazyLoaded ||
+            loadingLazyFilters.value.has(attribute)
+        ) {
+            return;
+        }
+
+        loadedLazyFilters.value = new Set([
+            ...loadedLazyFilters.value,
+            attribute,
+        ]);
+        loadingLazyFilters.value = new Set([
+            ...loadingLazyFilters.value,
+            attribute,
+        ]);
+
+        const finish = () => {
+            loadingLazyFilters.value = new Set(
+                [...loadingLazyFilters.value].filter(
+                    (candidate) => candidate !== attribute,
+                ),
+            );
+
+            const loaded = toValue(resource).filters.find(
+                (candidate) => candidate.attribute === attribute,
+            )?.lazyLoaded;
+            if (!loaded) {
+                loadedLazyFilters.value = new Set(
+                    [...loadedLazyFilters.value].filter(
+                        (candidate) => candidate !== attribute,
+                    ),
+                );
+            }
+        };
+
+        try {
+            router.reload({
+                only: [current.name],
+                headers: lazyFilterHeaders(),
+                showProgress: false,
+                onFinish: finish,
+            });
+        } catch (error) {
+            finish();
+            throw error;
+        }
+    }
+
+    function isFilterOptionsLoading(attribute: string): boolean {
+        return loadingLazyFilters.value.has(attribute);
     }
 
     function patchState(patch: Partial<TableState>) {
@@ -543,6 +634,9 @@ export function useTable<T extends TableItem>(
         hasActiveState,
         hasFilters,
         isNavigating,
+        isFilterOptionsLoading,
+        lazyFilterHeaders,
+        loadFilterOptions,
         moveColumn,
         orderedColumns,
         patchState,
