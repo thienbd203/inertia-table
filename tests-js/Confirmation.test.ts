@@ -1,22 +1,11 @@
 import { nextTick } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { TableAction } from "../resources/js/types";
-
-const { visit, listeners } = vi.hoisted(() => ({
-    visit: vi.fn(),
-    listeners: new Map<string, () => void>(),
-}));
-
-vi.mock("@inertiajs/vue3", () => ({
-    router: {
-        visit,
-        on: vi.fn((event: string, callback: () => void) => {
-            listeners.set(event, callback);
-            return vi.fn();
-        }),
-    },
-    usePage: () => ({ url: "/admin/topics" }),
-}));
+import {
+    inertiaListeners as listeners,
+    inertiaVisit as visit,
+    resetInertiaMock,
+} from "./inertiaMock";
 
 import Confirmation from "../resources/js/components/table/actions/Confirmation.vue";
 import { mountWithTableContext } from "./harness";
@@ -46,8 +35,7 @@ const deleteAction: TableAction = {
 
 describe("Confirmation", () => {
     beforeEach(() => {
-        visit.mockReset();
-        listeners.clear();
+        resetInertiaMock();
     });
 
     afterEach(() => {

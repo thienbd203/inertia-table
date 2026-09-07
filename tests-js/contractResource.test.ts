@@ -1,24 +1,18 @@
 import { mount } from "@vue/test-utils";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
     contractCursorResource,
     contractResource,
     contractSimpleResource,
     contractUnpaginatedResource,
 } from "./contracts/resource.generated";
-
-vi.mock("@inertiajs/vue3", () => ({
-    Link: "a",
-    router: {
-        visit: vi.fn(),
-        on: vi.fn(() => vi.fn()),
-    },
-    usePage: () => ({ url: "/contract-topics" }),
-}));
+import { resetInertiaMock } from "./inertiaMock";
 
 import DataTable from "../resources/js/DataTable.vue";
 
 describe("generated PHP resource contract", () => {
+    beforeEach(() => resetInertiaMock("/contract-topics"));
+
     afterEach(() => {
         document.body.innerHTML = "";
     });

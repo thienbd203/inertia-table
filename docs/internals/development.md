@@ -28,8 +28,8 @@ npm test
 npm run build
 ```
 
-Vue tests run in Vitest `vmThreads`, creating one `happy-dom` environment per
-worker while preserving per-file VM isolation.
+Vue tests set `isolate: false`, so each worker reuses its `happy-dom`
+environment across test files.
 
 ## Documentation
 

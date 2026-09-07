@@ -1,16 +1,9 @@
 import { defineComponent, h, ref } from "vue";
 import { mount } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
-
-vi.mock("@inertiajs/vue3", () => ({
-    router: {
-        visit: vi.fn(),
-        on: vi.fn(() => vi.fn()),
-    },
-    usePage: () => ({ url: "/admin/topics" }),
-}));
+import { resetInertiaMock } from "./inertiaMock";
 
 import { useFilterEditor } from "../resources/js/components/table/filters/useFilterEditor";
 import { provideTableContext } from "../resources/js/context/tableContext";
@@ -52,6 +45,8 @@ const customClauseFilter: TableFilter = {
     options: [],
     meta: {},
 };
+
+beforeEach(() => resetInertiaMock());
 
 function resourceWithFilters(filters: TableFilter[]) {
     const base = topicResource();

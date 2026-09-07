@@ -3,23 +3,7 @@ import { h } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TableItem, TableView } from "../resources/js/types";
 import { topicResource } from "./fixtures";
-
-const { listeners } = vi.hoisted(() => ({
-    listeners: new Map<string, () => void>(),
-}));
-
-vi.mock("@inertiajs/vue3", () => ({
-    Link: "a",
-    router: {
-        visit: vi.fn(),
-        on: vi.fn((event: string, callback: () => void) => {
-            listeners.set(event, callback);
-
-            return vi.fn();
-        }),
-    },
-    usePage: () => ({ url: "/admin/topics" }),
-}));
+import { resetInertiaMock } from "./inertiaMock";
 
 import DataTable from "../resources/js/DataTable.vue";
 import { setIconResolver } from "../resources/js/icons";
@@ -92,7 +76,7 @@ function attachViews(resource: ReturnType<typeof topicResource>) {
 
 describe("DataTable shadcn renderer", () => {
     beforeEach(() => {
-        listeners.clear();
+        resetInertiaMock();
         setIconResolver(null);
     });
 

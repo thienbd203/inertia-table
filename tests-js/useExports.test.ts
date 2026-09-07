@@ -4,13 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TableExport } from "../resources/js/types";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
-
-const { visit } = vi.hoisted(() => ({ visit: vi.fn() }));
-
-vi.mock("@inertiajs/vue3", () => ({
-    router: { visit, on: vi.fn(() => vi.fn()) },
-    usePage: () => ({ url: "/admin/topics" }),
-}));
+import { inertiaVisit as visit, resetInertiaMock } from "./inertiaMock";
 
 import { useActions } from "../resources/js/useActions";
 import { useExports } from "../resources/js/useExports";
@@ -58,7 +52,7 @@ function mountExports(callbacks = {}) {
 
 describe("useExports", () => {
     beforeEach(() => {
-        visit.mockReset();
+        resetInertiaMock();
         const meta = document.createElement("meta");
         meta.name = "csrf-token";
         meta.content = "csrf-value";
