@@ -2,7 +2,7 @@
 
 Ngày lập: 2026-09-07. Source đã đối chiếu: `541347e`, nhánh `codex/docs-site`.
 
-**Trạng thái: kế hoạch để triển khai, chưa thực hiện các task bên dưới.** Việc
+**Trạng thái: đang triển khai; cập nhật tiến độ ngày 2026-09-08 ở phụ lục A.** Việc
 đọc source khi lập plan không thay thế baseline test, browser audit hoặc kiểm
 chứng trên ứng dụng mới. Không dùng điểm số đánh giá trước đó trong hội thoại
 làm số đo chất lượng.
@@ -110,9 +110,9 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 
 | ID | Deliverable | Ưu tiên | Cỡ | Phụ thuộc | Trạng thái |
 | --- | --- | --- | --- | --- | --- |
-| Q00 | Baseline, inventory, freeze scope | P0 | S | — | todo |
-| M01 | Test lifecycle và shared-worker isolation | P0 | M | Q00 | todo |
-| DX01 | Docs live/onboarding và sửa commands lệch | P0 | S | Q00 | todo |
+| Q00 | Baseline, inventory, freeze scope | P0 | S | — | doing |
+| M01 | Test lifecycle và shared-worker isolation | P0 | M | Q00 | done |
+| DX01 | Docs live/onboarding và sửa commands lệch | P0 | S | Q00 | doing |
 | DX02 | Consumer fixture dùng package đã đóng gói, CSR/SSR | P0 | L | M01, phần local guide của DX01 | todo |
 | UI00 | Catalog kịch bản và baseline UI | P0 | M | Q00 | todo |
 | UI01 | Filter draft, lazy loading và focus | P0 | L | M01, UI00 | todo |
@@ -832,14 +832,35 @@ Phần này để model thực thi ghi kết quả thật, không điền bằng
 
 | Mục | Giá trị |
 | --- | --- |
-| Baseline HEAD / working tree | Chưa ghi — Q00 |
-| Runtime / installed dependencies | Chưa ghi — Q00 |
+| Baseline HEAD / working tree | `a3117d0`, `codex/docs-site`, working tree sạch trước triển khai |
+| Runtime / installed dependencies | PHP 8.4.23; Node 22.22.2; Inertia Laravel 3.3.1; Testbench 11.1.0; Vue 3.5.42; Inertia Vue 3.7.0; Vitest 5.0.0; happy-dom 20.14.0 |
 | Package / playground / packed consumer revision | Chưa ghi — Q00, DX02 |
-| Docs public deploy status | Chưa xác minh trong lượt lập plan — DX01 |
-| Baseline commands và failures | Chưa chạy — Q00 |
+| Docs public deploy status | GitHub Pages source `workflow`; deploy `34096625623` thành công tại `0d9e3df`; browser đã mở home, search `lazy`, deep link và viewport 375px |
+| Baseline commands và failures | PHP 217 pass / 1 skip URL bridge; PHPStan, Pint, format, types, JS 124 pass, package build và docs build pass. URL bridge chạy riêng với artifact: 1 pass / 8 assertions |
 | Onboarding walkthrough / user validation | Chưa chạy — DX01, DX02, DX07 |
 | UI scenario catalog / before evidence | Chưa tạo — UI00 |
 | Final checks / CI commit / after evidence | Chưa chạy — V01 |
 
 Decision log chỉ ghi các lựa chọn ảnh hưởng contract, state ownership, test
 strategy hoặc lý do `no-change`. Không biến phụ lục thành transcript tool logs.
+
+### Đợt 1 — Baseline, test lifecycle và onboarding
+
+- **Q00 đang làm:** runtime và baseline đã ghi ở trên. Inventory public surface
+  hoàn chỉnh còn cần lưu trước khi thực hiện các task đổi type/refactor.
+- **M01 hoàn tất local:** thêm `tests-js/setup.ts`, auto-unmount trước khi reset
+  timers/mocks/DOM, reset Inertia mock trước mỗi test, bỏ teardown lặp ở các
+  suites. Setup giải phóng đăng ký auto-unmount sau mỗi file để hoạt động với
+  module cache dùng chung. Alias Inertia chỉ ở test config, không sửa production.
+- Regression `testLifecycle.test.ts` đã fail trước fix vì scope test trước còn
+  sống. Sau fix, scope dispose và pending search không tạo navigation sau unmount.
+  Kiểm tra hành vi callback, không đếm tất cả timer nội bộ của Vue/happy-dom.
+- Single-worker shuffle seeds `17` và `83`: đều 17 files / 126 tests pass.
+  Typecheck đã qua; Node 20/22 CI của diff mới chưa chạy trong đợt này.
+- **DX01 đang làm:** sửa đúng chiều URL bridge và phân biệt resource fixture
+  được commit với URL artifact tạm; contributor dùng `npm ci`. Quick start thêm
+  host/schema assumptions, route, page path và yêu cầu table name khớp prop.
+  Public site đã xác minh ở deploy cũ; chưa publish phần docs sửa trong đợt này.
+  404, tương tác menu mobile và consumer walkthrough đầy đủ còn cần kiểm chứng.
+- **DX02 và các task UI/refactor khác:** chưa triển khai. Không tính test mock
+  như bằng chứng consumer/SSR. Tiếp tục Q00 inventory và DX01, sau đó DX02.

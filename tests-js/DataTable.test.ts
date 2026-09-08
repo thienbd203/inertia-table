@@ -1,6 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { h } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TableItem, TableView } from "../resources/js/types";
 import { topicResource } from "./fixtures";
 import { resetInertiaMock } from "./inertiaMock";
@@ -78,11 +78,6 @@ describe("DataTable shadcn renderer", () => {
     beforeEach(() => {
         resetInertiaMock();
         setIconResolver(null);
-    });
-
-    afterEach(() => {
-        vi.useRealTimers();
-        document.body.innerHTML = "";
     });
 
     it("renders the bundled shadcn-vue primitives", async () => {

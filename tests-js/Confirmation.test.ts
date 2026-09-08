@@ -1,11 +1,7 @@
 import { nextTick } from "vue";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { TableAction } from "../resources/js/types";
-import {
-    inertiaListeners as listeners,
-    inertiaVisit as visit,
-    resetInertiaMock,
-} from "./inertiaMock";
+import { inertiaVisit as visit, resetInertiaMock } from "./inertiaMock";
 
 import Confirmation from "../resources/js/components/table/actions/Confirmation.vue";
 import { mountWithTableContext } from "./harness";
@@ -36,10 +32,6 @@ const deleteAction: TableAction = {
 describe("Confirmation", () => {
     beforeEach(() => {
         resetInertiaMock();
-    });
-
-    afterEach(() => {
-        document.body.innerHTML = "";
     });
 
     it("shows the declared confirmation title, message, and button labels", async () => {

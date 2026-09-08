@@ -67,6 +67,10 @@ import "@musing/inertia-table-vue/style.css";
 
 ## Quick start
 
+Use an existing Laravel/Inertia/Vue app with a `Topic` model and `id`, `name`,
+`status`, and timestamp columns. The [getting started guide](https://thienbd203.github.io/inertia-table/guide/getting-started)
+includes the route, page location, and troubleshooting steps.
+
 Generate a table:
 
 ```bash

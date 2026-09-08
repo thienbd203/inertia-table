@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { inertiaVisit as visit, resetInertiaMock } from "./inertiaMock";
 
 import Pagination from "../resources/js/components/table/layout/Pagination.vue";
@@ -8,10 +8,6 @@ import { mountWithTableContext } from "./harness";
 describe("Pagination", () => {
     beforeEach(() => {
         resetInertiaMock();
-    });
-
-    afterEach(() => {
-        document.body.innerHTML = "";
     });
 
     it("disables the first and previous buttons on the first page", () => {

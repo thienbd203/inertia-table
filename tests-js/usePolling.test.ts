@@ -1,13 +1,8 @@
 import { effectScope } from "vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { usePolling } from "../resources/js/usePolling";
 
 describe("usePolling", () => {
-    afterEach(() => {
-        vi.useRealTimers();
-        vi.unstubAllGlobals();
-    });
-
     it("ignores an in-flight response after a newer poll replaces it", async () => {
         vi.useFakeTimers();
         let resolveFirst!: (response: Response) => void;

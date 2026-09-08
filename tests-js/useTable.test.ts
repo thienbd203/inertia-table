@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, ref } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
 import {
@@ -15,8 +15,6 @@ describe("useTable", () => {
     beforeEach(() => {
         resetInertiaMock("/admin/topics?keep=yes");
     });
-
-    afterEach(() => vi.useRealTimers());
 
     function mountTable() {
         const resource = ref(topicResource());

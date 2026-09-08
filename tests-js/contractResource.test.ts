@@ -1,5 +1,5 @@
 import { mount } from "@vue/test-utils";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
     contractCursorResource,
     contractResource,
@@ -12,10 +12,6 @@ import DataTable from "../resources/js/DataTable.vue";
 
 describe("generated PHP resource contract", () => {
     beforeEach(() => resetInertiaMock("/contract-topics"));
-
-    afterEach(() => {
-        document.body.innerHTML = "";
-    });
 
     it("type-checks and renders the PHP resource across pagination modes", () => {
         const wrapper = mount(DataTable, {
