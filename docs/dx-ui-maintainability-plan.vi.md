@@ -113,7 +113,7 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | Q00 | Baseline, inventory, freeze scope | P0 | S | — | doing |
 | M01 | Test lifecycle và shared-worker isolation | P0 | M | Q00 | done |
 | DX01 | Docs live/onboarding và sửa commands lệch | P0 | S | Q00 | doing |
-| DX02 | Consumer fixture dùng package đã đóng gói, CSR/SSR | P0 | L | M01, phần local guide của DX01 | todo |
+| DX02 | Consumer fixture dùng package đã đóng gói, CSR/SSR | P0 | L | M01, phần local guide của DX01 | doing |
 | UI00 | Catalog kịch bản và baseline UI | P0 | M | Q00 | todo |
 | UI01 | Filter draft, lazy loading và focus | P0 | L | M01, UI00 | todo |
 | UI02 | Navigation/loading, URL và resource sync | P0 | L | UI01 | todo |
@@ -862,5 +862,16 @@ strategy hoặc lý do `no-change`. Không biến phụ lục thành transcript 
   host/schema assumptions, route, page path và yêu cầu table name khớp prop.
   Public site đã xác minh ở deploy cũ; chưa publish phần docs sửa trong đợt này.
   404, tương tác menu mobile và consumer walkthrough đầy đủ còn cần kiểm chứng.
-- **DX02 và các task UI/refactor khác:** chưa triển khai. Không tính test mock
-  như bằng chứng consumer/SSR. Tiếp tục Q00 inventory và DX01, sau đó DX02.
+- **DX02 đang làm (2026-09-08):** thêm `tests/Consumer` cài npm tarball riêng,
+  strict peers, typecheck, Tailwind build, CSR build và Vue SSR qua Inertia thật.
+  Laravel/Testbench chạy query search/sort/lazy filter trên SQLite memory.
+  PHP vẫn dùng Composer autoload của checkout và đăng ký provider tường minh;
+  chưa kiểm chứng Composer archive, discovery hoặc generator tại consumer.
+  Browser smoke đã phát hiện nested buttons ở Filters/Columns/Actions gây
+  hydration mismatch và lỗi gọi focus trên component Button của set filter.
+  Sửa tại table composition, thêm regression tests. Các task UI khác chưa hoàn tất.
+  Kiểm chứng local: packed consumer typecheck/CSR/SSR/query assertions pass;
+  browser search Beta, sort Desc, lazy chọn Draft và reload URL đúng dữ liệu.
+  Lượt browser cuối sau sửa focus: SSR không mismatch, thêm/chọn set filter
+  giữ focus đúng, console warn/error rỗng. Browser smoke hiện chạy thủ công;
+  hướng dẫn dựng lại nằm trong `tests/Consumer/README.md`, chưa wire CI.

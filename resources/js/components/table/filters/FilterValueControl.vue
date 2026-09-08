@@ -98,6 +98,7 @@ const draftRange = ref<[string, string]>(range.value);
 const draftInput = ref(String(props.modelValue ?? ""));
 const isInputFocused = ref(false);
 const valueControl = ref<{ focus: () => void } | null>(null);
+const setTrigger = ref<InstanceType<typeof UiButton> | null>(null);
 const isLoadingOptions = computed(() =>
     table.isFilterOptionsLoading(props.filter.attribute),
 );
@@ -173,6 +174,11 @@ function updateRangeValue(value: [string, string]) {
 defineExpose({
     focus: () => {
         ensureLazyOptions();
+        if (control.value === "select" && allowsMultipleValues.value) {
+            const button = setTrigger.value?.$el;
+            if (button instanceof HTMLElement) button.focus();
+            return;
+        }
         valueControl.value?.focus();
     },
 });
@@ -188,7 +194,7 @@ defineExpose({
         >
             <UiDropdownMenuTrigger as-child>
                 <UiButton
-                    ref="valueControl"
+                    ref="setTrigger"
                     variant="outline"
                     class="flex-1 justify-between font-normal"
                     :data-filter-value="filter.attribute"

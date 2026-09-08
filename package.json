@@ -34,10 +34,11 @@
         "docs:build": "vitepress build docs",
         "docs:dev": "vitepress dev docs",
         "docs:preview": "vitepress preview docs",
-        "format": "prettier --write resources/js tests-js docs/.vitepress README.md vite.config.ts tsconfig.json package.json",
-        "format:check": "prettier --check resources/js tests-js docs/.vitepress README.md vite.config.ts tsconfig.json package.json",
+        "format": "prettier --write resources/js tests-js 'tests/Consumer/**/*.{mjs,ts,vue,css,json,md}' docs/.vitepress README.md vite.config.ts tsconfig.json package.json",
+        "format:check": "prettier --check resources/js tests-js 'tests/Consumer/**/*.{mjs,ts,vue,css,json,md}' docs/.vitepress README.md vite.config.ts tsconfig.json package.json",
         "prepack": "npm run build",
         "test": "vitest run",
+        "test:consumer": "node tests/Consumer/run.mjs",
         "types:check": "vue-tsc --noEmit"
     },
     "peerDependencies": {

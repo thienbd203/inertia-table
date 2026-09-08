@@ -26,7 +26,7 @@ const hasLayout = computed(
 
 <template>
     <UiDropdownMenu v-if="columns.length || hasLayout">
-        <UiDropdownMenuTrigger>
+        <UiDropdownMenuTrigger as-child>
             <UiButton variant="outline">
                 <Eye class="h-4 w-4" />
                 {{ i18n.t("columns") }}

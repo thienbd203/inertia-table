@@ -75,6 +75,19 @@ function attachViews(resource: ReturnType<typeof topicResource>) {
 }
 
 describe("DataTable shadcn renderer", () => {
+    it("renders toolbar menu triggers without nested buttons", () => {
+        const wrapper = mount(DataTable, {
+            props: { resource: topicResource() },
+        });
+        for (const label of ["Filters", "Columns", "Actions"]) {
+            const button = wrapper
+                .findAll("button")
+                .find((node) => node.text() === label);
+            expect(button, label).toBeDefined();
+        }
+        expect(wrapper.find("button button").exists()).toBe(false);
+    });
+
     beforeEach(() => {
         resetInertiaMock();
         setIconResolver(null);
