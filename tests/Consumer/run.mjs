@@ -20,6 +20,17 @@ function run(command, args, cwd = root) {
     execFileSync(command, args, { cwd, stdio: "inherit" });
 }
 
+run("php", ["vendor/bin/testbench", "package:discover", "--no-ansi"]);
+const phpSmoke = execFileSync("php", [join(fixture, "verify-php.php")], {
+    cwd: root,
+    encoding: "utf8",
+});
+// Testbench's console exception renderer may return zero after a PHP failure.
+assert.match(
+    phpSmoke,
+    /PHP checkout discovery, config and generated table verified\./,
+);
+console.log(phpSmoke.trim());
 run("npm", ["run", "build"]);
 const [packed] = JSON.parse(
     execFileSync(

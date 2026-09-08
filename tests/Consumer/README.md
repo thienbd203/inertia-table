@@ -28,9 +28,12 @@ Browser smoke (manual; the command above does not automate a browser):
 6. Reload the resulting URL: Beta and the active filter remain.
 7. Open CSR URL and repeat search/sort; inspect browser console for errors.
 
-PHP uses this checkout's Composer autoloader and explicitly registered providers
-inside Testbench, with a fresh SQLite memory database per request. It does not
-verify a Composer release archive or automatic package discovery. Vue SSR runs
+PHP uses this checkout's Composer autoloader. A separate smoke refreshes
+Testbench's package discovery manifest, boots without explicit providers, checks
+the package config, generates a table in a temporary app directory and resolves
+its SQLite row. The HTTP bridge registers providers explicitly and uses a fresh
+SQLite memory database per request. This does not verify a Composer release
+archive or discovery in a separately installed Laravel application. Vue SSR runs
 through the real Inertia adapter in Node, without a Laravel SSR daemon or router
 mocks. No playground database is used. Tarballs and the latest-run pointer are
 ignored under `build/consumer`; installed consumers remain in the OS temporary

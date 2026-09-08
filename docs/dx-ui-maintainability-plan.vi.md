@@ -113,7 +113,7 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | Q00 | Baseline, inventory, freeze scope | P0 | S | — | doing |
 | M01 | Test lifecycle và shared-worker isolation | P0 | M | Q00 | done |
 | DX01 | Docs live/onboarding và sửa commands lệch | P0 | S | Q00 | doing |
-| DX02 | Consumer fixture dùng package đã đóng gói, CSR/SSR | P0 | L | M01, phần local guide của DX01 | doing |
+| DX02 | Consumer fixture dùng package đã đóng gói, CSR/SSR | P0 | L | M01, phần local guide của DX01 | done |
 | UI00 | Catalog kịch bản và baseline UI | P0 | M | Q00 | todo |
 | UI01 | Filter draft, lazy loading và focus | P0 | L | M01, UI00 | todo |
 | UI02 | Navigation/loading, URL và resource sync | P0 | L | UI01 | todo |
@@ -862,11 +862,13 @@ strategy hoặc lý do `no-change`. Không biến phụ lục thành transcript 
   host/schema assumptions, route, page path và yêu cầu table name khớp prop.
   Public site đã xác minh ở deploy cũ; chưa publish phần docs sửa trong đợt này.
   404, tương tác menu mobile và consumer walkthrough đầy đủ còn cần kiểm chứng.
-- **DX02 đang làm (2026-09-08):** thêm `tests/Consumer` cài npm tarball riêng,
+- **DX02 hoàn tất local (2026-09-08):** thêm `tests/Consumer` cài npm tarball riêng,
   strict peers, typecheck, Tailwind build, CSR build và Vue SSR qua Inertia thật.
   Laravel/Testbench chạy query search/sort/lazy filter trên SQLite memory.
-  PHP vẫn dùng Composer autoload của checkout và đăng ký provider tường minh;
-  chưa kiểm chứng Composer archive, discovery hoặc generator tại consumer.
+  PHP vẫn dùng Composer autoload của checkout: smoke riêng refresh discovery
+  manifest Testbench, boot không truyền providers, kiểm tra config rồi generate
+  class trong app directory tạm và resolve row SQLite thật. HTTP bridge đăng ký
+  providers tường minh. Chưa kiểm chứng Composer archive hoặc Laravel app cài riêng.
   Browser smoke đã phát hiện nested buttons ở Filters/Columns/Actions gây
   hydration mismatch và lỗi gọi focus trên component Button của set filter.
   Sửa tại table composition, thêm regression tests. Các task UI khác chưa hoàn tất.
