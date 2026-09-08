@@ -31,29 +31,29 @@ PHP host in this repository, Node 22.22.2, PHP 8.4.23, Vue 3.5.42 and Inertia Vu
 3.7.0. Browser was Codex in-app browser; viewport was not recorded, so these are
 functional observations rather than a responsive baseline.
 
-| ID        | Setup and steps                                                                                                                             | Expected                                                | Status / evidence                                |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------ |
-| SSR       | `/topics`; inspect server HTML and console                                                                                                  | Three rows; no hydration warnings                       | pass in DX02 after nested-button fix             |
-| CSR       | `/topics?csr=1`; search Beta                                                                                                                | Only Beta; partial navigation works                     | pass in DX02                                     |
-| SORT      | `/topics?csr=1`; Name → Desc                                                                                                                | Gamma, Beta, Alpha; URL sort `-name`                    | pass in DX02                                     |
-| LAZY      | `/topics`; Filters → Status → options → Draft                                                                                               | Options load; selection/focus remain on Draft           | pass in DX02; final console empty                |
-| REOPEN    | Close and reopen loaded Status options                                                                                                      | No extra options request; selection preserved           | not-run                                          |
-| CLOSE     | Slow mode; add Status then close editor before reply                                                                                        | Reply never reopens editor or steals focus              | pass after fix; see findings                     |
-| RETRY     | Failure mode; open Status; close error UI and retry                                                                                         | Busy clears; retry loads options; applied state remains | not-run                                          |
-| MULTI     | Slow mode; choose Published and Draft quickly                                                                                               | Both survive response; all three rows                   | not-run                                          |
-| URL       | `/topics?table[topics][filters][status][enabled]=1&table[topics][filters][status][clause]=in&table[topics][filters][status][value][]=draft` | Beta; after loading options label is Draft              | row/state pass in DX02; label after load not-run |
-| SEARCH    | Type Beta rapidly; inspect request log                                                                                                      | Only final debounced query is sent                      | not-run (single-value search only tested)        |
-| RACE      | Type Beta then sort before debounce completes                                                                                               | Final query and sort reflect latest intent              | not-run                                          |
-| HISTORY   | Search/sort then Back/Forward through existing entries                                                                                      | Restores state according to replace policy              | not-run                                          |
-| EMPTY     | `/topics?table[topics][search]=missing-topic`                                                                                               | No results, no inappropriate create CTA                 | not-run                                          |
-| KEYBOARD  | Tab/Enter/Escape through search, menus, filter                                                                                              | Useful focus order; focus returns on close              | not-run                                          |
-| MOBILE    | 320/375/768/1280px, zoom 200%, light/dark                                                                                                   | Readable controls, no clipped overlays                  | not-run                                          |
-| RANGE     | Numeric/date range with only one endpoint, then both                                                                                        | Incomplete value not sent                               | not-run; fixture needed                          |
-| TWO       | Two tables; interact with each independently                                                                                                | URL/loading/focus scoped correctly                      | not-run; fixture needed                          |
-| SELECTION | All matching plus exclusions across pages                                                                                                   | Correct count and result identity reset                 | not-run; fixture needed                          |
-| VIEW      | Save/conflict/failure paths                                                                                                                 | No false success; draft retained                        | not-run; playground fixture needed               |
-| ACTION    | Pending/accepted/completed and double click                                                                                                 | Accurate feedback; no double submit                     | not-run; playground fixture needed               |
-| LAYOUT    | Sticky, resize, RTL, long Vietnamese labels, slots                                                                                          | No clipped portal or incorrect logical offsets          | not-run; fixture needed                          |
+| ID        | Setup and steps                                                                                                                             | Expected                                                | Status / evidence                                                 |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------- |
+| SSR       | `/topics`; inspect server HTML and console                                                                                                  | Three rows; no hydration warnings                       | pass in DX02 after nested-button fix                              |
+| CSR       | `/topics?csr=1`; search Beta                                                                                                                | Only Beta; partial navigation works                     | pass in DX02                                                      |
+| SORT      | `/topics?csr=1`; Name → Desc                                                                                                                | Gamma, Beta, Alpha; URL sort `-name`                    | pass in DX02                                                      |
+| LAZY      | `/topics`; Filters → Status → options → Draft                                                                                               | Options load; selection/focus remain on Draft           | pass in DX02; final console empty                                 |
+| REOPEN    | Close and reopen loaded Status options                                                                                                      | No extra options request; selection preserved           | pass; see follow-up                                               |
+| CLOSE     | Slow mode; add Status then close editor before reply                                                                                        | Reply never reopens editor or steals focus              | pass after fix; see findings                                      |
+| RETRY     | Failure mode; open Status; close error UI and retry                                                                                         | Busy clears; retry loads options; applied state remains | partial: recovery pass; prior applied state not-run               |
+| MULTI     | Slow mode; choose Published and Draft quickly                                                                                               | Both survive response; all three rows                   | delayed sequential choices pass; overlapping responses not proven |
+| URL       | `/topics?table[topics][filters][status][enabled]=1&table[topics][filters][status][clause]=in&table[topics][filters][status][value][]=draft` | Beta; after loading options label is Draft              | row/state pass in DX02; label after load not-run                  |
+| SEARCH    | Type Beta rapidly; inspect request log                                                                                                      | Only final debounced query is sent                      | not-run (single-value search only tested)                         |
+| RACE      | Type Beta then sort before debounce completes                                                                                               | Final query and sort reflect latest intent              | not-run                                                           |
+| HISTORY   | Search/sort then Back/Forward through existing entries                                                                                      | Restores state according to replace policy              | not-run                                                           |
+| EMPTY     | `/topics?table[topics][search]=missing-topic`                                                                                               | No results, no inappropriate create CTA                 | not-run                                                           |
+| KEYBOARD  | Tab/Enter/Escape through search, menus, filter                                                                                              | Useful focus order; focus returns on close              | not-run                                                           |
+| MOBILE    | 320/375/768/1280px, zoom 200%, light/dark                                                                                                   | Readable controls, no clipped overlays                  | not-run                                                           |
+| RANGE     | Numeric/date range with only one endpoint, then both                                                                                        | Incomplete value not sent                               | not-run; fixture needed                                           |
+| TWO       | Two tables; interact with each independently                                                                                                | URL/loading/focus scoped correctly                      | not-run; fixture needed                                           |
+| SELECTION | All matching plus exclusions across pages                                                                                                   | Correct count and result identity reset                 | not-run; fixture needed                                           |
+| VIEW      | Save/conflict/failure paths                                                                                                                 | No false success; draft retained                        | not-run; playground fixture needed                                |
+| ACTION    | Pending/accepted/completed and double click                                                                                                 | Accurate feedback; no double submit                     | not-run; playground fixture needed                                |
+| LAYOUT    | Sticky, resize, RTL, long Vietnamese labels, slots                                                                                          | No clipped portal or incorrect logical offsets          | not-run; fixture needed                                           |
 
 ## Findings
 
@@ -71,13 +71,33 @@ recorded (focus-only verification, not geometry coverage).
 
 `CLOSE`: **pass after fix**, previously reproduced failure. Removed the watcher
 that forced the popover open after loading; explicit user open/close now owns it.
-`REOPEN`: cached options observed, but selected-value preservation is still not-run.
+`REOPEN`: cached options observed here; selected-value verification follows below.
 Regression test covers closing while a pending lazy response finishes. The
 consumer was rebuilt from tarball before the final browser run.
 
 Failure mode transport check: first lazy-header request returned 503, the next
 returned 200 with two loaded options. This validates fixture injection only;
-`RETRY` browser recovery remains not-run.
+`RETRY` browser recovery was subsequently checked below.
+
+### Follow-up at 9484eec
+
+Same packed consumer code as the preceding fix; no package source change in this
+follow-up. In-app browser, `/topics`, viewport not recorded.
+
+- With `--lazy-fail-once`, opening Status displayed Inertia's error dialog.
+  Escape dismissed it. Reopening Status and its options loaded Published/Draft.
+  No stuck busy state. This began without an applied filter value; preservation
+  of a pre-existing applied value on failure remains unverified.
+- With `--lazy-delay=10000`, selected Published then Draft. Final URL contained
+  both values, both checkboxes remained checked, and Alpha/Beta/Gamma appeared.
+  Escape then reopening options preserved both selections. Request log contained
+  the initial page, lazy load and two filter visits; reopening sent no request.
+  Browser console was empty on this origin. Tool timing did not establish that
+  the second click preceded the first response, so overlapping-response coverage
+  still requires a controlled test.
+- Added unit regressions for retry after `onFinish` without loaded options and
+  for a synchronous router exception. They verify loading clears and another
+  attempt is possible; they do not simulate browser network cancellation.
 
 - Fixed in DX02: Filters/Columns/Actions nested buttons caused browser HTML
   repair and hydration mismatches. Reproduction: initial SSR, before interaction.

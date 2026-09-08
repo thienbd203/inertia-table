@@ -885,3 +885,8 @@ strategy hoặc lý do `no-change`. Không biến phụ lục thành transcript 
   console sạch; mở lại có options. 58 focused JS tests, typecheck/format và
   packed consumer checks pass. Các ca retry/cancel/multi-select nhanh và baseline
   viewport/playground còn chưa hoàn tất; không đánh dấu toàn bộ UI00/UI01 done.
+  Follow-up sau `9484eec`: browser retry sau 503 thành công từ filter chưa có
+  applied value; multi-select với delay giữ hai giá trị, mở lại không thêm request.
+  Chưa chứng minh response overlap/cancel hay retry với applied state có sẵn.
+  Thêm hai regression tests cho unsuccessful finish và router exception;
+  20 useTable tests và typecheck pass. Bằng chứng chi tiết nằm trong catalog.
