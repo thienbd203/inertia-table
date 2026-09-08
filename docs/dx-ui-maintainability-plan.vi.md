@@ -114,8 +114,8 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | M01 | Test lifecycle và shared-worker isolation | P0 | M | Q00 | done |
 | DX01 | Docs live/onboarding và sửa commands lệch | P0 | S | Q00 | doing |
 | DX02 | Consumer fixture dùng package đã đóng gói, CSR/SSR | P0 | L | M01, phần local guide của DX01 | done |
-| UI00 | Catalog kịch bản và baseline UI | P0 | M | Q00 | todo |
-| UI01 | Filter draft, lazy loading và focus | P0 | L | M01, UI00 | todo |
+| UI00 | Catalog kịch bản và baseline UI | P0 | M | Q00 | doing |
+| UI01 | Filter draft, lazy loading và focus | P0 | L | M01, UI00 | doing |
 | UI02 | Navigation/loading, URL và resource sync | P0 | L | UI01 | todo |
 | UI03 | Keyboard, labels và overlay accessibility | P1 | M | UI00, UI01 | todo |
 | UI04 | Responsive, theme và visual consistency | P1 | M | UI00, UI03 | todo |
@@ -838,7 +838,7 @@ Phần này để model thực thi ghi kết quả thật, không điền bằng
 | Docs public deploy status | GitHub Pages source `workflow`; deploy `34096625623` thành công tại `0d9e3df`; browser đã mở home, search `lazy`, deep link và viewport 375px |
 | Baseline commands và failures | PHP 217 pass / 1 skip URL bridge; PHPStan, Pint, format, types, JS 124 pass, package build và docs build pass. URL bridge chạy riêng với artifact: 1 pass / 8 assertions |
 | Onboarding walkthrough / user validation | Chưa chạy — DX01, DX02, DX07 |
-| UI scenario catalog / before evidence | Chưa tạo — UI00 |
+| UI scenario catalog / before evidence | `tests/Consumer/ui-catalog.md`; baseline rộng còn đang làm — UI00 |
 | Final checks / CI commit / after evidence | Chưa chạy — V01 |
 
 Decision log chỉ ghi các lựa chọn ảnh hưởng contract, state ownership, test
@@ -877,3 +877,11 @@ strategy hoặc lý do `no-change`. Không biến phụ lục thành transcript 
   Lượt browser cuối sau sửa focus: SSR không mismatch, thêm/chọn set filter
   giữ focus đúng, console warn/error rỗng. Browser smoke hiện chạy thủ công;
   hướng dẫn dựng lại nằm trong `tests/Consumer/README.md`, chưa wire CI.
+- **UI00/UI01 đang làm:** catalog tại `tests/Consumer/ui-catalog.md`, thêm
+  server modes delay/fail-once và request log trong consumer. Tái hiện lỗi
+  đóng filter khi lazy load còn chạy: response tự mở editor và giành focus.
+  Bỏ watcher ép mở lại trong `ActiveFilter.vue`; regression test pass.
+  Browser với delay 10 giây xác nhận editor vẫn đóng và focus còn ở search,
+  console sạch; mở lại có options. 58 focused JS tests, typecheck/format và
+  packed consumer checks pass. Các ca retry/cancel/multi-select nhanh và baseline
+  viewport/playground còn chưa hoàn tất; không đánh dấu toàn bộ UI00/UI01 done.

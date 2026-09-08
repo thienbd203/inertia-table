@@ -20,6 +20,9 @@ command after source changes and restart the server. Stop it with Ctrl-C.
 
 Browser smoke (manual; the command above does not automate a browser):
 
+For slow/error modes, reset instructions and the broader scenario inventory,
+see [UI verification catalog](./ui-catalog.md).
+
 1. Open SSR URL. Three rows should appear with no hydration warnings.
 2. Search `Beta`: only Beta remains. Clear search.
 3. Name → Desc: Gamma, Beta, Alpha. URL contains sort `-name`.

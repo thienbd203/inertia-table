@@ -22,14 +22,13 @@ const emit = defineEmits<{
     remove: [];
 }>();
 const displayValue = ref<string | null>(null);
-const { resource, table } = useTableContext();
+const { resource } = useTableContext();
 const props = defineProps<{
     filter: TableFilter;
     autoOpen?: boolean;
 }>();
 const isOpen = ref(false);
 const filterEditor = ref<InstanceType<typeof FilterEditor> | null>(null);
-let reopenAfterLazyLoad = false;
 const state = computed(
     () => resource.value.state.filters[props.filter.attribute],
 );
@@ -48,21 +47,6 @@ const compactTooltip = computed(() =>
 watch(state, () => {
     displayValue.value = null;
 });
-
-watch(
-    () => table.isFilterOptionsLoading(props.filter.attribute),
-    async (isLoading, wasLoading) => {
-        if (isLoading && isOpen.value) {
-            reopenAfterLazyLoad = true;
-        }
-
-        if (!isLoading && wasLoading && reopenAfterLazyLoad) {
-            reopenAfterLazyLoad = false;
-            await nextTick();
-            isOpen.value = true;
-        }
-    },
-);
 
 watch(
     () => props.autoOpen,

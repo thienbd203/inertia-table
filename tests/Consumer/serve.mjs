@@ -18,6 +18,17 @@ const entry = manifest["main.ts"];
 const assets = new Set(
     Object.values(manifest).flatMap((item) => [item.file, ...(item.css ?? [])]),
 );
+const delayArgument = process.argv.find((value) =>
+    value.startsWith("--lazy-delay="),
+);
+const lazyDelay = Number(delayArgument?.split("=")[1] ?? 0);
+if (!Number.isInteger(lazyDelay) || lazyDelay < 0 || lazyDelay > 10000) {
+    throw new Error(
+        "--lazy-delay must be an integer from 0 to 10000 milliseconds.",
+    );
+}
+let failNextLazy = process.argv.includes("--lazy-fail-once");
+let requestNumber = 0;
 
 const server = createServer(async (request, response) => {
     try {
@@ -33,6 +44,30 @@ const server = createServer(async (request, response) => {
         }
         if (request.method !== "GET" || url.pathname !== "/topics") {
             response.writeHead(404).end("Not found");
+            return;
+        }
+        const sequence = ++requestNumber;
+        const isLazy = Boolean(
+            request.headers["x-musing-inertia-table-lazy-filters"],
+        );
+        console.log(
+            JSON.stringify({
+                sequence,
+                url: request.url,
+                partial: request.headers["x-inertia-partial-data"],
+                lazy: isLazy,
+            }),
+        );
+        if (isLazy && lazyDelay) {
+            await new Promise((resolve) => setTimeout(resolve, lazyDelay));
+        }
+        if (isLazy && failNextLazy) {
+            failNextLazy = false;
+            response
+                .writeHead(503, { "Content-Type": "text/plain" })
+                .end(
+                    "Intentional consumer lazy-options failure. Close the Inertia error dialog and retry.",
+                );
             return;
         }
         const page = JSON.parse(
@@ -70,4 +105,7 @@ const server = createServer(async (request, response) => {
 server.listen(0, "127.0.0.1", () => {
     console.log(`SSR: http://127.0.0.1:${server.address().port}/topics`);
     console.log(`CSR: http://127.0.0.1:${server.address().port}/topics?csr=1`);
+    console.log(
+        `Lazy header requests: delay=${lazyDelay}ms, failOnce=${failNextLazy}. Restart to reset failure and request log.`,
+    );
 });
