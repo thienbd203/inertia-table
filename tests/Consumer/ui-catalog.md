@@ -64,6 +64,28 @@ functional observations rather than a responsive baseline.
 
 ## Findings
 
+### 2026-09-09: navigation during lazy loading restores a removed filter (fixed)
+
+Baseline `2c58799`, packed consumer, in-app browser, `--lazy-reverse`.
+Start with Status In Draft (Beta), open Status, Escape, then remove Status
+before its lazy response arrives. Navigation request 3 finished at 813ms,
+but lazy request 2 finished at 10305ms and restored the Draft chip and Beta.
+The installed Inertia async response guard compares pathname, so a changed
+query alone does not prevent this stale table resource from being applied.
+
+The table now cancels its own active lazy request before its navigation,
+carries requested/queued option attributes into the navigation header, and
+defers additional lazy requests until navigation finishes. Disposal cancels the
+owned request and drops the queue. It does not cancel unrelated host requests.
+
+Browser rerun: old lazy request disconnected at 665ms; navigation completed at
+701ms. After the original delay window, there was no filter chip and all three
+rows (Alpha/Beta/Gamma) remained; console was clean. 141 JS tests, formatting,
+typecheck and packed consumer passed. Regression covers cancellation, forwarding
+queued attributes and avoiding redundant reload when navigation loads them.
+Host-initiated navigation/reloads outside this useTable instance still need
+separate coverage; this result does not close all UI01/UI02 scenarios.
+
 ### 2026-09-09: overlapping lazy responses overwrite loaded options (fixed)
 
 Consumer adds Topic (lazy name set) and `node tests/Consumer/serve.mjs

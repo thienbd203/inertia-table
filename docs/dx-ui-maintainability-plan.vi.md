@@ -934,3 +934,11 @@ strategy hoặc lý do `no-change`. Không biến phụ lục thành transcript 
   140 JS tests pass; typecheck và packed consumer pass. Đổi lại lazy filter sau
   phải chờ request trước. UI01 vẫn doing: tương tác với host reload/navigation
   khi đang sửa draft và keyboard coverage còn cần kiểm chứng.
+  Follow-up navigation/lazy: browser tái hiện xóa Status trong lúc lazy tải,
+  response navigation về trước nhưng lazy cũ về sau khôi phục Draft/Beta.
+  Sửa bằng cancel token thuộc bảng trước navigation, chuyển requested/queued
+  option attributes sang header navigation và chờ navigation xong mới tải lazy
+  tiếp. Browser sau sửa: request cũ disconnected 665ms, navigation 701ms,
+  không khôi phục filter và giữ ba rows; console sạch. 141 JS tests, format,
+  typecheck và packed consumer pass. Chưa bao phủ navigation do host gọi ngoài
+  useTable hoặc hoàn tất keyboard matrix; UI01/UI02 chưa đánh dấu done.

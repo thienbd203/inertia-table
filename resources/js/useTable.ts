@@ -28,6 +28,7 @@ export function useTable<T extends TableItem>(
     const loadingLazyFilters = ref(new Set<string>());
     const queuedLazyFilters = ref(new Set<string>());
     let disposed = false;
+    let cancelLazyRequest: (() => void) | undefined;
     const resizingColumn = ref<string | null>(null);
     const columnOrder = ref(
         normalizeColumnOrder(
@@ -112,6 +113,13 @@ export function useTable<T extends TableItem>(
         clearTimeout(layoutTimer);
         layoutTimer = undefined;
         isNavigating.value = true;
+        const requestedOptions = new Set([
+            ...loadedLazyFilters.value,
+            ...queuedLazyFilters.value,
+        ]);
+        queuedLazyFilters.value = new Set();
+        cancelLazyRequest?.();
+        loadedLazyFilters.value = requestedOptions;
 
         try {
             router.visit(tableUrl(page.url, current, state), {
@@ -124,12 +132,14 @@ export function useTable<T extends TableItem>(
                 onFinish: () => {
                     if (visitId === latestVisit) {
                         isNavigating.value = false;
+                        drainLazyQueue();
                     }
                 },
             });
         } catch (error) {
             if (visitId === latestVisit) {
                 isNavigating.value = false;
+                drainLazyQueue();
             }
 
             throw error;
@@ -153,6 +163,7 @@ export function useTable<T extends TableItem>(
         );
 
         if (
+            disposed ||
             !filter?.lazy ||
             filter.lazyLoaded ||
             loadingLazyFilters.value.has(attribute)
@@ -162,7 +173,7 @@ export function useTable<T extends TableItem>(
 
         // Reloads replace the whole table prop. Serialize them so an older
         // options response cannot overwrite a newer filter's loaded options.
-        if (loadingLazyFilters.value.size > 0) {
+        if (isNavigating.value || loadingLazyFilters.value.size > 0) {
             queuedLazyFilters.value = new Set([
                 ...queuedLazyFilters.value,
                 attribute,
@@ -180,6 +191,7 @@ export function useTable<T extends TableItem>(
         ]);
 
         const finish = () => {
+            cancelLazyRequest = undefined;
             loadingLazyFilters.value = new Set(
                 [...loadingLazyFilters.value].filter(
                     (candidate) => candidate !== attribute,
@@ -196,19 +208,7 @@ export function useTable<T extends TableItem>(
                     ),
                 );
             }
-            while (
-                !disposed &&
-                queuedLazyFilters.value.size > 0 &&
-                loadingLazyFilters.value.size === 0
-            ) {
-                const next = queuedLazyFilters.value.values().next().value!;
-                queuedLazyFilters.value = new Set(
-                    [...queuedLazyFilters.value].filter(
-                        (candidate) => candidate !== next,
-                    ),
-                );
-                loadFilterOptions(next);
-            }
+            drainLazyQueue();
         };
 
         try {
@@ -216,11 +216,31 @@ export function useTable<T extends TableItem>(
                 only: [current.name],
                 headers: lazyFilterHeaders(),
                 showProgress: false,
+                onCancelToken: (token) => {
+                    cancelLazyRequest = () => token.cancel();
+                },
                 onFinish: finish,
             });
         } catch (error) {
             finish();
             throw error;
+        }
+    }
+
+    function drainLazyQueue() {
+        while (
+            !disposed &&
+            !isNavigating.value &&
+            queuedLazyFilters.value.size > 0 &&
+            loadingLazyFilters.value.size === 0
+        ) {
+            const next = queuedLazyFilters.value.values().next().value!;
+            queuedLazyFilters.value = new Set(
+                [...queuedLazyFilters.value].filter(
+                    (candidate) => candidate !== next,
+                ),
+            );
+            loadFilterOptions(next);
         }
     }
 
@@ -648,6 +668,7 @@ export function useTable<T extends TableItem>(
     onScopeDispose(() => {
         disposed = true;
         queuedLazyFilters.value = new Set();
+        cancelLazyRequest?.();
         clearTimeout(debounceTimer);
         clearTimeout(layoutTimer);
         latestVisit++;

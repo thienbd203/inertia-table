@@ -103,6 +103,8 @@ describe("useTable", () => {
             ],
         ).toBeUndefined();
         table.loadFilterOptions("status");
+        expect(reload).toHaveBeenCalledTimes(1);
+        visit.mock.calls[0][1].onFinish();
         expect(reload).toHaveBeenCalledTimes(2);
         resource.value.filters[0].lazyLoaded = true;
         reload.mock.calls[1][0].onFinish();
@@ -197,6 +199,39 @@ describe("useTable", () => {
             expect(table.isFilterOptionsLoading("category")).toBe(false);
         },
     );
+
+    it("cancels stale lazy reloads before navigation and carries queued options forward", () => {
+        const { resource, table } = mountTable();
+        const first = {
+            ...resource.value.filters[0],
+            lazy: true,
+            lazyLoaded: false,
+            options: [],
+        };
+        resource.value.filters = [first, { ...first, attribute: "category" }];
+        table.loadFilterOptions("status");
+        const options = reload.mock.calls[0][0];
+        const cancel = vi.fn(() => options.onFinish());
+        options.onCancelToken({ cancel });
+        table.loadFilterOptions("category");
+        table.setSort("name");
+        expect(cancel).toHaveBeenCalledOnce();
+        expect(reload).toHaveBeenCalledTimes(1);
+        expect(
+            JSON.parse(
+                visit.mock.calls[0][1].headers[
+                    "X-Musing-Inertia-Table-Lazy-Filters"
+                ],
+            ).topics,
+        ).toEqual(["status", "category"]);
+        table.loadFilterOptions("category");
+        expect(table.isFilterOptionsLoading("category")).toBe(true);
+        expect(reload).toHaveBeenCalledTimes(1);
+        resource.value.filters[1].lazyLoaded = true;
+        visit.mock.calls[0][1].onFinish();
+        expect(table.isFilterOptionsLoading("category")).toBe(false);
+        expect(reload).toHaveBeenCalledTimes(1);
+    });
 
     it("loads lazy filter options once and keeps them on later visits", () => {
         const { resource, table } = mountTable();
