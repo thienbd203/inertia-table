@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDebounceFn } from "@vueuse/core";
-import { computed, ref, watch } from "vue";
+import { computed, onScopeDispose, ref, watch } from "vue";
 import { LoaderCircle, Search } from "@lucide/vue";
 import { UiInput } from "@/components/ui/input";
 import { UiButton } from "@/components/ui/button";
@@ -32,6 +32,12 @@ const emitInputValue = useDebounceFn(
     (value: unknown) => emit("update:modelValue", value),
     props.debounceTime,
 );
+watch(
+    () => props.clause,
+    () => emitInputValue.cancel(),
+    { flush: "sync" },
+);
+onScopeDispose(() => emitInputValue.cancel());
 const valueKind = computed(() =>
     filterClauseValueKind(props.filter, props.clause),
 );
@@ -169,6 +175,7 @@ function updateRangeValue(value: [string, string]) {
     draftRange.value = next;
 
     if (next[0] !== "" && next[1] !== "") emitInputValue(next);
+    else emitInputValue.cancel();
 }
 
 defineExpose({

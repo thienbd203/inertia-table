@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Musing\InertiaTable\Columns\DateTimeColumn;
 use Musing\InertiaTable\Columns\TextColumn;
+use Musing\InertiaTable\Filters\DateFilter;
+use Musing\InertiaTable\Filters\NumericFilter;
 use Musing\InertiaTable\Filters\SetFilter;
 use Musing\InertiaTable\Table;
 
@@ -41,6 +43,8 @@ final class TopicsTable extends Table
                 'published' => 'Published',
                 'draft' => 'Draft',
             ])->lazy(),
+            NumericFilter::make('id', 'ID'),
+            DateFilter::make('created_at', 'Created'),
         ];
     }
 }

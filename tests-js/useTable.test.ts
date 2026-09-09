@@ -83,6 +83,8 @@ describe("useTable", () => {
 
     it("allows retry after a lazy request finishes without loading options", () => {
         const { resource, table } = mountTable();
+        const applied = { enabled: true, clause: "equals", value: "featured" };
+        resource.value.state.filters.status = applied;
         Object.assign(resource.value.filters[0], {
             lazy: true,
             lazyLoaded: false,
@@ -93,6 +95,7 @@ describe("useTable", () => {
         expect(reload).toHaveBeenCalledOnce();
         reload.mock.calls[0][0].onFinish();
         expect(table.isFilterOptionsLoading("status")).toBe(false);
+        expect(resource.value.state.filters.status).toEqual(applied);
         table.setSort("name");
         expect(
             visit.mock.calls[0][1].headers?.[
@@ -104,6 +107,7 @@ describe("useTable", () => {
         resource.value.filters[0].lazyLoaded = true;
         reload.mock.calls[1][0].onFinish();
         expect(table.isFilterOptionsLoading("status")).toBe(false);
+        expect(resource.value.state.filters.status).toEqual(applied);
     });
 
     it("clears lazy loading when the router throws before starting a request", () => {
@@ -122,6 +126,37 @@ describe("useTable", () => {
         expect(table.isFilterOptionsLoading("status")).toBe(false);
         table.loadFilterOptions("status");
         expect(reload).toHaveBeenCalledTimes(2);
+    });
+
+    it("finishes concurrent lazy filters independently and retries only the unfinished one", () => {
+        const { resource, table } = mountTable();
+        const first = {
+            ...resource.value.filters[0],
+            lazy: true,
+            lazyLoaded: false,
+            options: [],
+        };
+        resource.value.filters = [first, { ...first, attribute: "category" }];
+        table.loadFilterOptions("status");
+        table.loadFilterOptions("category");
+        expect(reload).toHaveBeenCalledTimes(2);
+        resource.value.filters[1].lazyLoaded = true;
+        reload.mock.calls[1][0].onFinish();
+        expect(table.isFilterOptionsLoading("status")).toBe(true);
+        expect(table.isFilterOptionsLoading("category")).toBe(false);
+        reload.mock.calls[0][0].onFinish();
+        expect(table.isFilterOptionsLoading("status")).toBe(false);
+        table.loadFilterOptions("category");
+        expect(reload).toHaveBeenCalledTimes(2);
+        table.loadFilterOptions("status");
+        expect(reload).toHaveBeenCalledTimes(3);
+        expect(
+            JSON.parse(
+                reload.mock.calls[2][0].headers[
+                    "X-Musing-Inertia-Table-Lazy-Filters"
+                ],
+            ).topics.sort(),
+        ).toEqual(["category", "status"]);
     });
 
     it("loads lazy filter options once and keeps them on later visits", () => {

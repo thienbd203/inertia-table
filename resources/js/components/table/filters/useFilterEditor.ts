@@ -38,10 +38,20 @@ export function useFilterEditor(filter: TableFilter) {
     const clause = ref(state.value?.clause ?? filter.clauses[0] ?? "equals");
     const value = ref<unknown>(state.value?.value ?? "");
 
-    watch(state, (next) => {
-        clause.value = next?.clause ?? filter.clauses[0] ?? "equals";
-        value.value = next?.value ?? "";
-    });
+    // Options-only reloads replace objects without changing the applied filter.
+    // They must not discard a local clause or an incomplete range draft.
+    watch(
+        () =>
+            JSON.stringify([
+                state.value?.enabled,
+                state.value?.clause,
+                state.value?.value,
+            ]),
+        () => {
+            clause.value = state.value?.clause ?? filter.clauses[0] ?? "equals";
+            value.value = state.value?.value ?? "";
+        },
+    );
 
     const clauseOptions = computed(() =>
         filter.clauses.map((candidate) => ({

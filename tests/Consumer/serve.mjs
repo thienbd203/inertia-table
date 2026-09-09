@@ -47,12 +47,25 @@ const server = createServer(async (request, response) => {
             return;
         }
         const sequence = ++requestNumber;
+        const started = Date.now();
+        response.on("close", () => {
+            console.log(
+                JSON.stringify({
+                    sequence,
+                    phase: response.writableFinished
+                        ? "finished"
+                        : "disconnected",
+                    elapsedMs: Date.now() - started,
+                }),
+            );
+        });
         const isLazy = Boolean(
             request.headers["x-musing-inertia-table-lazy-filters"],
         );
         console.log(
             JSON.stringify({
                 sequence,
+                phase: "received",
                 url: request.url,
                 partial: request.headers["x-inertia-partial-data"],
                 lazy: isLazy,

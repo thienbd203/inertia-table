@@ -890,3 +890,40 @@ strategy hoặc lý do `no-change`. Không biến phụ lục thành transcript 
   Chưa chứng minh response overlap/cancel hay retry với applied state có sẵn.
   Thêm hai regression tests cho unsuccessful finish và router exception;
   20 useTable tests và typecheck pass. Bằng chứng chi tiết nằm trong catalog.
+  Follow-up 2026-09-09: consumer có control hủy request Inertia thật và log
+  received/finished/disconnected. Browser hủy lazy request ở 5344ms trước delay
+  10 giây, retry hoàn tất ở 10333ms và có đủ options, console sạch. Thêm test hai
+  lazy filters hoàn tất ngược thứ tự; 21 useTable tests pass. Chưa đánh đồng test
+  loading độc lập với kiểm chứng merge response chồng nhau trên browser.
+  Browser follow-up cùng ngày: retry sau 503 với Draft đã áp dụng giữ URL/Beta,
+  tải lại có nhãn Draft và checkbox checked. Hai filter visits liên tiếp thực sự
+  chồng nhau: request cũ disconnected ở 604ms, kết quả cuối chỉ Published với
+  Alpha/Gamma, console sạch. Đây là interrupted visits, chưa bao phủ hai async
+  reloads thành công về ngược thứ tự hoặc đổi clause/range. Không sửa package
+  thêm vì các ca này pass; test retry bổ sung assertion giữ applied state.
+  Tiếp tục clause/range: component tests tái hiện hai lỗi debounce gửi scalar cũ
+  sau đổi sang range và gửi range cũ sau xóa một đầu. `FilterValueControl` hủy
+  debounce khi đổi clause/range chưa đủ và khi dispose. Ba regression tests pass;
+  consumer thêm NumericFilter ID để kiểm chứng browser tiếp theo. Date range và
+  hai async lazy reloads trả ngược thứ tự vẫn còn trong scope UI01.
+  Browser numeric range đã kiểm chứng: nhập một đầu không tạo request; đủ 2–3
+  tạo đúng một partial request; reload giữ chip 2–3 và Beta/Gamma. Catalog có
+  bảng ownership applied state/draft/options/loading/popover/focus. UI01 vẫn
+  doing vì date range và independent async reload/draft synchronization chưa đủ
+  bằng chứng. Lượt này chỉ bổ sung browser evidence/docs, không đổi package code.
+  Follow-up draft synchronization: regression tái hiện resource được thay bằng
+  JSON tương đương làm mất draft Between [15, ""]. `useFilterEditor` theo dõi
+  nội dung enabled/clause/value thay vì identity object; reload state không đổi
+  giữ draft, server state thực sự đổi vẫn đồng bộ (test Equals 42 pass).
+  Chưa coi đây là xử lý mọi stale response mang applied state khác nội dung.
+  Browser xác nhận draft qua partial reload thật: applied ID Equals 2/Beta,
+  draft Between [1, ""], Ctrl+Enter gửi reload, response xong vẫn giữ clause,
+  lower bound và focus; URL/results vẫn là applied state. Consumer có control
+  reload và shortcut chỉ phục vụ test. Console sạch; không đổi API package.
+  Browser date range: thêm Created (DateFilter) vào consumer; URL Jan 1–4
+  khôi phục calendar và ba rows. Chọn lại Jan 2 chưa gửi request; chọn tiếp Jan 4
+  gửi một partial request, chip đổi Jan 2–4 và kết quả đúng Beta/Gamma, console
+  sạch. Test dùng RangeCalendarRoot thật xác nhận đủ hai đầu mới emit một lần.
+  Tổng 138 JS tests, typecheck, formatting và packed consumer pass. UI01 vẫn
+  doing: hai async reloads thành công trả ngược thứ tự và ảnh hưởng tới draft
+  còn cần browser evidence; keyboard/viewport toàn diện vẫn chưa hoàn tất.
