@@ -1,6 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, h, nextTick, ref } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
 import {
@@ -15,12 +15,6 @@ import { useTable } from "../resources/js/useTable";
 describe("useActions", () => {
     beforeEach(() => {
         resetInertiaMock();
-    });
-
-    afterEach(() => {
-        document.head.querySelector('meta[name="csrf-token"]')?.remove();
-        vi.unstubAllGlobals();
-        vi.useRealTimers();
     });
 
     function mountActions(initialResource = topicResource(), callbacks = {}) {

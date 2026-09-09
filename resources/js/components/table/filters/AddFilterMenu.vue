@@ -25,7 +25,7 @@ const { i18n } = useTableContext();
 
 <template>
     <UiDropdownMenu v-if="filters.length">
-        <UiDropdownMenuTrigger>
+        <UiDropdownMenuTrigger as-child>
             <UiButton variant="outline">
                 <Funnel class="h-4 w-4" />
                 {{ i18n.t("filters") }}

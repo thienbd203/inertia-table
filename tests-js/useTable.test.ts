@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, ref } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
 import {
@@ -15,8 +15,6 @@ describe("useTable", () => {
     beforeEach(() => {
         resetInertiaMock("/admin/topics?keep=yes");
     });
-
-    afterEach(() => vi.useRealTimers());
 
     function mountTable() {
         const resource = ref(topicResource());
@@ -81,6 +79,49 @@ describe("useTable", () => {
         expect(visit.mock.calls[0][0]).toContain(
             "table%5Btopics%5D%5Bfilters%5D%5Bstatus%5D%5Bclause%5D=equals",
         );
+    });
+
+    it("allows retry after a lazy request finishes without loading options", () => {
+        const { resource, table } = mountTable();
+        Object.assign(resource.value.filters[0], {
+            lazy: true,
+            lazyLoaded: false,
+            options: [],
+        });
+        table.loadFilterOptions("status");
+        table.loadFilterOptions("status");
+        expect(reload).toHaveBeenCalledOnce();
+        reload.mock.calls[0][0].onFinish();
+        expect(table.isFilterOptionsLoading("status")).toBe(false);
+        table.setSort("name");
+        expect(
+            visit.mock.calls[0][1].headers?.[
+                "X-Musing-Inertia-Table-Lazy-Filters"
+            ],
+        ).toBeUndefined();
+        table.loadFilterOptions("status");
+        expect(reload).toHaveBeenCalledTimes(2);
+        resource.value.filters[0].lazyLoaded = true;
+        reload.mock.calls[1][0].onFinish();
+        expect(table.isFilterOptionsLoading("status")).toBe(false);
+    });
+
+    it("clears lazy loading when the router throws before starting a request", () => {
+        const { resource, table } = mountTable();
+        Object.assign(resource.value.filters[0], {
+            lazy: true,
+            lazyLoaded: false,
+            options: [],
+        });
+        reload.mockImplementationOnce(() => {
+            throw new Error("Request unavailable");
+        });
+        expect(() => table.loadFilterOptions("status")).toThrow(
+            "Request unavailable",
+        );
+        expect(table.isFilterOptionsLoading("status")).toBe(false);
+        table.loadFilterOptions("status");
+        expect(reload).toHaveBeenCalledTimes(2);
     });
 
     it("loads lazy filter options once and keeps them on later visits", () => {

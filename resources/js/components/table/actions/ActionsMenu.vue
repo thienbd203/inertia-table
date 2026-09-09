@@ -17,7 +17,7 @@ const { actions, i18n } = useTableContext();
 
 <template>
     <UiDropdownMenu v-if="actions.bulkActions.value.length">
-        <UiDropdownMenuTrigger>
+        <UiDropdownMenuTrigger as-child>
             <UiButton variant="outline">
                 <Wrench class="h-4 w-4" />{{ i18n.t("actions") }}</UiButton
             >

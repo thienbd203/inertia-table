@@ -1,6 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { h } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TableItem, TableView } from "../resources/js/types";
 import { topicResource } from "./fixtures";
 import { resetInertiaMock } from "./inertiaMock";
@@ -75,14 +75,22 @@ function attachViews(resource: ReturnType<typeof topicResource>) {
 }
 
 describe("DataTable shadcn renderer", () => {
+    it("renders toolbar menu triggers without nested buttons", () => {
+        const wrapper = mount(DataTable, {
+            props: { resource: topicResource() },
+        });
+        for (const label of ["Filters", "Columns", "Actions"]) {
+            const button = wrapper
+                .findAll("button")
+                .find((node) => node.text() === label);
+            expect(button, label).toBeDefined();
+        }
+        expect(wrapper.find("button button").exists()).toBe(false);
+    });
+
     beforeEach(() => {
         resetInertiaMock();
         setIconResolver(null);
-    });
-
-    afterEach(() => {
-        vi.useRealTimers();
-        document.body.innerHTML = "";
     });
 
     it("renders the bundled shadcn-vue primitives", async () => {

@@ -1,11 +1,9 @@
 import { h } from "vue";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { resolveIcon, setIconResolver } from "../resources/js/icons";
 import { topicResource } from "./fixtures";
 
 describe("icon resolver", () => {
-    afterEach(() => setIconResolver(null));
-
     it("uses a local resolver before the global resolver", () => {
         const action = topicResource().actions[0];
         const GlobalIcon = () => h("svg");

@@ -4,6 +4,12 @@ Create a searchable, sortable Laravel table and render it in Vue. The Laravel
 package defines what the browser may request; the Vue package renders that
 definition and keeps its state in the URL.
 
+Start with a Laravel application that already renders an Inertia Vue page and
+builds Tailwind CSS. This guide assumes an `App\Models\Topic` Eloquent model
+whose `topics` table has `id`, `name`, `status`, `created_at` and `updated_at`
+columns. The optional filter below uses `status` values `published` and `draft`.
+Use your own model and columns if your application has different data.
+
 ## Requirements
 
 - PHP 8.3 or newer
@@ -83,20 +89,29 @@ final class TopicsTable extends Table
 Only columns declared by the table may become search or sort expressions. Raw
 column names from the query string never become SQL identifiers.
 
-## Return it from an Inertia controller
+## Add an Inertia route
+
+Add this route to `routes/web.php`, inside your application's existing
+authentication/authorization group if the data requires it:
 
 ```php
 use App\Tables\TopicsTable;
+use Illuminate\Support\Facades\Route;
 
-return inertia('Topics/Index', [
+Route::get('/topics', fn () => inertia('Topics/Index', [
     'topics' => TopicsTable::make(),
-]);
+]));
 ```
 
 `Table` implements Laravel's `Arrayable` contract. Inertia resolves it when the
 response is serialized, so normal partial reload behavior remains available.
+`TopicsTable` derives the name `topics`; keep that name equal to the Inertia
+prop key. A custom table name must also match its prop key.
 
 ## Render the table
+
+Create `Topics/Index.vue` under the page directory used by your application's
+Inertia resolver (for example, `resources/js/pages/Topics/Index.vue`).
 
 ```vue
 <script setup lang="ts">
@@ -121,6 +136,8 @@ defineProps<{ topics: TableResource<Topic> }>();
 
 You now have server-side search, sorting, pagination, URL state, column
 visibility, and the standard empty-results UI.
+Open `/topics` and try searching and sorting. An empty database will render
+the empty-results UI; add application data to try the query controls.
 
 ## Add a filter
 
@@ -164,6 +181,12 @@ and that `@musing/inertia-table-vue/style.css` is imported once.
 
 The requested capability must be declared by the table. Mark a column
 `sortable()` or `searchable()`, and return filters from `filters()`.
+
+### Controls change the URL but the rows do not update
+
+Check that the table's `name()` matches its Inertia prop key (`topics` in this
+guide). Partial reloads request that prop by name. Also verify that the route
+returns the same page component on subsequent visits.
 
 ### A relationship sort fails
 

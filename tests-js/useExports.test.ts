@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, ref } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TableExport } from "../resources/js/types";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
@@ -63,14 +63,6 @@ describe("useExports", () => {
         vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
             () => {},
         );
-    });
-
-    afterEach(() => {
-        document.head.querySelector('meta[name="csrf-token"]')?.remove();
-        document.cookie = "XSRF-TOKEN=; Max-Age=0; path=/";
-        vi.restoreAllMocks();
-        vi.unstubAllGlobals();
-        vi.useRealTimers();
     });
 
     it("posts normalized state and selection, downloads the response, and preserves selection", async () => {

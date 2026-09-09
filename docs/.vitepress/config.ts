@@ -12,7 +12,11 @@ export default defineConfig({
     base,
     cleanUrls: true,
     lastUpdated: true,
-    srcExclude: ["implementation-plan.vi.md", "docs-site-plan.vi.md"],
+    srcExclude: [
+        "implementation-plan.vi.md",
+        "docs-site-plan.vi.md",
+        "dx-ui-maintainability-plan.vi.md",
+    ],
     sitemap: {
         hostname: site,
     },

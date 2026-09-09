@@ -28,6 +28,7 @@ export default defineConfig({
             ).pathname,
         },
         environment: "happy-dom",
+        setupFiles: ["./tests-js/setup.ts"],
         include: ["tests-js/**/*.test.ts"],
         isolate: false,
     },
