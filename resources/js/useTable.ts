@@ -26,6 +26,8 @@ export function useTable<T extends TableItem>(
         ),
     );
     const loadingLazyFilters = ref(new Set<string>());
+    const queuedLazyFilters = ref(new Set<string>());
+    let disposed = false;
     const resizingColumn = ref<string | null>(null);
     const columnOrder = ref(
         normalizeColumnOrder(
@@ -158,6 +160,16 @@ export function useTable<T extends TableItem>(
             return;
         }
 
+        // Reloads replace the whole table prop. Serialize them so an older
+        // options response cannot overwrite a newer filter's loaded options.
+        if (loadingLazyFilters.value.size > 0) {
+            queuedLazyFilters.value = new Set([
+                ...queuedLazyFilters.value,
+                attribute,
+            ]);
+            return;
+        }
+
         loadedLazyFilters.value = new Set([
             ...loadedLazyFilters.value,
             attribute,
@@ -184,6 +196,19 @@ export function useTable<T extends TableItem>(
                     ),
                 );
             }
+            while (
+                !disposed &&
+                queuedLazyFilters.value.size > 0 &&
+                loadingLazyFilters.value.size === 0
+            ) {
+                const next = queuedLazyFilters.value.values().next().value!;
+                queuedLazyFilters.value = new Set(
+                    [...queuedLazyFilters.value].filter(
+                        (candidate) => candidate !== next,
+                    ),
+                );
+                loadFilterOptions(next);
+            }
         };
 
         try {
@@ -200,7 +225,10 @@ export function useTable<T extends TableItem>(
     }
 
     function isFilterOptionsLoading(attribute: string): boolean {
-        return loadingLazyFilters.value.has(attribute);
+        return (
+            loadingLazyFilters.value.has(attribute) ||
+            queuedLazyFilters.value.has(attribute)
+        );
     }
 
     function patchState(patch: Partial<TableState>) {
@@ -618,6 +646,8 @@ export function useTable<T extends TableItem>(
     );
 
     onScopeDispose(() => {
+        disposed = true;
+        queuedLazyFilters.value = new Set();
         clearTimeout(debounceTimer);
         clearTimeout(layoutTimer);
         latestVisit++;

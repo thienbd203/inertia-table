@@ -64,6 +64,33 @@ functional observations rather than a responsive baseline.
 
 ## Findings
 
+### 2026-09-09: overlapping lazy responses overwrite loaded options (fixed)
+
+Consumer adds Topic (lazy name set) and `node tests/Consumer/serve.mjs
+--lazy-reverse`: first lazy request waits 10 seconds, subsequent ones 500ms.
+Restart the server to reset the sequence. Use applied Status Draft and Topic Beta,
+open Status, Escape, then immediately open Topic.
+
+On baseline `bc5ec0d` with the fixture additions, request 3 finished at 912ms,
+then request 2 at 10337ms. Both completed successfully. The older table resource
+removed Topic options: its editor reverted to Select options, and opening the
+dropdown triggered request 4 to load them again. This is a browser reproduction,
+not merely a mocked callback ordering test.
+
+`useTable` now queues lazy loads within one table instance. The next request
+starts after the current finish and includes previously loaded attributes.
+Queued filters report loading; duplicate requests coalesce; disposal drops the
+queue. This costs additional wait time behind a slow first request, but avoids
+merging client-owned copies of authoritative server resources.
+
+Packed-consumer browser rerun: request 2 finished at 10337ms before request 3
+was received; request 3 finished at 703ms. Topic remained Beta, its dropdown had
+Alpha/Beta/Gamma with Beta checked, results remained Beta, and opening it sent no
+fourth request. Console was clean. 140 JS tests passed, including queue retry,
+header retention, deduplication and disposal; typecheck and packed consumer passed.
+This covers same-instance lazy reload ordering, not arbitrary host-initiated
+reloads or navigation racing against an incomplete draft.
+
 ### 2026-09-09: date range browser verification
 
 Packed consumer now includes Created (DateFilter). In-app browser, normal

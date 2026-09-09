@@ -927,3 +927,10 @@ strategy hoặc lý do `no-change`. Không biến phụ lục thành transcript 
   Tổng 138 JS tests, typecheck, formatting và packed consumer pass. UI01 vẫn
   doing: hai async reloads thành công trả ngược thứ tự và ảnh hưởng tới draft
   còn cần browser evidence; keyboard/viewport toàn diện vẫn chưa hoàn tất.
+  Follow-up lazy race: browser tái hiện hai reload thành công về ngược thứ tự
+  làm mất options Topic và phát sinh request tải lại. `useTable` tuần tự hóa lazy
+  reload trong cùng instance, giữ loading cho mục chờ và bỏ queue khi dispose.
+  Browser sau sửa giữ đủ options/selection, không tải lại thừa, console sạch.
+  140 JS tests pass; typecheck và packed consumer pass. Đổi lại lazy filter sau
+  phải chờ request trước. UI01 vẫn doing: tương tác với host reload/navigation
+  khi đang sửa draft và keyboard coverage còn cần kiểm chứng.

@@ -128,7 +128,7 @@ describe("useTable", () => {
         expect(reload).toHaveBeenCalledTimes(2);
     });
 
-    it("finishes concurrent lazy filters independently and retries only the unfinished one", () => {
+    it("serializes lazy reloads and retries only the unfinished filter", () => {
         const { resource, table } = mountTable();
         const first = {
             ...resource.value.filters[0],
@@ -139,13 +139,15 @@ describe("useTable", () => {
         resource.value.filters = [first, { ...first, attribute: "category" }];
         table.loadFilterOptions("status");
         table.loadFilterOptions("category");
+        expect(reload).toHaveBeenCalledTimes(1);
+        expect(table.isFilterOptionsLoading("status")).toBe(true);
+        expect(table.isFilterOptionsLoading("category")).toBe(true);
+        reload.mock.calls[0][0].onFinish();
+        expect(table.isFilterOptionsLoading("status")).toBe(false);
         expect(reload).toHaveBeenCalledTimes(2);
         resource.value.filters[1].lazyLoaded = true;
         reload.mock.calls[1][0].onFinish();
-        expect(table.isFilterOptionsLoading("status")).toBe(true);
         expect(table.isFilterOptionsLoading("category")).toBe(false);
-        reload.mock.calls[0][0].onFinish();
-        expect(table.isFilterOptionsLoading("status")).toBe(false);
         table.loadFilterOptions("category");
         expect(reload).toHaveBeenCalledTimes(2);
         table.loadFilterOptions("status");
@@ -158,6 +160,43 @@ describe("useTable", () => {
             ).topics.sort(),
         ).toEqual(["category", "status"]);
     });
+
+    it.each([false, true])(
+        "handles queued lazy options after disposal=%s",
+        (dispose) => {
+            const { resource, table, wrapper } = mountTable();
+            const first = {
+                ...resource.value.filters[0],
+                lazy: true,
+                lazyLoaded: false,
+                options: [],
+            };
+            resource.value.filters = [
+                first,
+                { ...first, attribute: "category" },
+            ];
+            table.loadFilterOptions("status");
+            table.loadFilterOptions("category");
+            table.loadFilterOptions("category");
+            expect(reload).toHaveBeenCalledTimes(1);
+            resource.value.filters[0].lazyLoaded = true;
+            if (dispose) wrapper.unmount();
+            reload.mock.calls[0][0].onFinish();
+            expect(reload).toHaveBeenCalledTimes(dispose ? 1 : 2);
+            if (!dispose) {
+                expect(
+                    JSON.parse(
+                        reload.mock.calls[1][0].headers[
+                            "X-Musing-Inertia-Table-Lazy-Filters"
+                        ],
+                    ).topics,
+                ).toEqual(["status", "category"]);
+                resource.value.filters[1].lazyLoaded = true;
+                reload.mock.calls[1][0].onFinish();
+            }
+            expect(table.isFilterOptionsLoading("category")).toBe(false);
+        },
+    );
 
     it("loads lazy filter options once and keeps them on later visits", () => {
         const { resource, table } = mountTable();

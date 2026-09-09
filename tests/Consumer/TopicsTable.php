@@ -45,6 +45,11 @@ final class TopicsTable extends Table
             ])->lazy(),
             NumericFilter::make('id', 'ID'),
             DateFilter::make('created_at', 'Created'),
+            SetFilter::make('name', 'Topic')->options([
+                'Alpha' => 'Alpha',
+                'Beta' => 'Beta',
+                'Gamma' => 'Gamma',
+            ])->lazy(),
         ];
     }
 }
