@@ -3,6 +3,30 @@
 Actions are declared on the server and may run for one row, an explicit bulk
 selection, or every selectable result matching the current search and filters.
 
+## Callback reference
+
+| Method | Arguments | Invocation/result |
+| --- | --- | --- |
+| `authorize` | `Request` | Request-level permission; returns bool |
+| `authorized` | Row `Model` | Row permission; returns bool; callback is not invoked without a model |
+| `disabled`, `hidden`, `disabledAndHidden` | Row `Model` | Return bool; callback conditions resolve false without a model |
+| `endpoint` URL callback | Row `Model` | Return URL string or null; not called without a model |
+| Dynamic label, tooltip, button class | `Model` or **null** | May be evaluated without a row, for example for bulk controls |
+| `handle` | Row `Model`, `Selection` | Once per processed row |
+| `handleSelection` | `Selection` | Once for the whole selection |
+| `before` | `Selection` | Once before handling; return value ignored |
+| `after` | `Selection`, handler result | Once after successful handling |
+
+`after` receives the **last processed row's return value** for `handle`, not an
+array of all results. With no processed rows it receives null. For
+`handleSelection`, it receives that handler's return value. Returning null keeps
+the handler result; a non-empty string redirects. An exception before or during
+handling prevents `after` from running: it is not a `finally` hook.
+
+Use `authorize(Request)` for request-wide access rather than a model callback
+that assumes a row exists. Model-specific types are not inferred from the table;
+these callback contracts use Eloquent `Model`.
+
 ## Row actions
 
 ```php

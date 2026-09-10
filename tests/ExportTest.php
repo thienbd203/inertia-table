@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
@@ -17,6 +18,22 @@ use Musing\InertiaTable\Exports\Export;
 use Musing\InertiaTable\Filters\BooleanFilter;
 use Musing\InertiaTable\Support\TableReference;
 use Musing\InertiaTable\Table;
+
+it('injects export callback arguments by name in any order', function () {
+    $request = Request::create('/exports');
+    $table = new ExportTopicsTable;
+    $query = ExportTopicRecord::query();
+    $export = Export::make('csv')
+        ->label(fn (Table $table): string => $table->name())
+        ->modifyQueryUsing(function (array $state, Builder $query): void {
+            expect($state)->toBe(['search' => 'Beta']);
+            $query->where('name', 'Beta');
+        });
+
+    expect($export->resolvedLabel($request, $table))->toBe($table->name());
+    expect($export->modifyQuery($query, $request, $table, ['search' => 'Beta'], null))->toBe($query);
+    expect($query->getBindings())->toContain('Beta');
+});
 
 class ExportTopicRecord extends Model
 {

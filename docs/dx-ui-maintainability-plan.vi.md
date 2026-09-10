@@ -128,7 +128,7 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | M02 | Tách trách nhiệm nội bộ của useTable nếu có lợi | P2 | M | UI02, DX04 | todo |
 | M03 | Tách selection khỏi action execution nếu có lợi | P2 | M | UI05, DX04 | todo |
 | M04 | Rà PHP extension hooks và thu gọn hotspot có bằng chứng | P2 | L | DX03, DX05 | todo |
-| M05 | CI gates theo contract và consumer | P0 | M | DX02, DX04, M01 | todo |
+| M05 | CI gates theo contract và consumer | P0 | M | DX02, DX04, M01 | doing |
 | M06 | Tài liệu ownership, maintenance và compatibility | P1 | S | M02–M05 | todo |
 | M07 | Đo performance, sửa bottleneck đã xác nhận | P2 | M | UI01–UI05, M02–M04 | todo |
 | V01 | Kiểm chứng cuối và bàn giao theo tiêu chí | P0 | L | Tất cả task trên có kết luận | todo |
@@ -257,6 +257,40 @@ arguments; chạy bằng `vendor/bin/phpstan analyse tests/Consumer/column-types
 --no-progress --debug`. PHPStan repo và fixture pass; 15 ColumnSerialization
 tests (84 assertions), scoped Pint và docs build pass. Chưa hứa model-specific
 inference; actions/exports/query callbacks vẫn cần rà tiếp.
+
+Actions follow-up: PHPDoc cho row authorization/conditions và endpoint resolver;
+docs phân biệt Request với Model, nullable presentation callbacks, before/after
+lifecycle và kết quả cuối cùng của per-row handler. Fixture
+`tests/Consumer/action-types.php` kiểm tra fluent chain với row/selection handlers
+bằng PHPStan (chạy riêng tương tự column fixture). PHPStan repo và fixture pass;
+17 ActionExecution tests (44 assertions) pass. Exports, queue callbacks và query
+hooks vẫn còn trong scope DX03; chưa đánh dấu toàn bộ task done.
+
+Exports/queue follow-up: đối chiếu `app()->call` và ghi rõ named parameters,
+nullable delivery URL và return values trong docs exports/queues. Bỏ PHPDoc
+positional ở query modifier và notification hooks vì chúng không mô tả đúng
+container injection; giữ native Closure và mô tả tên/type kỳ vọng. Fixture
+`tests/Consumer/export-types.php` cho subset/reordered parameters pass PHPStan;
+runtime regression chứng minh query callback `(state, query)` nhận đúng query,
+mutate không return vẫn giữ builder. PHPStan repo, 34 export/queued action tests
+(196 assertions), Pint và docs build pass. Query hooks ngoài export vẫn cần rà;
+chưa có model-specific inference hay tự động kiểm tra tên dependency trong IDE.
+
+Query follow-up: bổ sung contract `query()` trả Eloquent builder, phân biệt
+class `withQueryBuilder()` phải return với anonymous callback được mutate/void.
+Anonymous transform callback được mô tả trả row array. Fixture
+`tests/Consumer/query-types.php` kiểm tra cả mutate và return builder; PHPStan
+repo/fixture, 7 AnonymousTable tests (61 assertions), Pint và docs build pass.
+Thêm `composer analyse:consumer` để chạy cả bốn fixtures column/action/export/query
+trong một lệnh. DX03 còn cần audit tổng các callback chưa covered và consumer
+subclass/negative type cases trước khi chốt done; chưa hứa model inference.
+
+Type-gate follow-up: thêm subclass `ConsumerTextColumn` với fluent method riêng;
+PHPStan giữ đúng concrete type. Thêm ba input cố ý sai (URL/transform/query
+return types), verifier yêu cầu đúng ba diagnostic `argument.type`, không thêm
+baseline hay ignore để che lỗi. `composer analyse:consumer:negative` chạy verifier;
+workflow PHPStan chạy cả positive/negative consumer checks và theo dõi thay đổi
+composer files. Đây là M05 partial; chưa xác nhận remote CI hoặc các gates Vue.
 
 ### DX04 — Vue types và slots có autocomplete hữu ích
 

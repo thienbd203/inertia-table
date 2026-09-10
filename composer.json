@@ -54,6 +54,8 @@
         "post-autoload-dump": "@composer run prepare",
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
         "analyse": "vendor/bin/phpstan analyse",
+        "analyse:consumer": "vendor/bin/phpstan analyse tests/Consumer/column-types.php tests/Consumer/action-types.php tests/Consumer/export-types.php tests/Consumer/query-types.php",
+        "analyse:consumer:negative": "@php tests/Consumer/verify-invalid-callback-types.php",
         "test": "vendor/bin/pest",
         "test-coverage": "vendor/bin/pest --coverage",
         "format": "vendor/bin/pint"

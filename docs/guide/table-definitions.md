@@ -1,5 +1,21 @@
 # Table definitions
 
+## Query and transform hook contracts
+
+| Hook | Input | Return contract |
+| --- | --- | --- |
+| Class `query()` | None | Eloquent `Builder` with the base constraints |
+| Class `withQueryBuilder()` | Spatie `QueryBuilder` | Must return a Spatie `QueryBuilder` |
+| Anonymous `withQueryBuilder` callback | Spatie `QueryBuilder` | Return a Spatie builder, or mutate the supplied builder and return null/nothing |
+| Anonymous `transformModelUsing` callback | Eloquent `Model` | Row array |
+
+`withQueryBuilder` runs before the declared filters and sorts are applied. It
+is not a hook receiving already paginated results. Anonymous callbacks receive
+their argument positionally; they do not use container injection. A class hook
+must return the builder, whereas the anonymous callback may mutate it in place.
+Transform callbacks return the row data rather than changing the query.
+Model-specific callback inference is not provided; the contract uses `Model`.
+
 A dedicated table class is the source of truth for query capabilities and
 server-managed workflows. Use an anonymous table for small read-only screens.
 

@@ -132,6 +132,7 @@ final class Action implements Arrayable
         return $this;
     }
 
+    /** @param bool|Closure(Model): bool $authorized */
     public function authorized(bool|Closure $authorized = true): self
     {
         $this->authorized = $authorized;
@@ -147,6 +148,7 @@ final class Action implements Arrayable
         return $this;
     }
 
+    /** @param bool|Closure(Model): bool $disabled */
     public function disabled(bool|Closure $disabled = true): self
     {
         $this->disabled = $disabled;
@@ -154,6 +156,7 @@ final class Action implements Arrayable
         return $this;
     }
 
+    /** @param bool|Closure(Model): bool $hidden */
     public function hidden(bool|Closure $hidden = true): self
     {
         $this->hidden = $hidden;
@@ -161,6 +164,7 @@ final class Action implements Arrayable
         return $this;
     }
 
+    /** @param bool|Closure(Model): bool $condition */
     public function disabledAndHidden(bool|Closure $condition = true): self
     {
         return $this->disabled($condition)->hidden($condition);
@@ -210,6 +214,7 @@ final class Action implements Arrayable
         return $this;
     }
 
+    /** @param string|Closure(Model): (string|null) $url */
     public function endpoint(string $method, string|Closure $url): self
     {
         if ($this->handler instanceof Closure) {
@@ -248,7 +253,11 @@ final class Action implements Arrayable
         return $this;
     }
 
-    /** @param Closure(Selection): mixed $callback */
+    /**
+     * Runs once before handling the selection; its return value is ignored.
+     *
+     * @param  Closure(Selection): mixed  $callback
+     */
     public function before(Closure $callback): self
     {
         $this->before = $callback;
@@ -256,7 +265,12 @@ final class Action implements Arrayable
         return $this;
     }
 
-    /** @param string|Closure(Selection, mixed): mixed $callback */
+    /**
+     * Receives the last per-model result, or the selection handler result.
+     * Returning null preserves that result; a non-empty string redirects.
+     *
+     * @param  string|Closure(Selection, mixed): mixed  $callback
+     */
     public function after(string|Closure $callback): self
     {
         $this->after = $callback;
@@ -351,7 +365,7 @@ final class Action implements Arrayable
         return $this;
     }
 
-    /** @param Closure(QueuedActionSnapshot, mixed): mixed $callback */
+    /** Container callback with named snapshot and result; return ignored. */
     public function onCompleted(Closure $callback): self
     {
         $this->completedCallback = $callback;
@@ -359,7 +373,7 @@ final class Action implements Arrayable
         return $this;
     }
 
-    /** @param Closure(QueuedActionSnapshot, Throwable): mixed $callback */
+    /** Container callback with named snapshot and exception; return ignored. */
     public function onFailure(Closure $callback): self
     {
         $this->failureCallback = $callback;
