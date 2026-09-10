@@ -116,11 +116,11 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | DX02 | Consumer fixture dùng package đã đóng gói, CSR/SSR | P0 | L | M01, phần local guide của DX01 | done |
 | UI00 | Catalog kịch bản và baseline UI | P0 | M | Q00 | doing |
 | UI01 | Filter draft, lazy loading và focus | P0 | L | M01, UI00 | doing |
-| UI02 | Navigation/loading, URL và resource sync | P0 | L | UI01 | todo |
+| UI02 | Navigation/loading, URL và resource sync | P0 | L | UI01 | doing |
 | UI03 | Keyboard, labels và overlay accessibility | P1 | M | UI00, UI01 | todo |
 | UI04 | Responsive, theme và visual consistency | P1 | M | UI00, UI03 | todo |
 | UI05 | Phản hồi action/export/view theo kết quả thật | P1 | M | UI02, UI03 | todo |
-| DX03 | PHP callback docs và fluent API typing | P1 | M | Q00 | todo |
+| DX03 | PHP callback docs và fluent API typing | P1 | M | Q00 | doing |
 | DX04 | Vue props/events/slots và consumer types | P1 | M | DX02 | todo |
 | DX05 | Error messages và declaration validation | P1 | M | Q00 | todo |
 | DX06 | Generator output nhỏ, rõ và chạy được | P1 | S | DX03, DX05 | todo |
@@ -248,6 +248,15 @@ xanh không còn là bằng chứng duy nhất cho install/SSR. Không tắt SSR
 
 **Done:** docs và IDE mô tả đúng callback; fluent chains/subclasses cũ vẫn dùng
 được. Chưa đạt model-specific inference phải ghi giới hạn, không hứa sai type.
+
+Tiến độ 2026-09-10: đối chiếu call sites của column callbacks; bổ sung PHPDoc
+cho `mapAs`, `url`, named arguments của `make` và mô tả `exportAs` nhận giá trị
+sau mapping. Docs columns có bảng argument order, đặc biệt hai dạng `image`.
+Fixture `tests/Consumer/column-types.php` kiểm tra fluent `TextColumn` và named
+arguments; chạy bằng `vendor/bin/phpstan analyse tests/Consumer/column-types.php
+--no-progress --debug`. PHPStan repo và fixture pass; 15 ColumnSerialization
+tests (84 assertions), scoped Pint và docs build pass. Chưa hứa model-specific
+inference; actions/exports/query callbacks vẫn cần rà tiếp.
 
 ### DX04 — Vue types và slots có autocomplete hữu ích
 
@@ -942,3 +951,26 @@ strategy hoặc lý do `no-change`. Không biến phụ lục thành transcript 
   không khôi phục filter và giữ ba rows; console sạch. 141 JS tests, format,
   typecheck và packed consumer pass. Chưa bao phủ navigation do host gọi ngoài
   useTable hoặc hoàn tất keyboard matrix; UI01/UI02 chưa đánh dấu done.
+  Follow-up 2026-09-10 search/sort: regression tái hiện nhập Beta rồi sort trước
+  debounce làm request sort thiếu search. Navigation giờ gộp search draft đang
+  chờ, trim giá trị, reset pagination và hủy timer để không gửi lần sau bằng
+  server state cũ. Test xác nhận một request giữ Beta và descending; Clear all
+  không phục hồi search sau timer. Đây là component evidence, chưa đánh dấu
+  browser RACE pass hay UI02 done.
+  Pagination follow-up: tests cho page và cursor xác nhận search pending reset
+  pagination đúng một lần; navigation sau response giữ page/cursor mới. Test
+  riêng xác nhận timer đã chạy bình thường không reset lần chuyển trang sau.
+  Tổng 146 JS tests và typecheck pass. Browser automation không có trong phiên
+  kiểm chứng này, nên RACE browser vẫn chưa được đánh dấu pass.
+  Search normalization follow-up: regression tái hiện input giữ ` Beta ` sau
+  khi applied state là `Beta`, làm mất đồng bộ khi state ngoài đổi tiếp.
+  Callback success của visit mới nhất chỉ nhận applied search nếu input vẫn
+  bằng draft lúc dispatch; draft Gamma nhập sau được giữ. Tests bao phủ nhận
+  normalization, bảo vệ draft mới và đồng bộ external Alpha sau đó. 148 JS
+  tests, typecheck và format pass; chưa xem đây là browser history evidence.
+  Callback-order follow-up: test xác nhận success/finish của visit cũ không
+  sửa search hoặc tắt loading của visit mới; callback sau dispose cũng bị bỏ
+  qua. UI02 chuyển doing để phản ánh phần navigation đã triển khai, chưa done.
+  Còn ưu tiên: browser search/sort và history, navigation do host gọi, keyboard
+  filter/overlay; sau đó UI04/UI05, DX03–DX07 và các maintenance/CI gates theo
+  dependencies. Không coi số lượng test pass là thay thế cho browser evidence.

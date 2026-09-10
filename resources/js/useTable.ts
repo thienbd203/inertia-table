@@ -108,8 +108,19 @@ export function useTable<T extends TableItem>(
     }
 
     function visit(state: TableState, replace = true) {
+        if (debounceTimer !== undefined) {
+            clearTimeout(debounceTimer);
+            debounceTimer = undefined;
+            state = {
+                ...state,
+                search: search.value.trim(),
+                page: 1,
+                cursor: null,
+            };
+        }
         const current = toValue(resource);
         const visitId = ++latestVisit;
+        const submittedSearchDraft = search.value;
         clearTimeout(layoutTimer);
         layoutTimer = undefined;
         isNavigating.value = true;
@@ -129,6 +140,14 @@ export function useTable<T extends TableItem>(
                 replace,
                 only: [current.name, ...current.options.reloadProps],
                 headers: lazyFilterHeaders(),
+                onSuccess: () => {
+                    if (
+                        visitId === latestVisit &&
+                        search.value === submittedSearchDraft
+                    ) {
+                        search.value = toValue(resource).state.search;
+                    }
+                },
                 onFinish: () => {
                     if (visitId === latestVisit) {
                         isNavigating.value = false;
@@ -268,6 +287,7 @@ export function useTable<T extends TableItem>(
         search.value = value;
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
+            debounceTimer = undefined;
             patchState({ search: value.trim(), page: 1, cursor: null });
         }, toValue(resource).options.debounceTime);
     }
@@ -356,6 +376,7 @@ export function useTable<T extends TableItem>(
     function clearAll() {
         search.value = "";
         clearTimeout(debounceTimer);
+        debounceTimer = undefined;
         const filters = Object.fromEntries(
             toValue(resource).filters.map((filter) => [
                 filter.attribute,

@@ -1,5 +1,5 @@
 import { mount } from "@vue/test-utils";
-import { defineComponent, h, ref } from "vue";
+import { defineComponent, h, nextTick, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
@@ -79,6 +79,135 @@ describe("useTable", () => {
         expect(visit.mock.calls[0][0]).toContain(
             "table%5Btopics%5D%5Bfilters%5D%5Bstatus%5D%5Bclause%5D=equals",
         );
+    });
+
+    it("folds pending search into sorting without a stale follow-up visit", () => {
+        vi.useFakeTimers();
+        const { table, wrapper } = mountTable();
+        table.setSearch(" Beta ");
+        table.setSort("name", "desc");
+        expect(visit).toHaveBeenCalledOnce();
+        const url = new URL(visit.mock.calls[0][0], "http://localhost");
+        expect(url.searchParams.get("table[topics][search]")).toBe("Beta");
+        expect(url.searchParams.get("table[topics][sort]")).toBe("-name");
+        vi.advanceTimersByTime(1000);
+        expect(visit).toHaveBeenCalledOnce();
+        wrapper.unmount();
+        vi.useRealTimers();
+    });
+
+    it.each(["pages", "cursor"] as const)(
+        "resets %s pagination only while search is pending",
+        (pagination) => {
+            vi.useFakeTimers();
+            const { table, resource, wrapper } = mountTable();
+            resource.value.options.paginationType =
+                pagination === "cursor" ? "cursor" : "full";
+            resource.value.results.lastPage = 5;
+            const next = () =>
+                pagination === "cursor"
+                    ? table.setCursor("next-cursor")
+                    : table.setPage(2);
+            table.setSearch("Beta");
+            next();
+            const first = new URL(visit.mock.calls[0][0], "http://localhost");
+            expect(first.searchParams.get("table[topics][search]")).toBe(
+                "Beta",
+            );
+            expect(first.searchParams.get("table[topics][page]") ?? "1").toBe(
+                "1",
+            );
+            expect(first.searchParams.has("table[topics][cursor]")).toBe(false);
+            resource.value.state.search = "Beta";
+            visit.mock.calls[0][1].onFinish();
+            next();
+            const second = new URL(visit.mock.calls[1][0], "http://localhost");
+            expect(
+                second.searchParams.get(
+                    `table[topics][${pagination === "cursor" ? "cursor" : "page"}]`,
+                ),
+            ).toBe(pagination === "cursor" ? "next-cursor" : "2");
+            vi.advanceTimersByTime(1000);
+            expect(visit).toHaveBeenCalledTimes(2);
+            wrapper.unmount();
+            vi.useRealTimers();
+        },
+    );
+
+    it("does not reset later pagination after the search timer has fired", () => {
+        vi.useFakeTimers();
+        const { table, resource, wrapper } = mountTable();
+        resource.value.results.lastPage = 5;
+        table.setSearch("Beta");
+        vi.advanceTimersByTime(300);
+        resource.value.state.search = "Beta";
+        visit.mock.calls[0][1].onFinish();
+        table.setPage(2);
+        const url = new URL(visit.mock.calls[1][0], "http://localhost");
+        expect(url.searchParams.get("table[topics][page]")).toBe("2");
+        wrapper.unmount();
+        vi.useRealTimers();
+    });
+
+    it("does not restore pending search after clearing all state", () => {
+        vi.useFakeTimers();
+        const { table, wrapper } = mountTable();
+        table.setSearch("Beta");
+        table.clearAll();
+        vi.advanceTimersByTime(1000);
+        expect(visit).toHaveBeenCalledOnce();
+        const url = new URL(visit.mock.calls[0][0], "http://localhost");
+        expect(url.searchParams.has("table[topics][search]")).toBe(false);
+        expect(table.search.value).toBe("");
+        wrapper.unmount();
+        vi.useRealTimers();
+    });
+
+    it.each([false, true])(
+        "synchronizes normalized search without replacing a newer draft=%s",
+        async (edited) => {
+            vi.useFakeTimers();
+            const { table, resource, wrapper } = mountTable();
+            table.setSearch(" Beta ");
+            vi.advanceTimersByTime(300);
+            if (edited) table.setSearch("Gamma");
+            resource.value.state.search = "Beta";
+            await nextTick();
+            visit.mock.calls[0][1].onSuccess?.();
+            expect(table.search.value).toBe(edited ? "Gamma" : "Beta");
+            if (!edited) {
+                resource.value.state.search = "Alpha";
+                await nextTick();
+                expect(table.search.value).toBe("Alpha");
+            }
+            wrapper.unmount();
+            vi.useRealTimers();
+        },
+    );
+
+    it("ignores stale navigation callbacks and callbacks after disposal", () => {
+        vi.useFakeTimers();
+        const { table, resource, wrapper } = mountTable();
+        table.setSearch(" Beta ");
+        table.setSort("name", "asc");
+        const older = visit.mock.calls[0][1];
+        table.setSort("name", "desc");
+        const newer = visit.mock.calls[1][1];
+        resource.value.state.search = "old-response";
+        older.onSuccess();
+        older.onFinish();
+        expect(table.search.value).toBe(" Beta ");
+        expect(table.isNavigating.value).toBe(true);
+        resource.value.state.search = "Beta";
+        newer.onSuccess();
+        newer.onFinish();
+        expect(table.search.value).toBe("Beta");
+        expect(table.isNavigating.value).toBe(false);
+        wrapper.unmount();
+        resource.value.state.search = "disposed-response";
+        newer.onSuccess();
+        expect(table.search.value).toBe("Beta");
+        vi.useRealTimers();
     });
 
     it("allows retry after a lazy request finishes without loading options", () => {

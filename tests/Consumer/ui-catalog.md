@@ -64,6 +64,47 @@ functional observations rather than a responsive baseline.
 
 ## Findings
 
+### 2026-09-10: stale navigation callbacks
+
+Composable regression starts two visits, delivers the older success/finish
+callbacks first, and verifies the draft stays unchanged and loading remains
+active for the newer visit. The latest success synchronizes search and finish
+clears loading. Replaying its success after scope disposal does not modify the
+draft. This tests callback ownership, not Inertia's response/resource merge.
+
+### 2026-09-10: accepted search normalization and newer drafts
+
+A composable regression reproduced that submitting `Beta` left the input
+unchanged after the applied state became `Beta`; later external state updates
+could then be mistaken for changes arriving while the user was still editing.
+The latest successful visit now adopts applied search only when the input still
+equals the draft captured at dispatch. A newer Gamma draft remains untouched.
+Tests cover both paths and a subsequent external Alpha state update after the
+normalized Beta is accepted. All 148 JS tests, typecheck and formatting pass.
+This does not establish browser history coverage or prevent external Inertia
+requests from replacing the table resource itself.
+
+### 2026-09-10: pending search and immediate sorting (component regression)
+
+On baseline `097fa99`, typing `Beta` then sorting Name descending before the
+debounce expired produced a sort URL without Beta. The remaining timer could
+then build its search request from the previous server sort state.
+The regression failed before the fix on the missing search parameter.
+
+Navigation now consumes a pending search timer: it includes the trimmed draft,
+resets pagination, and cancels the delayed follow-up. The timer clears its handle
+when it fires normally; Clear all also clears the handle so it cannot revive a
+search draft. Tests verify one combined Beta/descending request and no second
+request after timers advance, plus Clear all preserving an empty search.
+This is component/composable evidence; the RACE browser matrix remains not-run.
+
+Pagination follow-up: parameterized page/cursor regressions verify that pending
+search resets page/cursor once, while the next pagination action after the
+response keeps its requested page or cursor. A separate test lets the debounce
+expire normally, then verifies page 2 is not reset by a stale timer handle.
+All 146 JS tests and typecheck pass. Browser RACE remains unverified; browser
+automation was unavailable in this session.
+
 ### 2026-09-09: navigation during lazy loading restores a removed filter (fixed)
 
 Baseline `2c58799`, packed consumer, in-app browser, `--lazy-reverse`.

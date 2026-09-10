@@ -57,7 +57,7 @@ class Column implements Arrayable
 
     protected ?string $cellClass = null;
 
-    /** @var Closure|array<string|int, mixed>|null */
+    /** @var Closure(mixed, Model): mixed|array<string|int, mixed>|null */
     protected Closure|array|null $valueMapper = null;
 
     /** @var Closure(Builder, SortDirection): void|null */
@@ -72,6 +72,7 @@ class Column implements Arrayable
     /** @var array<string, mixed> */
     protected array $meta = [];
 
+    /** @var Closure(Model, Url): (Url|string|null)|null */
     protected ?Closure $urlResolver = null;
 
     protected string|Closure|null $imageResolver = null;
@@ -94,6 +95,10 @@ class Column implements Arrayable
         public string $label,
     ) {}
 
+    /**
+     * @param  Closure(mixed, Model): mixed|array<string|int, mixed>|null  $mapAs
+     * @param  Closure(Model, Url): (Url|string|null)|null  $url
+     */
     public static function make(
         string $attribute,
         ?string $label = null,
@@ -346,7 +351,7 @@ class Column implements Arrayable
         return $this;
     }
 
-    /** @param Closure|array<string|int, mixed> $mapper */
+    /** @param Closure(mixed, Model): mixed|array<string|int, mixed> $mapper */
     public function mapAs(Closure|array $mapper): static
     {
         $this->valueMapper = $mapper;
@@ -396,6 +401,7 @@ class Column implements Arrayable
         return $this;
     }
 
+    /** @param Closure(Model, Url): (Url|string|null) $resolver */
     public function url(Closure $resolver): static
     {
         $this->urlResolver = $resolver;
@@ -411,7 +417,11 @@ class Column implements Arrayable
         return $this;
     }
 
-    /** @param Closure(mixed, Model): mixed $mapper */
+    /**
+     * Receives the display value after mapAs(), not the raw model attribute.
+     *
+     * @param  Closure(mixed, Model): mixed  $mapper
+     */
     public function exportAs(Closure $mapper): static
     {
         $this->exportMapper = $mapper;
