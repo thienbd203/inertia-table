@@ -116,11 +116,11 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | DX02 | Consumer fixture dùng package đã đóng gói, CSR/SSR | P0 | L | M01, phần local guide của DX01 | done |
 | UI00 | Catalog kịch bản và baseline UI | P0 | M | Q00 | doing |
 | UI01 | Filter draft, lazy loading và focus | P0 | L | M01, UI00 | doing |
-| UI02 | Navigation/loading, URL và resource sync | P0 | L | UI01 | todo |
+| UI02 | Navigation/loading, URL và resource sync | P0 | L | UI01 | doing |
 | UI03 | Keyboard, labels và overlay accessibility | P1 | M | UI00, UI01 | todo |
 | UI04 | Responsive, theme và visual consistency | P1 | M | UI00, UI03 | todo |
 | UI05 | Phản hồi action/export/view theo kết quả thật | P1 | M | UI02, UI03 | todo |
-| DX03 | PHP callback docs và fluent API typing | P1 | M | Q00 | todo |
+| DX03 | PHP callback docs và fluent API typing | P1 | M | Q00 | doing |
 | DX04 | Vue props/events/slots và consumer types | P1 | M | DX02 | todo |
 | DX05 | Error messages và declaration validation | P1 | M | Q00 | todo |
 | DX06 | Generator output nhỏ, rõ và chạy được | P1 | S | DX03, DX05 | todo |
@@ -248,6 +248,15 @@ xanh không còn là bằng chứng duy nhất cho install/SSR. Không tắt SSR
 
 **Done:** docs và IDE mô tả đúng callback; fluent chains/subclasses cũ vẫn dùng
 được. Chưa đạt model-specific inference phải ghi giới hạn, không hứa sai type.
+
+Tiến độ 2026-09-10: đối chiếu call sites của column callbacks; bổ sung PHPDoc
+cho `mapAs`, `url`, named arguments của `make` và mô tả `exportAs` nhận giá trị
+sau mapping. Docs columns có bảng argument order, đặc biệt hai dạng `image`.
+Fixture `tests/Consumer/column-types.php` kiểm tra fluent `TextColumn` và named
+arguments; chạy bằng `vendor/bin/phpstan analyse tests/Consumer/column-types.php
+--no-progress --debug`. PHPStan repo và fixture pass; 15 ColumnSerialization
+tests (84 assertions), scoped Pint và docs build pass. Chưa hứa model-specific
+inference; actions/exports/query callbacks vẫn cần rà tiếp.
 
 ### DX04 — Vue types và slots có autocomplete hữu ích
 
@@ -890,3 +899,78 @@ strategy hoặc lý do `no-change`. Không biến phụ lục thành transcript 
   Chưa chứng minh response overlap/cancel hay retry với applied state có sẵn.
   Thêm hai regression tests cho unsuccessful finish và router exception;
   20 useTable tests và typecheck pass. Bằng chứng chi tiết nằm trong catalog.
+  Follow-up 2026-09-09: consumer có control hủy request Inertia thật và log
+  received/finished/disconnected. Browser hủy lazy request ở 5344ms trước delay
+  10 giây, retry hoàn tất ở 10333ms và có đủ options, console sạch. Thêm test hai
+  lazy filters hoàn tất ngược thứ tự; 21 useTable tests pass. Chưa đánh đồng test
+  loading độc lập với kiểm chứng merge response chồng nhau trên browser.
+  Browser follow-up cùng ngày: retry sau 503 với Draft đã áp dụng giữ URL/Beta,
+  tải lại có nhãn Draft và checkbox checked. Hai filter visits liên tiếp thực sự
+  chồng nhau: request cũ disconnected ở 604ms, kết quả cuối chỉ Published với
+  Alpha/Gamma, console sạch. Đây là interrupted visits, chưa bao phủ hai async
+  reloads thành công về ngược thứ tự hoặc đổi clause/range. Không sửa package
+  thêm vì các ca này pass; test retry bổ sung assertion giữ applied state.
+  Tiếp tục clause/range: component tests tái hiện hai lỗi debounce gửi scalar cũ
+  sau đổi sang range và gửi range cũ sau xóa một đầu. `FilterValueControl` hủy
+  debounce khi đổi clause/range chưa đủ và khi dispose. Ba regression tests pass;
+  consumer thêm NumericFilter ID để kiểm chứng browser tiếp theo. Date range và
+  hai async lazy reloads trả ngược thứ tự vẫn còn trong scope UI01.
+  Browser numeric range đã kiểm chứng: nhập một đầu không tạo request; đủ 2–3
+  tạo đúng một partial request; reload giữ chip 2–3 và Beta/Gamma. Catalog có
+  bảng ownership applied state/draft/options/loading/popover/focus. UI01 vẫn
+  doing vì date range và independent async reload/draft synchronization chưa đủ
+  bằng chứng. Lượt này chỉ bổ sung browser evidence/docs, không đổi package code.
+  Follow-up draft synchronization: regression tái hiện resource được thay bằng
+  JSON tương đương làm mất draft Between [15, ""]. `useFilterEditor` theo dõi
+  nội dung enabled/clause/value thay vì identity object; reload state không đổi
+  giữ draft, server state thực sự đổi vẫn đồng bộ (test Equals 42 pass).
+  Chưa coi đây là xử lý mọi stale response mang applied state khác nội dung.
+  Browser xác nhận draft qua partial reload thật: applied ID Equals 2/Beta,
+  draft Between [1, ""], Ctrl+Enter gửi reload, response xong vẫn giữ clause,
+  lower bound và focus; URL/results vẫn là applied state. Consumer có control
+  reload và shortcut chỉ phục vụ test. Console sạch; không đổi API package.
+  Browser date range: thêm Created (DateFilter) vào consumer; URL Jan 1–4
+  khôi phục calendar và ba rows. Chọn lại Jan 2 chưa gửi request; chọn tiếp Jan 4
+  gửi một partial request, chip đổi Jan 2–4 và kết quả đúng Beta/Gamma, console
+  sạch. Test dùng RangeCalendarRoot thật xác nhận đủ hai đầu mới emit một lần.
+  Tổng 138 JS tests, typecheck, formatting và packed consumer pass. UI01 vẫn
+  doing: hai async reloads thành công trả ngược thứ tự và ảnh hưởng tới draft
+  còn cần browser evidence; keyboard/viewport toàn diện vẫn chưa hoàn tất.
+  Follow-up lazy race: browser tái hiện hai reload thành công về ngược thứ tự
+  làm mất options Topic và phát sinh request tải lại. `useTable` tuần tự hóa lazy
+  reload trong cùng instance, giữ loading cho mục chờ và bỏ queue khi dispose.
+  Browser sau sửa giữ đủ options/selection, không tải lại thừa, console sạch.
+  140 JS tests pass; typecheck và packed consumer pass. Đổi lại lazy filter sau
+  phải chờ request trước. UI01 vẫn doing: tương tác với host reload/navigation
+  khi đang sửa draft và keyboard coverage còn cần kiểm chứng.
+  Follow-up navigation/lazy: browser tái hiện xóa Status trong lúc lazy tải,
+  response navigation về trước nhưng lazy cũ về sau khôi phục Draft/Beta.
+  Sửa bằng cancel token thuộc bảng trước navigation, chuyển requested/queued
+  option attributes sang header navigation và chờ navigation xong mới tải lazy
+  tiếp. Browser sau sửa: request cũ disconnected 665ms, navigation 701ms,
+  không khôi phục filter và giữ ba rows; console sạch. 141 JS tests, format,
+  typecheck và packed consumer pass. Chưa bao phủ navigation do host gọi ngoài
+  useTable hoặc hoàn tất keyboard matrix; UI01/UI02 chưa đánh dấu done.
+  Follow-up 2026-09-10 search/sort: regression tái hiện nhập Beta rồi sort trước
+  debounce làm request sort thiếu search. Navigation giờ gộp search draft đang
+  chờ, trim giá trị, reset pagination và hủy timer để không gửi lần sau bằng
+  server state cũ. Test xác nhận một request giữ Beta và descending; Clear all
+  không phục hồi search sau timer. Đây là component evidence, chưa đánh dấu
+  browser RACE pass hay UI02 done.
+  Pagination follow-up: tests cho page và cursor xác nhận search pending reset
+  pagination đúng một lần; navigation sau response giữ page/cursor mới. Test
+  riêng xác nhận timer đã chạy bình thường không reset lần chuyển trang sau.
+  Tổng 146 JS tests và typecheck pass. Browser automation không có trong phiên
+  kiểm chứng này, nên RACE browser vẫn chưa được đánh dấu pass.
+  Search normalization follow-up: regression tái hiện input giữ ` Beta ` sau
+  khi applied state là `Beta`, làm mất đồng bộ khi state ngoài đổi tiếp.
+  Callback success của visit mới nhất chỉ nhận applied search nếu input vẫn
+  bằng draft lúc dispatch; draft Gamma nhập sau được giữ. Tests bao phủ nhận
+  normalization, bảo vệ draft mới và đồng bộ external Alpha sau đó. 148 JS
+  tests, typecheck và format pass; chưa xem đây là browser history evidence.
+  Callback-order follow-up: test xác nhận success/finish của visit cũ không
+  sửa search hoặc tắt loading của visit mới; callback sau dispose cũng bị bỏ
+  qua. UI02 chuyển doing để phản ánh phần navigation đã triển khai, chưa done.
+  Còn ưu tiên: browser search/sort và history, navigation do host gọi, keyboard
+  filter/overlay; sau đó UI04/UI05, DX03–DX07 và các maintenance/CI gates theo
+  dependencies. Không coi số lượng test pass là thay thế cho browser evidence.

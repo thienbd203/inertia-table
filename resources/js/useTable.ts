@@ -26,6 +26,9 @@ export function useTable<T extends TableItem>(
         ),
     );
     const loadingLazyFilters = ref(new Set<string>());
+    const queuedLazyFilters = ref(new Set<string>());
+    let disposed = false;
+    let cancelLazyRequest: (() => void) | undefined;
     const resizingColumn = ref<string | null>(null);
     const columnOrder = ref(
         normalizeColumnOrder(
@@ -105,11 +108,29 @@ export function useTable<T extends TableItem>(
     }
 
     function visit(state: TableState, replace = true) {
+        if (debounceTimer !== undefined) {
+            clearTimeout(debounceTimer);
+            debounceTimer = undefined;
+            state = {
+                ...state,
+                search: search.value.trim(),
+                page: 1,
+                cursor: null,
+            };
+        }
         const current = toValue(resource);
         const visitId = ++latestVisit;
+        const submittedSearchDraft = search.value;
         clearTimeout(layoutTimer);
         layoutTimer = undefined;
         isNavigating.value = true;
+        const requestedOptions = new Set([
+            ...loadedLazyFilters.value,
+            ...queuedLazyFilters.value,
+        ]);
+        queuedLazyFilters.value = new Set();
+        cancelLazyRequest?.();
+        loadedLazyFilters.value = requestedOptions;
 
         try {
             router.visit(tableUrl(page.url, current, state), {
@@ -119,15 +140,25 @@ export function useTable<T extends TableItem>(
                 replace,
                 only: [current.name, ...current.options.reloadProps],
                 headers: lazyFilterHeaders(),
+                onSuccess: () => {
+                    if (
+                        visitId === latestVisit &&
+                        search.value === submittedSearchDraft
+                    ) {
+                        search.value = toValue(resource).state.search;
+                    }
+                },
                 onFinish: () => {
                     if (visitId === latestVisit) {
                         isNavigating.value = false;
+                        drainLazyQueue();
                     }
                 },
             });
         } catch (error) {
             if (visitId === latestVisit) {
                 isNavigating.value = false;
+                drainLazyQueue();
             }
 
             throw error;
@@ -151,10 +182,21 @@ export function useTable<T extends TableItem>(
         );
 
         if (
+            disposed ||
             !filter?.lazy ||
             filter.lazyLoaded ||
             loadingLazyFilters.value.has(attribute)
         ) {
+            return;
+        }
+
+        // Reloads replace the whole table prop. Serialize them so an older
+        // options response cannot overwrite a newer filter's loaded options.
+        if (isNavigating.value || loadingLazyFilters.value.size > 0) {
+            queuedLazyFilters.value = new Set([
+                ...queuedLazyFilters.value,
+                attribute,
+            ]);
             return;
         }
 
@@ -168,6 +210,7 @@ export function useTable<T extends TableItem>(
         ]);
 
         const finish = () => {
+            cancelLazyRequest = undefined;
             loadingLazyFilters.value = new Set(
                 [...loadingLazyFilters.value].filter(
                     (candidate) => candidate !== attribute,
@@ -184,6 +227,7 @@ export function useTable<T extends TableItem>(
                     ),
                 );
             }
+            drainLazyQueue();
         };
 
         try {
@@ -191,6 +235,9 @@ export function useTable<T extends TableItem>(
                 only: [current.name],
                 headers: lazyFilterHeaders(),
                 showProgress: false,
+                onCancelToken: (token) => {
+                    cancelLazyRequest = () => token.cancel();
+                },
                 onFinish: finish,
             });
         } catch (error) {
@@ -199,8 +246,28 @@ export function useTable<T extends TableItem>(
         }
     }
 
+    function drainLazyQueue() {
+        while (
+            !disposed &&
+            !isNavigating.value &&
+            queuedLazyFilters.value.size > 0 &&
+            loadingLazyFilters.value.size === 0
+        ) {
+            const next = queuedLazyFilters.value.values().next().value!;
+            queuedLazyFilters.value = new Set(
+                [...queuedLazyFilters.value].filter(
+                    (candidate) => candidate !== next,
+                ),
+            );
+            loadFilterOptions(next);
+        }
+    }
+
     function isFilterOptionsLoading(attribute: string): boolean {
-        return loadingLazyFilters.value.has(attribute);
+        return (
+            loadingLazyFilters.value.has(attribute) ||
+            queuedLazyFilters.value.has(attribute)
+        );
     }
 
     function patchState(patch: Partial<TableState>) {
@@ -220,6 +287,7 @@ export function useTable<T extends TableItem>(
         search.value = value;
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
+            debounceTimer = undefined;
             patchState({ search: value.trim(), page: 1, cursor: null });
         }, toValue(resource).options.debounceTime);
     }
@@ -308,6 +376,7 @@ export function useTable<T extends TableItem>(
     function clearAll() {
         search.value = "";
         clearTimeout(debounceTimer);
+        debounceTimer = undefined;
         const filters = Object.fromEntries(
             toValue(resource).filters.map((filter) => [
                 filter.attribute,
@@ -618,6 +687,9 @@ export function useTable<T extends TableItem>(
     );
 
     onScopeDispose(() => {
+        disposed = true;
+        queuedLazyFilters.value = new Set();
+        cancelLazyRequest?.();
         clearTimeout(debounceTimer);
         clearTimeout(layoutTimer);
         latestVisit++;

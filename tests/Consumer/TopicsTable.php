@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Musing\InertiaTable\Columns\DateTimeColumn;
 use Musing\InertiaTable\Columns\TextColumn;
+use Musing\InertiaTable\Filters\DateFilter;
+use Musing\InertiaTable\Filters\NumericFilter;
 use Musing\InertiaTable\Filters\SetFilter;
 use Musing\InertiaTable\Table;
 
@@ -40,6 +42,13 @@ final class TopicsTable extends Table
             SetFilter::make('status', 'Status')->options([
                 'published' => 'Published',
                 'draft' => 'Draft',
+            ])->lazy(),
+            NumericFilter::make('id', 'ID'),
+            DateFilter::make('created_at', 'Created'),
+            SetFilter::make('name', 'Topic')->options([
+                'Alpha' => 'Alpha',
+                'Beta' => 'Beta',
+                'Gamma' => 'Gamma',
             ])->lazy(),
         ];
     }

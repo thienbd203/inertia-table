@@ -28,6 +28,8 @@ if (!Number.isInteger(lazyDelay) || lazyDelay < 0 || lazyDelay > 10000) {
     );
 }
 let failNextLazy = process.argv.includes("--lazy-fail-once");
+const reverseLazy = process.argv.includes("--lazy-reverse");
+let lazyRequestNumber = 0;
 let requestNumber = 0;
 
 const server = createServer(async (request, response) => {
@@ -47,19 +49,39 @@ const server = createServer(async (request, response) => {
             return;
         }
         const sequence = ++requestNumber;
+        const started = Date.now();
+        response.on("close", () => {
+            console.log(
+                JSON.stringify({
+                    sequence,
+                    phase: response.writableFinished
+                        ? "finished"
+                        : "disconnected",
+                    elapsedMs: Date.now() - started,
+                }),
+            );
+        });
         const isLazy = Boolean(
             request.headers["x-musing-inertia-table-lazy-filters"],
         );
         console.log(
             JSON.stringify({
                 sequence,
+                phase: "received",
                 url: request.url,
                 partial: request.headers["x-inertia-partial-data"],
                 lazy: isLazy,
             }),
         );
-        if (isLazy && lazyDelay) {
-            await new Promise((resolve) => setTimeout(resolve, lazyDelay));
+        const delay = isLazy
+            ? reverseLazy
+                ? ++lazyRequestNumber === 1
+                    ? 10000
+                    : 500
+                : lazyDelay
+            : 0;
+        if (delay) {
+            await new Promise((resolve) => setTimeout(resolve, delay));
         }
         if (isLazy && failNextLazy) {
             failNextLazy = false;
@@ -106,6 +128,6 @@ server.listen(0, "127.0.0.1", () => {
     console.log(`SSR: http://127.0.0.1:${server.address().port}/topics`);
     console.log(`CSR: http://127.0.0.1:${server.address().port}/topics?csr=1`);
     console.log(
-        `Lazy header requests: delay=${lazyDelay}ms, failOnce=${failNextLazy}. Restart to reset failure and request log.`,
+        `Lazy header requests: delay=${lazyDelay}ms, reverse=${reverseLazy}, failOnce=${failNextLazy}. Restart to reset failure and request log.`,
     );
 });

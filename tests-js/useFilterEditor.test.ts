@@ -1,4 +1,4 @@
-import { defineComponent, h, ref } from "vue";
+import { defineComponent, h, ref, nextTick } from "vue";
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
@@ -12,7 +12,7 @@ import { useExports } from "../resources/js/useExports";
 import { useTable } from "../resources/js/useTable";
 import { useStickyColumns } from "../resources/js/useStickyColumns";
 import { useViews } from "../resources/js/useViews";
-import type { TableFilter } from "../resources/js/types";
+import type { TableFilter, TableResource } from "../resources/js/types";
 import { useTableI18n } from "../resources/js/i18n";
 
 const scoreFilter: TableFilter = {
@@ -48,7 +48,7 @@ const customClauseFilter: TableFilter = {
 
 beforeEach(() => resetInertiaMock());
 
-function resourceWithFilters(filters: TableFilter[]) {
+function resourceWithFilters(filters: TableFilter[]): TableResource<Topic> {
     const base = topicResource();
 
     return {
@@ -123,10 +123,34 @@ function mountEditor(filter: TableFilter, filters: TableFilter[]) {
         }),
     );
 
-    return { editor: editor!, table: table! };
+    return { editor: editor!, table: table!, resource };
 }
 
 describe("useFilterEditor", () => {
+    it("preserves an incomplete range draft when a reload replaces unchanged applied state", async () => {
+        const { editor, resource } = mountEditor(scoreFilter, [scoreFilter]);
+        editor.updateClause("between");
+        editor.updateRangeValue(0, 15);
+        resource.value = JSON.parse(JSON.stringify(resource.value));
+        await nextTick();
+        expect(editor.clause.value).toBe("between");
+        expect(editor.value.value).toEqual(["15", ""]);
+    });
+
+    it("adopts genuinely changed server state even while a range draft exists", async () => {
+        const { editor, resource } = mountEditor(scoreFilter, [scoreFilter]);
+        editor.updateClause("between");
+        editor.updateRangeValue(0, 15);
+        resource.value.state.filters.score = {
+            enabled: true,
+            clause: "equals",
+            value: 42,
+        };
+        await nextTick();
+        expect(editor.clause.value).toBe("equals");
+        expect(editor.value.value).toBe(42);
+    });
+
     it("resets the value to an empty range and does not submit yet when switching to a range clause", () => {
         const { editor, table } = mountEditor(scoreFilter, [scoreFilter]);
         const setFilter = vi.spyOn(table, "setFilter");

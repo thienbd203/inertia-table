@@ -83,6 +83,27 @@ Icon names are resolved by the host application. See
 
 ## Row and cell navigation
 
+### Callback arguments
+
+| Method | Arguments, in order | Result |
+| --- | --- | --- |
+| `mapAs($callback)` | Raw attribute value, row `Model` | Display value |
+| `exportAs($callback)` | Value **after `mapAs`**, row `Model` | Export value |
+| `url($callback)` | Row `Model`, fresh `Url` | Return a URL string or `Url`; `null` omits the link |
+| `image($callback)` | Row `Model`, fresh `Image` | Return an `Image`, or mutate the supplied instance |
+| `image('attribute', $configure)` | `Image` with its URL set, row `Model` | Return an `Image`, or mutate the supplied instance |
+| `sortUsing($callback)` | Eloquent `Builder`, `SortDirection` | Mutate the builder; the return value is ignored |
+| `exportFormat($callback)` | This `Column` | Format string or `null` |
+
+The two image callback forms have different argument orders. With a callback
+as the first argument, a second configure callback is not used. URL callbacks
+must return their result; mutating the supplied `Url` without returning it does
+not create a link. Image callbacks can mutate without returning.
+
+Fluent column methods return the concrete column type. Callback model arguments
+are documented as Eloquent `Model`; table-specific model inference is not
+provided. Type your model parameter explicitly in application code when useful.
+
 Cell URLs may be strings or `Url` objects. `Url` carries Inertia navigation
 options to the renderer.
 

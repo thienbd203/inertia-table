@@ -1,5 +1,5 @@
 import { mount } from "@vue/test-utils";
-import { defineComponent, h, ref } from "vue";
+import { defineComponent, h, nextTick, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "./fixtures";
 import { topicResource } from "./fixtures";
@@ -81,8 +81,139 @@ describe("useTable", () => {
         );
     });
 
+    it("folds pending search into sorting without a stale follow-up visit", () => {
+        vi.useFakeTimers();
+        const { table, wrapper } = mountTable();
+        table.setSearch(" Beta ");
+        table.setSort("name", "desc");
+        expect(visit).toHaveBeenCalledOnce();
+        const url = new URL(visit.mock.calls[0][0], "http://localhost");
+        expect(url.searchParams.get("table[topics][search]")).toBe("Beta");
+        expect(url.searchParams.get("table[topics][sort]")).toBe("-name");
+        vi.advanceTimersByTime(1000);
+        expect(visit).toHaveBeenCalledOnce();
+        wrapper.unmount();
+        vi.useRealTimers();
+    });
+
+    it.each(["pages", "cursor"] as const)(
+        "resets %s pagination only while search is pending",
+        (pagination) => {
+            vi.useFakeTimers();
+            const { table, resource, wrapper } = mountTable();
+            resource.value.options.paginationType =
+                pagination === "cursor" ? "cursor" : "full";
+            resource.value.results.lastPage = 5;
+            const next = () =>
+                pagination === "cursor"
+                    ? table.setCursor("next-cursor")
+                    : table.setPage(2);
+            table.setSearch("Beta");
+            next();
+            const first = new URL(visit.mock.calls[0][0], "http://localhost");
+            expect(first.searchParams.get("table[topics][search]")).toBe(
+                "Beta",
+            );
+            expect(first.searchParams.get("table[topics][page]") ?? "1").toBe(
+                "1",
+            );
+            expect(first.searchParams.has("table[topics][cursor]")).toBe(false);
+            resource.value.state.search = "Beta";
+            visit.mock.calls[0][1].onFinish();
+            next();
+            const second = new URL(visit.mock.calls[1][0], "http://localhost");
+            expect(
+                second.searchParams.get(
+                    `table[topics][${pagination === "cursor" ? "cursor" : "page"}]`,
+                ),
+            ).toBe(pagination === "cursor" ? "next-cursor" : "2");
+            vi.advanceTimersByTime(1000);
+            expect(visit).toHaveBeenCalledTimes(2);
+            wrapper.unmount();
+            vi.useRealTimers();
+        },
+    );
+
+    it("does not reset later pagination after the search timer has fired", () => {
+        vi.useFakeTimers();
+        const { table, resource, wrapper } = mountTable();
+        resource.value.results.lastPage = 5;
+        table.setSearch("Beta");
+        vi.advanceTimersByTime(300);
+        resource.value.state.search = "Beta";
+        visit.mock.calls[0][1].onFinish();
+        table.setPage(2);
+        const url = new URL(visit.mock.calls[1][0], "http://localhost");
+        expect(url.searchParams.get("table[topics][page]")).toBe("2");
+        wrapper.unmount();
+        vi.useRealTimers();
+    });
+
+    it("does not restore pending search after clearing all state", () => {
+        vi.useFakeTimers();
+        const { table, wrapper } = mountTable();
+        table.setSearch("Beta");
+        table.clearAll();
+        vi.advanceTimersByTime(1000);
+        expect(visit).toHaveBeenCalledOnce();
+        const url = new URL(visit.mock.calls[0][0], "http://localhost");
+        expect(url.searchParams.has("table[topics][search]")).toBe(false);
+        expect(table.search.value).toBe("");
+        wrapper.unmount();
+        vi.useRealTimers();
+    });
+
+    it.each([false, true])(
+        "synchronizes normalized search without replacing a newer draft=%s",
+        async (edited) => {
+            vi.useFakeTimers();
+            const { table, resource, wrapper } = mountTable();
+            table.setSearch(" Beta ");
+            vi.advanceTimersByTime(300);
+            if (edited) table.setSearch("Gamma");
+            resource.value.state.search = "Beta";
+            await nextTick();
+            visit.mock.calls[0][1].onSuccess?.();
+            expect(table.search.value).toBe(edited ? "Gamma" : "Beta");
+            if (!edited) {
+                resource.value.state.search = "Alpha";
+                await nextTick();
+                expect(table.search.value).toBe("Alpha");
+            }
+            wrapper.unmount();
+            vi.useRealTimers();
+        },
+    );
+
+    it("ignores stale navigation callbacks and callbacks after disposal", () => {
+        vi.useFakeTimers();
+        const { table, resource, wrapper } = mountTable();
+        table.setSearch(" Beta ");
+        table.setSort("name", "asc");
+        const older = visit.mock.calls[0][1];
+        table.setSort("name", "desc");
+        const newer = visit.mock.calls[1][1];
+        resource.value.state.search = "old-response";
+        older.onSuccess();
+        older.onFinish();
+        expect(table.search.value).toBe(" Beta ");
+        expect(table.isNavigating.value).toBe(true);
+        resource.value.state.search = "Beta";
+        newer.onSuccess();
+        newer.onFinish();
+        expect(table.search.value).toBe("Beta");
+        expect(table.isNavigating.value).toBe(false);
+        wrapper.unmount();
+        resource.value.state.search = "disposed-response";
+        newer.onSuccess();
+        expect(table.search.value).toBe("Beta");
+        vi.useRealTimers();
+    });
+
     it("allows retry after a lazy request finishes without loading options", () => {
         const { resource, table } = mountTable();
+        const applied = { enabled: true, clause: "equals", value: "featured" };
+        resource.value.state.filters.status = applied;
         Object.assign(resource.value.filters[0], {
             lazy: true,
             lazyLoaded: false,
@@ -93,6 +224,7 @@ describe("useTable", () => {
         expect(reload).toHaveBeenCalledOnce();
         reload.mock.calls[0][0].onFinish();
         expect(table.isFilterOptionsLoading("status")).toBe(false);
+        expect(resource.value.state.filters.status).toEqual(applied);
         table.setSort("name");
         expect(
             visit.mock.calls[0][1].headers?.[
@@ -100,10 +232,13 @@ describe("useTable", () => {
             ],
         ).toBeUndefined();
         table.loadFilterOptions("status");
+        expect(reload).toHaveBeenCalledTimes(1);
+        visit.mock.calls[0][1].onFinish();
         expect(reload).toHaveBeenCalledTimes(2);
         resource.value.filters[0].lazyLoaded = true;
         reload.mock.calls[1][0].onFinish();
         expect(table.isFilterOptionsLoading("status")).toBe(false);
+        expect(resource.value.state.filters.status).toEqual(applied);
     });
 
     it("clears lazy loading when the router throws before starting a request", () => {
@@ -122,6 +257,109 @@ describe("useTable", () => {
         expect(table.isFilterOptionsLoading("status")).toBe(false);
         table.loadFilterOptions("status");
         expect(reload).toHaveBeenCalledTimes(2);
+    });
+
+    it("serializes lazy reloads and retries only the unfinished filter", () => {
+        const { resource, table } = mountTable();
+        const first = {
+            ...resource.value.filters[0],
+            lazy: true,
+            lazyLoaded: false,
+            options: [],
+        };
+        resource.value.filters = [first, { ...first, attribute: "category" }];
+        table.loadFilterOptions("status");
+        table.loadFilterOptions("category");
+        expect(reload).toHaveBeenCalledTimes(1);
+        expect(table.isFilterOptionsLoading("status")).toBe(true);
+        expect(table.isFilterOptionsLoading("category")).toBe(true);
+        reload.mock.calls[0][0].onFinish();
+        expect(table.isFilterOptionsLoading("status")).toBe(false);
+        expect(reload).toHaveBeenCalledTimes(2);
+        resource.value.filters[1].lazyLoaded = true;
+        reload.mock.calls[1][0].onFinish();
+        expect(table.isFilterOptionsLoading("category")).toBe(false);
+        table.loadFilterOptions("category");
+        expect(reload).toHaveBeenCalledTimes(2);
+        table.loadFilterOptions("status");
+        expect(reload).toHaveBeenCalledTimes(3);
+        expect(
+            JSON.parse(
+                reload.mock.calls[2][0].headers[
+                    "X-Musing-Inertia-Table-Lazy-Filters"
+                ],
+            ).topics.sort(),
+        ).toEqual(["category", "status"]);
+    });
+
+    it.each([false, true])(
+        "handles queued lazy options after disposal=%s",
+        (dispose) => {
+            const { resource, table, wrapper } = mountTable();
+            const first = {
+                ...resource.value.filters[0],
+                lazy: true,
+                lazyLoaded: false,
+                options: [],
+            };
+            resource.value.filters = [
+                first,
+                { ...first, attribute: "category" },
+            ];
+            table.loadFilterOptions("status");
+            table.loadFilterOptions("category");
+            table.loadFilterOptions("category");
+            expect(reload).toHaveBeenCalledTimes(1);
+            resource.value.filters[0].lazyLoaded = true;
+            if (dispose) wrapper.unmount();
+            reload.mock.calls[0][0].onFinish();
+            expect(reload).toHaveBeenCalledTimes(dispose ? 1 : 2);
+            if (!dispose) {
+                expect(
+                    JSON.parse(
+                        reload.mock.calls[1][0].headers[
+                            "X-Musing-Inertia-Table-Lazy-Filters"
+                        ],
+                    ).topics,
+                ).toEqual(["status", "category"]);
+                resource.value.filters[1].lazyLoaded = true;
+                reload.mock.calls[1][0].onFinish();
+            }
+            expect(table.isFilterOptionsLoading("category")).toBe(false);
+        },
+    );
+
+    it("cancels stale lazy reloads before navigation and carries queued options forward", () => {
+        const { resource, table } = mountTable();
+        const first = {
+            ...resource.value.filters[0],
+            lazy: true,
+            lazyLoaded: false,
+            options: [],
+        };
+        resource.value.filters = [first, { ...first, attribute: "category" }];
+        table.loadFilterOptions("status");
+        const options = reload.mock.calls[0][0];
+        const cancel = vi.fn(() => options.onFinish());
+        options.onCancelToken({ cancel });
+        table.loadFilterOptions("category");
+        table.setSort("name");
+        expect(cancel).toHaveBeenCalledOnce();
+        expect(reload).toHaveBeenCalledTimes(1);
+        expect(
+            JSON.parse(
+                visit.mock.calls[0][1].headers[
+                    "X-Musing-Inertia-Table-Lazy-Filters"
+                ],
+            ).topics,
+        ).toEqual(["status", "category"]);
+        table.loadFilterOptions("category");
+        expect(table.isFilterOptionsLoading("category")).toBe(true);
+        expect(reload).toHaveBeenCalledTimes(1);
+        resource.value.filters[1].lazyLoaded = true;
+        visit.mock.calls[0][1].onFinish();
+        expect(table.isFilterOptionsLoading("category")).toBe(false);
+        expect(reload).toHaveBeenCalledTimes(1);
     });
 
     it("loads lazy filter options once and keeps them on later visits", () => {
