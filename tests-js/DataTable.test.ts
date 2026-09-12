@@ -773,14 +773,14 @@ describe("DataTable shadcn renderer", () => {
     it("preserves custom action slots inside a row-action dropdown", async () => {
         const resource = topicResource();
         resource.columns[2].asDropdown = true;
-        const wrapper = mount(DataTable, {
+        const wrapper = mount(DataTable<{ id: number; name: string }>, {
             props: { resource },
             slots: {
-                "action(edit)": ({ item }: { item: { name: string } }) =>
+                "action(edit)": ({ item }: { item: { name: string } | null }) =>
                     h(
                         "button",
                         { "data-custom-edit": "" },
-                        `Edit ${item.name}`,
+                        `Edit ${item?.name ?? "selection"}`,
                     ),
             },
             attachTo: document.body,
@@ -802,7 +802,7 @@ describe("DataTable shadcn renderer", () => {
             clause: "equals",
             value: "featured",
         };
-        const wrapper = mount(DataTable, {
+        const wrapper = mount(DataTable<{ id: number; name: string }>, {
             props: { resource },
             slots: {
                 beforeActions: () =>

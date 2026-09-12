@@ -121,7 +121,7 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | UI04 | Responsive, theme và visual consistency | P1 | M | UI00, UI03 | todo |
 | UI05 | Phản hồi action/export/view theo kết quả thật | P1 | M | UI02, UI03 | todo |
 | DX03 | PHP callback docs và fluent API typing | P1 | M | Q00 | doing |
-| DX04 | Vue props/events/slots và consumer types | P1 | M | DX02 | todo |
+| DX04 | Vue props/events/slots và consumer types | P1 | M | DX02 | done |
 | DX05 | Error messages và declaration validation | P1 | M | Q00 | todo |
 | DX06 | Generator output nhỏ, rõ và chạy được | P1 | S | DX03, DX05 | todo |
 | DX07 | Recipes và troubleshooting đã chạy thử | P1 | M | DX01–DX06, UI01–UI05 | todo |
@@ -293,6 +293,28 @@ workflow PHPStan chạy cả positive/negative consumer checks và theo dõi tha
 composer files. Đây là M05 partial; chưa xác nhận remote CI hoặc các gates Vue.
 
 ### DX04 — Vue types và slots có autocomplete hữu ích
+
+Tiến độ 2026-09-12: typed `cell(...)`/`header(...)` giữ generic item và shared
+scope; cell value là unknown vì mapper PHP có thể đổi type. Packed consumer
+`SlotTypes.vue` có positive/expected-error cases để bắt field sai và value chưa
+narrow. Các slot families khác vẫn có fallback permissive; chưa chốt DX04 done.
+Action/filter follow-up: typed nullable row cho bulk action, selectedItems giữ T,
+execute không nhận argument; filter state có thể undefined, value unknown và
+display label string/null. Packed consumer kiểm tra positive/negative cases;
+không thay đổi runtime payload. Các slot summary/image/layout còn cần rà tiếp.
+Summary/image/layout follow-up: typed shared scope cho layout, summary value
+unknown và formatted string, metadata image nullable ở fallback; confirmation
+và queuedAction payloads theo điều kiện render. Packed consumer kiểm tra typed
+layout scope và expected errors cho summary/image nullability. Fallback cho tên
+slot mở rộng vẫn giữ. DX04 còn kiểm chứng events và tổng hợp compatibility trước
+khi chốt done; không thay runtime slot rendering.
+Kết luận DX04 (2026-09-12): declarations giữ generic row cho known slot families,
+named layout payloads có type, extension names vẫn có fallback. Packed consumer
+`EventTypes.vue` kiểm tra tất cả event families và positive/expected-error cases
+cho row, error, queue status, row-key. Docs mô tả nullable/unknown và generic
+cho programmatic mount. Resolver chỉ bundle Topics page, còn type fixtures vẫn
+được vue-tsc kiểm tra. Package/consumer builds và 149 runtime tests đã pass;
+đánh dấu DX04 done theo phạm vi typing, không suy ra UI01/UI02 browser done.
 
 **Scope:** `DataTable.vue`, `types.ts`, `index.ts`, `context/tableContext.ts`,
 slot composition và type fixtures của DX02.
