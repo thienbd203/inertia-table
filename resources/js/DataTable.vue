@@ -1,10 +1,12 @@
 <script setup lang="ts" generic="T extends TableItem">
 import { computed, nextTick, ref, toRef, useSlots, watch } from "vue";
 import { Confirmation, QueuedActionDialog } from "@/components/table/actions";
+import type { CellImage } from "@/components/table/cells/types";
 import { FilterList } from "@/components/table/filters";
 import { Pagination, Toolbar, Viewport } from "@/components/table/layout";
 import { SlotOutlet } from "@/components/table/shared";
 import { provideTableContext } from "@/context/tableContext";
+import type { TableContext } from "@/context/tableContext";
 import { filterClauseValueKind } from "@/filters";
 import type { IconResolver } from "@/icons";
 import {
@@ -18,6 +20,8 @@ import type {
     TableAction,
     TableColumn,
     TableExport,
+    TableFilter,
+    TableFilterState,
     TableItem,
     TableKey,
     TableResource,
@@ -75,8 +79,100 @@ const emit = defineEmits<{
     exportError: [definition: TableExport, error: Error];
     rowClick: [item: T, column: TableColumn | null];
 }>();
+type ScopeSlot = (props: TableContext<T>["scope"]) => unknown;
 defineSlots<{
+    topbar?: ScopeSlot;
+    filters?: ScopeSlot;
+    table?: ScopeSlot;
+    thead?: ScopeSlot;
+    tbody?: ScopeSlot;
+    footer?: ScopeSlot;
+    summaryFooter?: ScopeSlot;
+    loading?: ScopeSlot;
+    emptyState?: ScopeSlot;
+    beforeSearch?: ScopeSlot;
+    afterSearch?: ScopeSlot;
+    beforeActions?: ScopeSlot;
+    afterActions?: ScopeSlot;
+    confirmation?: (
+        props: TableContext<T>["scope"] & {
+            pending: NonNullable<
+                TableContext<T>["actions"]["pendingAction"]["value"]
+            >;
+        },
+    ) => unknown;
+    queuedAction?: (
+        props: TableContext<T>["scope"] & { status: QueuedActionStatus | null },
+    ) => unknown;
+    [name: `summary(${string})`]:
+        | ((
+              props: TableContext<T>["scope"] & {
+                  column: TableColumn;
+                  definition: TableColumn["summary"];
+                  value: unknown;
+                  formatted: string;
+              },
+          ) => unknown)
+        | undefined;
+    [name: `image(${string})`]:
+        | ((
+              props: TableContext<T>["scope"] & {
+                  item: T;
+                  column: TableColumn;
+                  value: unknown;
+                  image: CellImage;
+              },
+          ) => unknown)
+        | undefined;
+    [name: `image-fallback(${string})`]:
+        | ((
+              props: TableContext<T>["scope"] & {
+                  item: T;
+                  column: TableColumn;
+                  value: unknown;
+                  image: CellImage | null;
+              },
+          ) => unknown)
+        | undefined;
+    [name: `cell(${string})`]:
+        | ((
+              props: TableContext<T>["scope"] & {
+                  item: T;
+                  column: TableColumn;
+                  value: unknown;
+              },
+          ) => unknown)
+        | undefined;
+    [name: `header(${string})`]:
+        | ((
+              props: TableContext<T>["scope"] & { column: TableColumn },
+          ) => unknown)
+        | undefined;
     [name: string]: ((props: any) => any) | undefined;
+    [name: `action(${string})`]:
+        | ((
+              props: TableContext<T>["scope"] & {
+                  action: TableAction;
+                  item: T | null;
+                  selectedItems: T[];
+                  selectedCount: number;
+                  selection: TableSelection;
+                  execute: () => void;
+              },
+          ) => unknown)
+        | undefined;
+    [name: `filter(${string})`]:
+        | ((
+              props: TableContext<T>["scope"] & {
+                  filter: TableFilter;
+                  state: TableFilterState | undefined;
+                  value: unknown;
+                  update: (value?: unknown) => void;
+                  close: () => void;
+                  setDisplayValue: (value: string | null) => void;
+              },
+          ) => unknown)
+        | undefined;
 }>();
 
 const resource = toRef(props, "resource");

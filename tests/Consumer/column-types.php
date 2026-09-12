@@ -27,3 +27,14 @@ $namedArguments = TextColumn::make(
 );
 
 assertType(TextColumn::class, $namedArguments);
+
+class ConsumerTextColumn extends TextColumn
+{
+    public function uppercase(): static
+    {
+        return $this->mapAs(fn (mixed $value): string => strtoupper((string) $value));
+    }
+}
+
+$custom = ConsumerTextColumn::make('name')->sortable()->uppercase();
+assertType(ConsumerTextColumn::class, $custom);

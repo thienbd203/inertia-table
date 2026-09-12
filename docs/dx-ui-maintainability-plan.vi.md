@@ -121,14 +121,14 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | UI04 | Responsive, theme và visual consistency | P1 | M | UI00, UI03 | todo |
 | UI05 | Phản hồi action/export/view theo kết quả thật | P1 | M | UI02, UI03 | todo |
 | DX03 | PHP callback docs và fluent API typing | P1 | M | Q00 | doing |
-| DX04 | Vue props/events/slots và consumer types | P1 | M | DX02 | todo |
+| DX04 | Vue props/events/slots và consumer types | P1 | M | DX02 | done |
 | DX05 | Error messages và declaration validation | P1 | M | Q00 | todo |
 | DX06 | Generator output nhỏ, rõ và chạy được | P1 | S | DX03, DX05 | todo |
 | DX07 | Recipes và troubleshooting đã chạy thử | P1 | M | DX01–DX06, UI01–UI05 | todo |
 | M02 | Tách trách nhiệm nội bộ của useTable nếu có lợi | P2 | M | UI02, DX04 | todo |
 | M03 | Tách selection khỏi action execution nếu có lợi | P2 | M | UI05, DX04 | todo |
 | M04 | Rà PHP extension hooks và thu gọn hotspot có bằng chứng | P2 | L | DX03, DX05 | todo |
-| M05 | CI gates theo contract và consumer | P0 | M | DX02, DX04, M01 | todo |
+| M05 | CI gates theo contract và consumer | P0 | M | DX02, DX04, M01 | doing |
 | M06 | Tài liệu ownership, maintenance và compatibility | P1 | S | M02–M05 | todo |
 | M07 | Đo performance, sửa bottleneck đã xác nhận | P2 | M | UI01–UI05, M02–M04 | todo |
 | V01 | Kiểm chứng cuối và bàn giao theo tiêu chí | P0 | L | Tất cả task trên có kết luận | todo |
@@ -258,7 +258,63 @@ arguments; chạy bằng `vendor/bin/phpstan analyse tests/Consumer/column-types
 tests (84 assertions), scoped Pint và docs build pass. Chưa hứa model-specific
 inference; actions/exports/query callbacks vẫn cần rà tiếp.
 
+Actions follow-up: PHPDoc cho row authorization/conditions và endpoint resolver;
+docs phân biệt Request với Model, nullable presentation callbacks, before/after
+lifecycle và kết quả cuối cùng của per-row handler. Fixture
+`tests/Consumer/action-types.php` kiểm tra fluent chain với row/selection handlers
+bằng PHPStan (chạy riêng tương tự column fixture). PHPStan repo và fixture pass;
+17 ActionExecution tests (44 assertions) pass. Exports, queue callbacks và query
+hooks vẫn còn trong scope DX03; chưa đánh dấu toàn bộ task done.
+
+Exports/queue follow-up: đối chiếu `app()->call` và ghi rõ named parameters,
+nullable delivery URL và return values trong docs exports/queues. Bỏ PHPDoc
+positional ở query modifier và notification hooks vì chúng không mô tả đúng
+container injection; giữ native Closure và mô tả tên/type kỳ vọng. Fixture
+`tests/Consumer/export-types.php` cho subset/reordered parameters pass PHPStan;
+runtime regression chứng minh query callback `(state, query)` nhận đúng query,
+mutate không return vẫn giữ builder. PHPStan repo, 34 export/queued action tests
+(196 assertions), Pint và docs build pass. Query hooks ngoài export vẫn cần rà;
+chưa có model-specific inference hay tự động kiểm tra tên dependency trong IDE.
+
+Query follow-up: bổ sung contract `query()` trả Eloquent builder, phân biệt
+class `withQueryBuilder()` phải return với anonymous callback được mutate/void.
+Anonymous transform callback được mô tả trả row array. Fixture
+`tests/Consumer/query-types.php` kiểm tra cả mutate và return builder; PHPStan
+repo/fixture, 7 AnonymousTable tests (61 assertions), Pint và docs build pass.
+Thêm `composer analyse:consumer` để chạy cả bốn fixtures column/action/export/query
+trong một lệnh. DX03 còn cần audit tổng các callback chưa covered và consumer
+subclass/negative type cases trước khi chốt done; chưa hứa model inference.
+
+Type-gate follow-up: thêm subclass `ConsumerTextColumn` với fluent method riêng;
+PHPStan giữ đúng concrete type. Thêm ba input cố ý sai (URL/transform/query
+return types), verifier yêu cầu đúng ba diagnostic `argument.type`, không thêm
+baseline hay ignore để che lỗi. `composer analyse:consumer:negative` chạy verifier;
+workflow PHPStan chạy cả positive/negative consumer checks và theo dõi thay đổi
+composer files. Đây là M05 partial; chưa xác nhận remote CI hoặc các gates Vue.
+
 ### DX04 — Vue types và slots có autocomplete hữu ích
+
+Tiến độ 2026-09-12: typed `cell(...)`/`header(...)` giữ generic item và shared
+scope; cell value là unknown vì mapper PHP có thể đổi type. Packed consumer
+`SlotTypes.vue` có positive/expected-error cases để bắt field sai và value chưa
+narrow. Các slot families khác vẫn có fallback permissive; chưa chốt DX04 done.
+Action/filter follow-up: typed nullable row cho bulk action, selectedItems giữ T,
+execute không nhận argument; filter state có thể undefined, value unknown và
+display label string/null. Packed consumer kiểm tra positive/negative cases;
+không thay đổi runtime payload. Các slot summary/image/layout còn cần rà tiếp.
+Summary/image/layout follow-up: typed shared scope cho layout, summary value
+unknown và formatted string, metadata image nullable ở fallback; confirmation
+và queuedAction payloads theo điều kiện render. Packed consumer kiểm tra typed
+layout scope và expected errors cho summary/image nullability. Fallback cho tên
+slot mở rộng vẫn giữ. DX04 còn kiểm chứng events và tổng hợp compatibility trước
+khi chốt done; không thay runtime slot rendering.
+Kết luận DX04 (2026-09-12): declarations giữ generic row cho known slot families,
+named layout payloads có type, extension names vẫn có fallback. Packed consumer
+`EventTypes.vue` kiểm tra tất cả event families và positive/expected-error cases
+cho row, error, queue status, row-key. Docs mô tả nullable/unknown và generic
+cho programmatic mount. Resolver chỉ bundle Topics page, còn type fixtures vẫn
+được vue-tsc kiểm tra. Package/consumer builds và 149 runtime tests đã pass;
+đánh dấu DX04 done theo phạm vi typing, không suy ra UI01/UI02 browser done.
 
 **Scope:** `DataTable.vue`, `types.ts`, `index.ts`, `context/tableContext.ts`,
 slot composition và type fixtures của DX02.

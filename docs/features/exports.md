@@ -3,6 +3,32 @@
 Export definitions reuse the table's declared query, columns, selection rules,
 and authorization. Native CSV requires no additional package.
 
+## Callback parameters
+
+Export callbacks use Laravel's container, with named arguments rather than a
+fixed positional order. Declare only the parameters you need, using these names:
+
+| Methods | Supplied names | Result |
+| --- | --- | --- |
+| `label`, `filename`, `authorize` | `$request`, `$table` | String, string, bool respectively |
+| `modifyQueryUsing` | `$query`, `$request`, `$table`, `$state`, `$selection` | Eloquent builder, or nothing after mutating `$query` |
+
+`$state` is the normalized state array, and `$selection` is an array or null.
+For example, this callback mutates the existing query without returning it:
+
+```php
+use Illuminate\Database\Eloquent\Builder;
+
+Export::make('csv')->modifyQueryUsing(function (Builder $query): void {
+    $query->whereNotNull('published_at');
+});
+```
+
+The container may inject additional services. Preserve the documented names to
+receive the provided instances rather than asking it to construct replacements.
+See [queue callback parameters](/features/queues#container-callback-parameters)
+for delivery URLs, notification hooks and dispatch-time configuration.
+
 ## Declare export choices
 
 ```php

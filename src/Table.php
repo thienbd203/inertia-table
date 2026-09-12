@@ -71,8 +71,8 @@ abstract class Table implements Arrayable
      * @param  array<int, mixed>  $filters
      * @param  array<int, string>|string|null  $search
      * @param  array<int, mixed>|null  $perPageOptions
-     * @param  Closure(Model): mixed|null  $transformModelUsing
-     * @param  Closure(QueryBuilder): mixed|null  $withQueryBuilder
+     * @param  (Closure(Model): array<string, mixed>)|null  $transformModelUsing
+     * @param  (Closure(QueryBuilder): (QueryBuilder|void|null))|null  $withQueryBuilder
      */
     public static function build(
         string|Builder $resource,
@@ -118,6 +118,7 @@ abstract class Table implements Arrayable
         );
     }
 
+    /** @return Builder<Model> */
     abstract public function query(): Builder;
 
     /**
@@ -865,6 +866,7 @@ abstract class Table implements Arrayable
         return $queryBuilderRequest;
     }
 
+    /** Runs before declared filters/sorts are applied; return the builder to use. */
     protected function withQueryBuilder(QueryBuilder $query): QueryBuilder
     {
         return $query;

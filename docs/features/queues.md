@@ -5,6 +5,30 @@ stores a normalized snapshot, and a worker reconstructs the table and its query.
 Live requests, builders, models, table instances, and definition closures are
 never serialized.
 
+## Container callback parameters
+
+Queue configuration and notification callbacks use Laravel `app()->call`.
+The package supplies the following **parameter names**. Declare the ones needed
+in any order, and preserve these names to receive the supplied values. Laravel
+can inject additional services. These are not positional column callbacks.
+
+| Callback | Supplied names | Expected result |
+| --- | --- | --- |
+| Action/export `scopeAttributes` | `$request`, `$table` | Array of serializable scope values |
+| Action `middleware`, `tags`, `chain` | `$request`, `$table`, `$snapshot` | Middleware objects, non-empty tag strings, or job objects respectively |
+| Export `chain` | `$request`, `$table`, `$snapshot` | Job objects |
+| Action/export `redirectAfterDispatch` | `$request`, `$table` | URL string or null |
+| Action `onCompleted` | `$snapshot`, `$result` | Ignored |
+| Action/export `onFailure` | `$snapshot`, `$exception` | Ignored |
+| Export `deliveryUrlUsing` | `$snapshot`, `$path` | URL string or null |
+| Export `onReady` | `$snapshot`, `$url` (nullable) | Ignored |
+
+`$snapshot` is `QueuedActionSnapshot` or `QueuedExportSnapshot` according to the
+operation. Notification hooks run through the queued operation lifecycle; they
+do not return a response to the browser that originally dispatched the job.
+Keep them separate from action `before`/`handle`/`after`, which use the positional
+arguments documented in [Actions](/features/actions#callback-reference).
+
 ## Queue a bulk action
 
 Define the bulk handler before `queue()`:

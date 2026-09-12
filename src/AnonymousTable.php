@@ -33,8 +33,8 @@ final class AnonymousTable extends Table
      * @param  array<int, mixed>  $filters
      * @param  array<int, string>|string|null  $search
      * @param  array<int, mixed>|null  $perPageOptions
-     * @param  Closure(Model): mixed|null  $transformModelUsing
-     * @param  Closure(QueryBuilder): mixed|null  $withQueryBuilder
+     * @param  (Closure(Model): array<string, mixed>)|null  $transformModelUsing
+     * @param  (Closure(QueryBuilder): (QueryBuilder|void|null))|null  $withQueryBuilder
      */
     public function __construct(
         string|Builder $resource,

@@ -4,7 +4,50 @@ Use the default renderer for table structure and slots for targeted application
 content. The server resource remains authoritative even when a cell or control
 is replaced.
 
+## Event typing
+
+Type the resource as `TableResource<YourRow>` to infer row-click and row-key
+arguments. `row-click` receives `(item, column)` and `column` may be null.
+
+| Event | Arguments |
+| --- | --- |
+| `custom-action` | `action`, `keys`, `onFinish`, `selection` |
+| `action-success` | `action`, `keys`, `selection` |
+| `action-error` | `action`, `keys`, `error: unknown`, `selection` |
+| `action-queued`, `action-progress` | `action`, `QueuedActionStatus`, `selection` |
+| `export-success` | `TableExport` |
+| `export-queued` | `TableExport`, `QueuedExportStatus` |
+| `export-error` | `TableExport`, `Error` |
+
+Use the public package's `TableAction`, `TableKey`, `TableSelection`,
+`QueuedActionStatus`, `QueuedExportStatus` and `TableExport` types for named
+handlers. Narrow action errors before reading properties; export errors already
+use `Error`. The custom-action completion callback takes no arguments.
+
+Stricter slot types can reveal assumptions previously hidden by `any`: check
+nullable action rows and image fallbacks, and narrow cell/filter values. For
+programmatic mounting, specify the component generic when inference is lost,
+for example `mount(DataTable<Topic>, ...)` in Vue Test Utils.
+
 ## Custom cells
+
+`cell(...)` slots infer `item` from the resource's row type. Their `column` is
+`TableColumn` and their `value` is `unknown`, since PHP mapping can change a
+cell's value independently of the row attribute. Narrow `value` before using
+it as a string or number. `header(...)` slots expose a typed `column` (its title
+is `column.header`). Both retain the shared table/actions/exports/views scope.
+`action(...)` exposes `item: T | null` because bulk actions have no row,
+`selectedItems: T[]`, selection/count, and a zero-argument `execute()` callback.
+Check `item` before reading row fields. `filter(...)` exposes optional applied
+`state`, an `unknown` draft value, `update(value?)`, `close()` and
+`setDisplayValue(string | null)`. Shared scope remains available in both.
+`summary(...)` exposes `value: unknown`, `formatted: string`, its column and
+optional summary definition. `image(...)` exposes image metadata, while
+`image-fallback(...)` allows that metadata to be null. Layout slots such as
+`topbar`, `thead`, `tbody`, `footer`, `loading` and `emptyState` receive the shared
+scope. `confirmation` adds the pending action, and `queuedAction` adds a nullable
+status (it can also render when an error exists without a status).
+Unknown extension slot names retain a permissive fallback.
 
 ```vue
 <DataTable :resource="topics">

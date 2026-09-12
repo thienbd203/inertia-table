@@ -5,6 +5,8 @@ on:
     paths:
       - '**.php'
       - 'phpstan.neon.dist'
+      - 'composer.json'
+      - 'composer.lock'
       - '.github/workflows/phpstan.yml'
 
 jobs:
@@ -26,3 +28,9 @@ jobs:
 
       - name: Run PHPStan
         run: ./vendor/bin/phpstan --error-format=github
+
+      - name: Check consumer callback types
+        run: composer analyse:consumer
+
+      - name: Check invalid callbacks are rejected
+        run: composer analyse:consumer:negative

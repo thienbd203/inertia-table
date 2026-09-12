@@ -204,7 +204,11 @@ final class Export
         return $this;
     }
 
-    /** @param Closure(Builder, Request, Table, array<string, mixed>, array<string, mixed>|null): (Builder|void) $modifier */
+    /**
+     * Container callback with named query, request, table, state and selection.
+     * Declare only the parameters needed; additional services may be injected.
+     * Return an Eloquent Builder or mutate query and return nothing.
+     */
     public function modifyQueryUsing(Closure $modifier): self
     {
         $this->queryModifier = $modifier;
@@ -239,7 +243,9 @@ final class Export
         return $this;
     }
 
-    /** @param Closure(QueuedExportSnapshot, string): (string|null) $resolver */
+    /**
+     * Container callback with named snapshot and path; returns string or null.
+     */
     public function deliveryUrlUsing(Closure $resolver): self
     {
         $this->deliveryUrlResolver = $resolver;
@@ -247,7 +253,9 @@ final class Export
         return $this;
     }
 
-    /** @param Closure(QueuedExportSnapshot, string|null): mixed $callback */
+    /**
+     * Container callback with named snapshot and nullable url; return ignored.
+     */
     public function onReady(Closure $callback): self
     {
         $this->readyCallback = $callback;
@@ -255,7 +263,9 @@ final class Export
         return $this;
     }
 
-    /** @param Closure(QueuedExportSnapshot, Throwable): mixed $callback */
+    /**
+     * Container callback with named snapshot and exception; return ignored.
+     */
     public function onFailure(Closure $callback): self
     {
         $this->failureCallback = $callback;
