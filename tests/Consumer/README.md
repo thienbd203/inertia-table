@@ -45,6 +45,12 @@ state. The automated check verifies scoped queries, partial prop omission and
 SSR with manually merged props; browser state preservation remains a manual
 check. The docs embed `multiple-tables.php` and `app/Multiple.vue` directly.
 
+The `/slots` recipe uses `SlotsTable.php` and `app/Slots.vue` for a bold name
+cell and an application-owned Preview action. Click Preview Alpha, then Preview
+Beta: the status message should change each time without navigation or a server
+mutation. Repeat with `?csr=1`. Automated checks cover types and rendered slot
+HTML; action clicks and hydration remain manual checks.
+
 PHP uses this checkout's Composer autoloader. A separate smoke refreshes
 Testbench's package discovery manifest, boots without explicit providers, checks
 the package config, generates a table in a temporary app directory and resolves

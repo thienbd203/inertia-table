@@ -424,6 +424,9 @@ có route `/headless` và kiểm tra SSR initial/partial search/empty response.
 Recipe hai bảng nhúng route/component consumer, dùng `/multiple` với hai query
 scope và namespace riêng. Check PHP partial response không trả prop bảng kia,
 SSR initial và sau merge props thủ công; chưa xác nhận navigation bằng browser.
+Recipe custom cell/action có `/slots`, PHP declaration và Vue component được
+nhúng trực tiếp trong docs. Preview là custom action phía host, gọi execute rồi
+onFinish; smoke kiểm tra HTML slot, chưa đánh dấu click/hydration đã kiểm chứng.
 Chưa hoàn tất audit/chạy đủ năm recipe hoặc walkthrough onboarding; không coi
 docs build là bằng chứng browser cho race/history/focus.
 

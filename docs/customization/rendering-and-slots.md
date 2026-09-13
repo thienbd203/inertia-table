@@ -63,6 +63,46 @@ Unknown extension slot names retain a permissive fallback.
 </DataTable>
 ```
 
+## Runnable custom cell and action recipe
+
+Use the Topic model/schema from [getting started](/guide/getting-started).
+This recipe renders names in bold and provides a row Preview button that
+updates a status message on the page. It performs no server mutation.
+
+The consumer table below uses its fixture namespace. In your application use
+`namespace App\Tables;` and import `App\Models\Topic`:
+
+<<< ../../tests/Consumer/SlotsTable.php
+
+Keep `ActionColumn::new()` in `columns()`: declaring a row action alone does
+not add a place to render its button.
+
+Return it under the `topics` prop (matching the declared table name):
+
+```php
+use App\Tables\SlotsTable;
+
+return inertia('Topics/Slots', ['topics' => SlotsTable::make()]);
+```
+
+Register the following component as `Topics/Slots` in your page resolver:
+
+<<< ../../tests/Consumer/app/Slots.vue
+
+An action without an endpoint or managed handler emits `custom-action`.
+The slot calls `execute()` to enter the package action flow; the event handler
+calls `onFinish()` in `finally` so completion also occurs on an early return or
+error. For asynchronous work, await it inside that `try` block. The host owns
+error presentation for custom work. Any server endpoint must still authorize
+the operation; a visible slot is not an authorization check.
+
+From the package checkout run `npm run test:consumer`, then
+`node tests/Consumer/serve.mjs`. Open `/slots` using the printed origin and click
+Preview Alpha: the status should become “Preview: Alpha”. Click Preview Beta
+next to check that the previous action finished. Repeat with `?csr=1`.
+The automated consumer verifies public types, CSR/SSR builds, and server HTML
+containing the custom cell and button. Clicking and hydration are manual checks.
+
 ## Slot inventory
 
 Layout slots:

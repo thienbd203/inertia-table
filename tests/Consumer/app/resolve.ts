@@ -5,6 +5,7 @@ const pages = import.meta.glob<{ default: DefineComponent }>([
     "./Topics.vue",
     "./Headless.vue",
     "./Multiple.vue",
+    "./Slots.vue",
 ]);
 
 export function resolve(name: string) {
@@ -15,7 +16,9 @@ export function resolve(name: string) {
               ? "./Headless.vue"
               : name === "Topics/Multiple"
                 ? "./Multiple.vue"
-                : null;
+                : name === "Topics/Slots"
+                  ? "./Slots.vue"
+                  : null;
     if (!path) throw new Error(`Unknown consumer page: ${name}`);
     return pages[path]().then((page) => page.default);
 }

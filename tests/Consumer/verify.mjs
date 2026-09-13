@@ -50,6 +50,12 @@ assert.deepEqual(
 assert.match((await render(filtered)).body, /Beta/);
 
 const manifest = JSON.parse(readFileSync("dist/.vite/manifest.json", "utf8"));
+const slots = page("/slots");
+assert.equal(slots.component, "Topics/Slots");
+const slotsHtml = (await render(slots)).body;
+assert.match(slotsHtml, /<strong>Alpha<\/strong>/);
+assert.match(slotsHtml, /Preview Alpha/);
+assert.match(slotsHtml, /role="status"/);
 const multiple = page("/multiple");
 assert.equal(multiple.component, "Topics/Multiple");
 assert.deepEqual(
