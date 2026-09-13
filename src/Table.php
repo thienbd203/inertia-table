@@ -1216,7 +1216,7 @@ abstract class Table implements Arrayable
         }
 
         if ($state->sort === null) {
-            throw new LogicException('Cursor pagination requires a default or requested sort.');
+            throw new LogicException('Cursor pagination requires a default or requested sort. '.static::class.': set $defaultSort to a declared sortable base-table column, or use full/simple pagination.');
         }
 
         $attribute = ltrim($state->sort, '-');
@@ -1225,7 +1225,7 @@ abstract class Table implements Arrayable
         );
 
         if (! $column instanceof Column || str_contains($attribute, '.')) {
-            throw new LogicException('Cursor pagination only supports sortable columns on the base table.');
+            throw new LogicException('Cursor pagination only supports sortable columns on the base table. '.static::class.': sort ['.$attribute.'] is unsupported; choose a sortable base-table column or use full/simple pagination.');
         }
 
         return $state->withPage(1);
@@ -1245,7 +1245,7 @@ abstract class Table implements Arrayable
                 : null;
 
             if (! is_string($column)) {
-                throw new LogicException('Cursor pagination requires plain column sorts; raw or expression sorts are not supported.');
+                throw new LogicException('Cursor pagination requires plain column sorts; raw or expression sorts are not supported. '.static::class.': inspect query(), withQueryBuilder() and sortUsing(); use plain orderBy columns or full/simple pagination.');
             }
 
             if (in_array($column, [$key, $qualifiedKey], true)) {
@@ -1427,9 +1427,9 @@ abstract class Table implements Arrayable
     {
         $columns = $this->columns();
 
-        foreach ($columns as $column) {
+        foreach ($columns as $index => $column) {
             if (! $column instanceof Column) {
-                throw new LogicException('Every table column must extend '.Column::class.'.');
+                throw new LogicException('Every table column must extend '.Column::class.'. '.static::class.'::columns()['.$index.'] returned '.get_debug_type($column).'; return a Column instance.');
             }
         }
 
@@ -1443,9 +1443,9 @@ abstract class Table implements Arrayable
     {
         $filters = $this->filters();
 
-        foreach ($filters as $filter) {
+        foreach ($filters as $index => $filter) {
             if (! $filter instanceof Filter) {
-                throw new LogicException('Every table filter must extend '.Filter::class.'.');
+                throw new LogicException('Every table filter must extend '.Filter::class.'. '.static::class.'::filters()['.$index.'] returned '.get_debug_type($filter).'; return a Filter instance.');
             }
         }
 
@@ -1458,13 +1458,13 @@ abstract class Table implements Arrayable
         $actions = $this->actions();
         $keys = [];
 
-        foreach ($actions as $action) {
+        foreach ($actions as $index => $action) {
             if (! $action instanceof Action) {
-                throw new LogicException('Every table action must be an instance of '.Action::class.'.');
+                throw new LogicException('Every table action must be an instance of '.Action::class.'. '.static::class.'::actions()['.$index.'] returned '.get_debug_type($action).'; return an Action instance.');
             }
 
             if (in_array($action->key, $keys, true)) {
-                throw new LogicException("Table action keys must be unique; duplicate [{$action->key}] found.");
+                throw new LogicException("Table action keys must be unique; duplicate [{$action->key}] found. ".static::class.'::actions()['.$index.']; give each action a distinct key.');
             }
 
             $keys[] = $action->key;
@@ -1479,13 +1479,13 @@ abstract class Table implements Arrayable
         $exports = $this->exports();
         $keys = [];
 
-        foreach ($exports as $export) {
+        foreach ($exports as $index => $export) {
             if (! $export instanceof Export) {
-                throw new LogicException('Every table export must be an instance of '.Export::class.'.');
+                throw new LogicException('Every table export must be an instance of '.Export::class.'. '.static::class.'::exports()['.$index.'] returned '.get_debug_type($export).'; return an Export instance.');
             }
 
             if (in_array($export->key, $keys, true)) {
-                throw new LogicException("Table export keys must be unique; duplicate [{$export->key}] found.");
+                throw new LogicException("Table export keys must be unique; duplicate [{$export->key}] found. ".static::class.'::exports()['.$index.']; give each export a distinct key.');
             }
 
             $keys[] = $export->key;

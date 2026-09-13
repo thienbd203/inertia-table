@@ -63,6 +63,9 @@ Large option lists do not need to be serialized with the first table response.
 Declare a model source and call `lazy()`:
 
 ```php
+use App\Models\Category;
+use Musing\InertiaTable\Filters\SetFilter;
+
 SetFilter::make('category_id', 'Category')
     ->pluckOptionsFromModel(Category::class, 'name')
     ->multiple()
@@ -79,6 +82,33 @@ another declared model attribute:
 ```php
 ->pluckOptionsFromModel(Category::class, 'name', 'slug')
 ```
+
+This example assumes your host has a `Category` model with a `name` attribute
+and that the table query exposes `category_id`. Put the definition in the
+table's `filters()` method. Lazy loading defers the option list; it does not
+provide server-side option search or option pagination.
+
+For a runnable example without a related model, see the lazy Status filter in
+the [consumer fixture](https://github.com/thienbd203/inertia-table/blob/master/tests/Consumer/TopicsTable.php).
+The [consumer instructions](https://github.com/thienbd203/inertia-table/tree/master/tests/Consumer)
+describe how to run it.
+
+### Options stay empty or loading fails
+
+Check that the table name matches the Inertia prop key and that the current
+route still returns the same page component. Opening a lazy filter requests
+that table prop; a response that omits it cannot supply the options. Inspect
+the partial response and the host's Laravel logs if the request fails.
+
+An empty successful option list is different from a failed request: verify the
+model source and its scopes when no options are returned. Loading options does
+not bypass application query scopes or create missing records.
+
+### A range does not apply after entering its first value
+
+A range requires both endpoints. The editor keeps an incomplete range as a
+draft until it is complete. Changing the clause or removing the filter cancels
+the pending draft update. Single-value selections apply without an Apply button.
 
 ## Custom query behavior
 

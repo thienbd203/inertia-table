@@ -122,9 +122,9 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | UI05 | Phản hồi action/export/view theo kết quả thật | P1 | M | UI02, UI03 | todo |
 | DX03 | PHP callback docs và fluent API typing | P1 | M | Q00 | doing |
 | DX04 | Vue props/events/slots và consumer types | P1 | M | DX02 | done |
-| DX05 | Error messages và declaration validation | P1 | M | Q00 | todo |
-| DX06 | Generator output nhỏ, rõ và chạy được | P1 | S | DX03, DX05 | todo |
-| DX07 | Recipes và troubleshooting đã chạy thử | P1 | M | DX01–DX06, UI01–UI05 | todo |
+| DX05 | Error messages và declaration validation | P1 | M | Q00 | done |
+| DX06 | Generator output nhỏ, rõ và chạy được | P1 | S | DX03, DX05 | done |
+| DX07 | Recipes và troubleshooting đã chạy thử | P1 | M | DX01–DX06, UI01–UI05 | doing |
 | M02 | Tách trách nhiệm nội bộ của useTable nếu có lợi | P2 | M | UI02, DX04 | todo |
 | M03 | Tách selection khỏi action execution nếu có lợi | P2 | M | UI05, DX04 | todo |
 | M04 | Rà PHP extension hooks và thu gọn hotspot có bằng chứng | P2 | L | DX03, DX05 | todo |
@@ -340,6 +340,28 @@ custom slots không bị khóa cứng thành danh sách thiếu escape hatch.
 
 ### DX05 — Cấu hình sai được báo có ngữ cảnh
 
+Tiến độ 2026-09-12: lỗi sai type trong columns/filters/actions/exports có table
+class, method, entry key/index, actual type và hướng sửa; duplicate action/export
+keys có vị trí entry. Giữ LogicException và điều kiện validation cũ. Sáu case
+diagnostics qua public resolve xác nhận fail trước query và không dump value;
+55 tests (253 assertions), PHPStan và scoped Pint pass. Chưa đổi policy duplicate
+column/filter; cursor và optional-dependency diagnostics còn cần rà tiếp.
+Follow-up 2026-09-13: ba lỗi cursor nêu table class, attribute khi có, và hướng
+sửa defaultSort/base-table/orderBy hoặc chuyển full/simple. Tests giữ nguyên
+LogicException và xác nhận context mới; 66 Table/Export tests (294 assertions)
+pass. Missing Laravel Excel đã có tên package và hướng cài đặt nên no-change
+ở thông báo đó. Chưa đổi duplicate column/filter semantics; DX05 còn cần quyết
+định compatibility cho các declaration trùng trước khi chốt toàn bộ task.
+Compatibility decision 2026-09-13: giữ nguyên việc không reject duplicate
+column/filter trong release này. `serializeRow`/state maps ghi đè theo attribute,
+trong khi resource/render lists giữ duplicates và Vue keys dùng attribute; không
+có override contract nhất quán để hứa hỗ trợ. Docs yêu cầu caller hợp nhất
+definitions trước khi trả về, có recipe kế thừa last-definition-wins rõ ràng.
+Không thêm test khóa hành vi duplicate không ổn định thành public contract.
+DX05 done: type/duplicate action-export/cursor diagnostics đã kiểm chứng; missing
+Laravel Excel no-change có lý do; policy column/filter giữ compatibility, không
+thêm validation mới. Đây không phải hoàn tất toàn bộ UI/DX plan.
+
 **Scope:** `Table.php::validated*`, cursor validation, Column/Filter validations
 và optional adapter diagnostics; `tests/TableTest.php` và tests tương ứng.
 
@@ -365,6 +387,13 @@ request hợp lệ hoặc thay authorization bằng error handling dễ dãi hơ
 
 ### DX06 — Generator tạo điểm bắt đầu rõ ràng
 
+Kết luận 2026-09-13: stub chỉ giữ query/ID column, bỏ imports và overrides rỗng
+cho filters/actions/exports; thêm Builder<ModelClass> và typed column array.
+Tests cover model inference với/không Table suffix, nested names, bảo vệ file
+và force; consumer generate class thật rồi resolve SQLite row pass. Docs nêu
+path/imports, không generate model/migration, hướng thêm hooks và custom key.
+Không thêm flag hay điều kiện model phải tồn tại. Docs build pass; DX06 done.
+
 **Scope:** `src/Commands/MakeTableCommand.php`, `stubs/table.stub`,
 `tests/MakeTableCommandTest.php`, docs artisan/getting-started.
 
@@ -385,6 +414,18 @@ PHPStan khi annotations/signatures liên quan.
 **Done:** output có thể dùng ngay làm table tối thiểu và không gây mất app edits.
 
 ### DX07 — Recipes theo công việc của người dùng
+
+**Tiến độ:** bổ sung troubleshooting tại các guide hiện có: lazy options,
+incomplete range, partial reload/reloadProps, search đang debounce, SSR setup
+thiếu return và declaration errors. Lazy recipe có imports/host assumptions
+và link consumer fixture; SSR có link entry/resolver chạy trong consumer.
+Headless recipe dùng trực tiếp file Vue của consumer (tránh docs/code drift),
+có route `/headless` và kiểm tra SSR initial/partial search/empty response.
+Recipe hai bảng nhúng route/component consumer, dùng `/multiple` với hai query
+scope và namespace riêng. Check PHP partial response không trả prop bảng kia,
+SSR initial và sau merge props thủ công; chưa xác nhận navigation bằng browser.
+Chưa hoàn tất audit/chạy đủ năm recipe hoặc walkthrough onboarding; không coi
+docs build là bằng chứng browser cho race/history/focus.
 
 **Scope:** các guide/features/customization/reference đang có; ưu tiên bổ sung
 vào page đúng chủ đề, không sinh một site hoặc bộ API docs thứ hai.

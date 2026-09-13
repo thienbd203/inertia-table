@@ -44,7 +44,10 @@ const server = createServer(async (request, response) => {
             response.end(readFileSync(join(consumer, "dist", asset)));
             return;
         }
-        if (request.method !== "GET" || url.pathname !== "/topics") {
+        if (
+            request.method !== "GET" ||
+            !["/topics", "/headless", "/multiple"].includes(url.pathname)
+        ) {
             response.writeHead(404).end("Not found");
             return;
         }
@@ -125,8 +128,12 @@ const server = createServer(async (request, response) => {
     }
 });
 server.listen(0, "127.0.0.1", () => {
+    console.log(
+        `Multiple tables: http://127.0.0.1:${server.address().port}/multiple`,
+    );
     console.log(`SSR: http://127.0.0.1:${server.address().port}/topics`);
     console.log(`CSR: http://127.0.0.1:${server.address().port}/topics?csr=1`);
+    console.log(`Headless: http://127.0.0.1:${server.address().port}/headless`);
     console.log(
         `Lazy header requests: delay=${lazyDelay}ms, reverse=${reverseLazy}, failOnce=${failNextLazy}. Restart to reset failure and request log.`,
     );

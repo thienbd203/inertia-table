@@ -3,62 +3,48 @@
 Several table resources can share one Inertia page. Give each resource a unique
 name so its URL state and partial reload prop stay independent.
 
-## Controller
+## Runnable recipe
 
-```php
-return inertia('Dashboard', [
-    'activeTopics' => ActiveTopicsTable::make(),
-    'archivedTopics' => ArchivedTopicsTable::make(),
-]);
-```
+This example uses the Topic schema from [getting started](/guide/getting-started):
+`id`, `name`, `status` and timestamps, with `published` and `draft` statuses.
+It displays two independently scoped queries. The consumer uses an isolated
+SQLite database containing Alpha and Gamma (published) and Beta (draft).
 
-Give the classes unique protected names that match their Inertia props:
+### Route
 
-```php
-final class ActiveTopicsTable extends Table
-{
-    protected ?string $name = 'activeTopics';
-}
+Place this route in your host's existing authorization group. Replace the
+fixture's `Musing\InertiaTable\Tests\Consumer\Topic` import with
+`App\Models\Topic`. The `name` arguments must match the Inertia prop keys.
 
-final class ArchivedTopicsTable extends Table
-{
-    protected ?string $name = 'archivedTopics';
-}
-```
+<<< ../../tests/Consumer/multiple-tables.php
 
-Use `Table::build(..., name: 'activeTopics')` when two anonymous tables share a
-page.
+### Vue page
 
-## Vue page
+Register this page as `Topics/Multiple` in your host's Inertia resolver:
 
-```vue
-<script setup lang="ts">
-import { DataTable, type TableResource } from "@musing/inertia-table-vue";
+<<< ../../tests/Consumer/app/Multiple.vue
 
-defineProps<{
-    activeTopics: TableResource<Topic>;
-    archivedTopics: TableResource<Topic>;
-}>();
-</script>
+Run `npm run test:consumer` and `node tests/Consumer/serve.mjs` from the package
+checkout, then open the printed `/multiple` URL. Search Gamma in Published;
+Draft should still show Beta. Search Beta in Draft and sort Published; both
+search values should remain in their own URL namespaces. Reload the URL to
+check that both states are restored. Append `?csr=1` to start without SSR.
 
-<template>
-    <section>
-        <h2>Active</h2>
-        <DataTable :resource="activeTopics" />
-    </section>
+The packed consumer checks both queries, simultaneous namespaced state,
+partial responses that omit the other prop, and SSR after manually merging
+those props. It does not automate browser navigation or prove the client-side
+merge behavior. Follow the steps above for that manual verification.
 
-    <section>
-        <h2>Archived</h2>
-        <DataTable :resource="archivedTopics" />
-    </section>
-</template>
-```
+For class-based tables, set each class's protected `$name` to its matching prop
+key and keep its query scope in `query()`. See
+[table definitions](/guide/table-definitions) for the complete class structure.
 
 ## URL state
 
 ```text
-?table[activeTopics][search]=laravel
-&table[archivedTopics][sort]=-created_at
+?table[publishedTopics][search]=Gamma
+&table[draftTopics][search]=Beta
+&table[draftTopics][sort]=-name
 ```
 
 Updating one table retains the other namespace. Its Inertia visit requests only
@@ -70,6 +56,8 @@ Two named instances of the same table class should use `scopeTableName()` when
 their views must remain separate:
 
 ```php
+use Musing\InertiaTable\Views;
+
 public function views(): ?Views
 {
     return Views::make()->scopeTableName();

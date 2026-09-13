@@ -1,5 +1,15 @@
 # Pagination and URL state
 
+## Diagnosing cursor configuration
+
+Cursor configuration errors include the table class and keep their
+`LogicException` type. If no sort is available, set `$defaultSort` to a declared
+sortable base-table column. Relationship sorts are unsupported in cursor mode;
+the error identifies the attribute. For raw/expression orders, inspect `query()`,
+`withQueryBuilder()` and column `sortUsing()` callbacks and use plain column
+`orderBy` calls. Choose full or simple pagination if those restrictions do not
+fit the query. These diagnostics do not dump SQL or query bindings.
+
 Every table normalizes its own query-string state before applying it to the
 database. Choose a pagination mode based on the count and navigation behavior
 the screen needs.
@@ -74,6 +84,30 @@ The renderer performs GET visits with `preserveState`, `preserveScroll`, and a
 partial `only` list containing the table name plus `reloadProps`. Search and
 layout updates replace history by default so typing and dragging do not create
 an unusable Back-button history.
+
+### A related counter stays stale
+
+Partial visits refresh the table prop. Declare additional page props when a
+counter or summary outside the table must refresh with it:
+
+```php
+use App\Tables\TopicsTable;
+
+// In the host route/controller response:
+'topics' => TopicsTable::make()->reloadProps(['topicCount']),
+```
+
+The host must also return `topicCount` as an Inertia prop. `reloadProps` requests
+that prop; it does not calculate it or change its authorization scope.
+
+### Search changes when another control is used
+
+Search is debounced. If you type and immediately sort or navigate, the pending
+search is included in that visit and pagination resets for the new search.
+Leading and trailing whitespace is normalized. A newer draft typed while the
+request is in flight is retained instead of being replaced by the earlier
+response. Check the request's table namespace and returned search state before
+adding a second host watcher that triggers its own visits.
 
 ## Deep links
 

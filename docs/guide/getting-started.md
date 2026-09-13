@@ -193,3 +193,31 @@ returns the same page component on subsequent visits.
 To-one automatic relationship sorting requires the optional Power Joins
 adapter. Read [relationship queries](/guide/relationships) before adding the
 dependency.
+
+### SSR fails with `Cannot read properties of undefined (reading '_component')`
+
+Check the host's Inertia SSR entry point. Its `setup` callback must return the
+Vue application. With a block-bodied arrow function, an omitted `return` passes
+`undefined` to `renderToString`:
+
+```ts
+import { createSSRApp, h } from "vue";
+
+// Inside the existing createInertiaApp({ ... }) SSR configuration:
+setup({ App, props, plugin }) {
+    return createSSRApp({ render: () => h(App, props) }).use(plugin);
+}
+```
+
+Keep the host's existing page resolver and SSR server integration. Compare the
+complete [consumer SSR entry](https://github.com/thienbd203/inertia-table/blob/master/tests/Consumer/app/ssr.ts)
+and [page resolver](https://github.com/thienbd203/inertia-table/blob/master/tests/Consumer/app/resolve.ts).
+This error alone does not establish that a table component accesses browser
+APIs; first check what the host passes to the renderer.
+
+### A table declaration throws `LogicException`
+
+Use the class, declaration method and entry key in the error to locate the
+invalid definition. See [invalid declarations](/guide/table-definitions#invalid-declarations)
+and [cursor configuration](/guide/pagination-and-url-state#diagnosing-cursor-configuration)
+for the expected types and remedies.

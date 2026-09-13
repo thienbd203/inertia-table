@@ -20,22 +20,24 @@ function withTemporaryAppPath(Closure $callback): void
     }
 }
 
-it('generates a table class and infers its Eloquent model', function () {
-    withTemporaryAppPath(function () {
-        $this->artisan('make:inertia-table', ['name' => 'Users'])
+it('generates a table class and infers its Eloquent model', function (string $name) {
+    withTemporaryAppPath(function () use ($name) {
+        $this->artisan('make:inertia-table', ['name' => $name])
             ->expectsOutputToContain('Inertia table')
             ->assertSuccessful();
 
-        $generated = File::get(app_path('Tables/Users.php'));
+        $generated = File::get(app_path('Tables/'.$name.'.php'));
 
         expect($generated)
             ->toContain('namespace App\Tables;')
             ->toContain('use App\Models\User;')
-            ->toContain('final class Users extends Table')
+            ->toContain('final class '.$name.' extends Table')
             ->toContain('return User::query();')
+            ->toContain('@return Builder<User>')
+            ->not->toContain('function filters()', 'function actions()', 'function exports()')
             ->toContain("TextColumn::make('id', 'ID')->sortable()->toggleable(false)");
     });
-});
+})->with(['Users', 'UsersTable']);
 
 it('accepts nested table and model names and protects existing files', function () {
     withTemporaryAppPath(function () {
