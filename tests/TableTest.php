@@ -797,11 +797,11 @@ it('ignores invalid cursor tokens and starts from the first result', function ()
 
 it('requires a base-table sort for cursor pagination', function () {
     expect(fn () => (new UnsortedCursorPaginationTopicsTable)->resolve(tableRequest()))
-        ->toThrow(LogicException::class, 'requires a default or requested sort')
+        ->toThrow(LogicException::class, 'UnsortedCursorPaginationTopicsTable: set $defaultSort')
         ->and(fn () => (new RelationshipSortedCursorPaginationTopicsTable)->resolve(tableRequest()))
-        ->toThrow(LogicException::class, 'base table')
+        ->toThrow(LogicException::class, 'RelationshipSortedCursorPaginationTopicsTable: sort [')
         ->and(fn () => (new ExpressionSortedCursorPaginationTopicsTable)->resolve(tableRequest()))
-        ->toThrow(LogicException::class, 'plain column sorts');
+        ->toThrow(LogicException::class, 'ExpressionSortedCursorPaginationTopicsTable: inspect query(), withQueryBuilder() and sortUsing()');
 });
 
 it('can configure the pagination type globally or fluently', function () {

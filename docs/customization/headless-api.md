@@ -3,6 +3,33 @@
 Compose the exported Vue composables when the application owns the table markup
 or needs to integrate the behavior into another design system.
 
+## Minimal searchable table
+
+Start with the Laravel model, table and route from
+[getting started](/guide/getting-started). This example expects a `topics`
+Inertia prop with `id`, `name` and `status` on each row, a searchable resource,
+and a declared sortable `name` column. Keep the table name equal to `topics`.
+
+The following is the actual component compiled and rendered by the packed
+consumer check:
+
+<<< ../../tests/Consumer/app/Headless.vue
+
+Pass a getter to `useTable` so it receives replacement resources after Inertia
+visits. Destructure its refs at setup scope so Vue unwraps them in the template.
+Search is debounced, the name button changes the server sort, and an empty
+response renders the empty row. The markup displays only the current result
+page; add pagination controls before using it for a larger dataset.
+
+Run `npm run test:consumer` and then `node tests/Consumer/serve.mjs` in the
+package checkout. Open the printed `/headless` URL; append `?csr=1` for client
+rendering. Search `Beta`, clear it, and use the name button to change order.
+See the [fixture instructions](https://github.com/thienbd203/inertia-table/tree/master/tests/Consumer).
+The automated check covers types, builds, SSR and real Laravel partial search
+responses; browser interaction and hydration still require the manual check.
+
+## Compose additional behavior
+
 ```ts
 import {
     useActions,

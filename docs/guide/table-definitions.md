@@ -1,5 +1,47 @@
 # Table definitions
 
+## Invalid declarations
+
+`columns()`, `filters()`, `actions()` and `exports()` must return arrays of the
+corresponding definition objects. Invalid entries raise `LogicException` before
+the table query runs. Messages include the table class, declaration method,
+entry key/index, actual type and expected instance. For example,
+`App\Tables\TopicsTable::filters()[2] returned string` points to the third entry
+in a zero-indexed array; replace it with a filter definition.
+
+Action and export keys must be unique within their respective declarations.
+Duplicate-key errors identify both the repeated key and the offending entry.
+The diagnostic reports the invalid value's type rather than dumping its value.
+
+### Combining inherited declarations
+
+Keep one column per attribute and one filter per attribute. The current release
+does not reject duplicate column/filter attributes, but they are not a reliable
+override mechanism: row serialization overwrites values by attribute while the
+renderer still receives repeated definitions with the same Vue key.
+
+When extending a base table, resolve overrides before returning the array. This
+example deliberately keeps the last definition for each attribute:
+
+```php
+use Musing\InertiaTable\Columns\Column;
+use Musing\InertiaTable\Columns\TextColumn;
+
+public function columns(): array
+{
+    return collect([
+        ...parent::columns(),
+        TextColumn::make('name', 'Display name')->sortable(),
+    ])->keyBy(fn (Column $column) => $column->attribute)
+        ->values()
+        ->all();
+}
+```
+
+Use the same approach with `Filter` for inherited filters. A column and a filter
+may share an attribute; uniqueness here is within each declaration array.
+Changing the label/header does not change the attribute used as its identity.
+
 ## Query and transform hook contracts
 
 | Hook | Input | Return contract |
@@ -28,7 +70,17 @@ selection rules, or reusable query behavior:
 php artisan make:inertia-table Admin/TopicsTable --model=Content/Topic
 ```
 
-The generated class exposes these primary extension points:
+The command writes `app/Tables/Admin/TopicsTable.php` and imports
+`App\Models\Content\Topic`. Without `--model`, it infers the model from the
+table class name (`UsersTable` → `User`). It does not generate a model or migration.
+Existing files are preserved unless you explicitly pass `--force`.
+
+The generated class contains only `query()` and a sortable ID column. Its query
+PHPDoc identifies the model for IDE inference. Adapt the ID column if your model
+uses another key, and add fields that exist on your model. Filters, actions and
+exports inherit empty defaults; add only the hooks your screen needs.
+
+The available extension points include:
 
 ```php
 final class TopicsTable extends Table

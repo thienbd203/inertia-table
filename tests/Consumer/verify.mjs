@@ -50,6 +50,64 @@ assert.deepEqual(
 assert.match((await render(filtered)).body, /Beta/);
 
 const manifest = JSON.parse(readFileSync("dist/.vite/manifest.json", "utf8"));
+const multiple = page("/multiple");
+assert.equal(multiple.component, "Topics/Multiple");
+assert.deepEqual(
+    multiple.props.publishedTopics.results.data.map((row) => row.name),
+    ["Alpha", "Gamma"],
+);
+assert.deepEqual(
+    multiple.props.draftTopics.results.data.map((row) => row.name),
+    ["Beta"],
+);
+const multipleHtml = (await render(multiple)).body;
+assert.match(multipleHtml, /Published topics/);
+assert.match(multipleHtml, /Draft topics/);
+const multipleUrl =
+    "/multiple?table[publishedTopics][search]=Gamma&table[draftTopics][search]=Beta&table[draftTopics][sort]=-name";
+const both = page(multipleUrl);
+assert.deepEqual(
+    both.props.publishedTopics.results.data.map((row) => row.name),
+    ["Gamma"],
+);
+assert.deepEqual(
+    both.props.draftTopics.results.data.map((row) => row.name),
+    ["Beta"],
+);
+const partial = page(multipleUrl, {
+    "x-inertia-partial-component": "Topics/Multiple",
+    "x-inertia-partial-data": "publishedTopics",
+});
+assert.equal(Object.hasOwn(partial.props, "draftTopics"), false);
+assert.deepEqual(
+    partial.props.publishedTopics.results.data.map((row) => row.name),
+    ["Gamma"],
+);
+// Inertia merges partial props; verify the resulting page still renders both tables.
+const mergedHtml = (
+    await render({
+        ...both,
+        ...partial,
+        props: { ...both.props, ...partial.props },
+    })
+).body;
+assert.match(mergedHtml, /Gamma/);
+assert.match(mergedHtml, /Beta/);
+const headless = page("/headless");
+assert.equal(headless.component, "Topics/Headless");
+const headlessHtml = (await render(headless)).body;
+assert.match(headlessHtml, /Headless topics/);
+assert.match(headlessHtml, /Alpha/);
+assert.match(headlessHtml, /Sort by name/);
+const headlessSearch = page("/headless?table[topics][search]=Beta", {
+    "x-inertia-partial-component": "Topics/Headless",
+    "x-inertia-partial-data": "topics",
+});
+const headlessSearchHtml = (await render(headlessSearch)).body;
+assert.match(headlessSearchHtml, /<td>Beta<\/td>/);
+assert.doesNotMatch(headlessSearchHtml, /<td>Alpha<\/td>/);
+const headlessEmpty = page("/headless?table[topics][search]=missing");
+assert.match((await render(headlessEmpty)).body, /No matching topics/);
 const css = manifest["main.ts"].css
     .map((path) => readFileSync(`dist/${path}`, "utf8"))
     .join("\n");

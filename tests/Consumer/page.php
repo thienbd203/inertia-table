@@ -48,8 +48,13 @@ $app->instance('request', $request);
 $app['router']->get('/topics', fn () => Inertia::render('Topics/Index', [
     'topics' => TopicsTable::make(),
 ]));
+$app['router']->get('/headless', fn () => Inertia::render('Topics/Headless', [
+    'topics' => TopicsTable::make(),
+]));
 
 // Laravel emits the real page resource; the Node fixture renders this with Vue SSR.
+require __DIR__.'/multiple-tables.php';
+
 $response = $app['router']->dispatch($request);
 if ($response->getStatusCode() !== 200) {
     throw new RuntimeException('Consumer route did not return HTTP 200.');
