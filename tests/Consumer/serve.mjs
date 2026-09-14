@@ -46,7 +46,9 @@ const server = createServer(async (request, response) => {
         }
         if (
             request.method !== "GET" ||
-            !["/topics", "/headless", "/multiple"].includes(url.pathname)
+            !["/topics", "/headless", "/multiple", "/slots"].includes(
+                url.pathname,
+            )
         ) {
             response.writeHead(404).end("Not found");
             return;
@@ -128,6 +130,9 @@ const server = createServer(async (request, response) => {
     }
 });
 server.listen(0, "127.0.0.1", () => {
+    console.log(
+        `Custom slots: http://127.0.0.1:${server.address().port}/slots`,
+    );
     console.log(
         `Multiple tables: http://127.0.0.1:${server.address().port}/multiple`,
     );

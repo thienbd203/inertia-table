@@ -127,7 +127,7 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | DX07 | Recipes và troubleshooting đã chạy thử | P1 | M | DX01–DX06, UI01–UI05 | doing |
 | M02 | Tách trách nhiệm nội bộ của useTable nếu có lợi | P2 | M | UI02, DX04 | todo |
 | M03 | Tách selection khỏi action execution nếu có lợi | P2 | M | UI05, DX04 | todo |
-| M04 | Rà PHP extension hooks và thu gọn hotspot có bằng chứng | P2 | L | DX03, DX05 | todo |
+| M04 | Rà PHP extension hooks và thu gọn hotspot có bằng chứng | P2 | L | DX03, DX05 | done |
 | M05 | CI gates theo contract và consumer | P0 | M | DX02, DX04, M01 | doing |
 | M06 | Tài liệu ownership, maintenance và compatibility | P1 | S | M02–M05 | todo |
 | M07 | Đo performance, sửa bottleneck đã xác nhận | P2 | M | UI01–UI05, M02–M04 | todo |
@@ -423,7 +423,15 @@ Headless recipe dùng trực tiếp file Vue của consumer (tránh docs/code dr
 có route `/headless` và kiểm tra SSR initial/partial search/empty response.
 Recipe hai bảng nhúng route/component consumer, dùng `/multiple` với hai query
 scope và namespace riêng. Check PHP partial response không trả prop bảng kia,
-SSR initial và sau merge props thủ công; chưa xác nhận navigation bằng browser.
+SSR initial và sau merge props thủ công. Browser 2026-09-14 xác nhận search riêng,
+sort Published và reload giữ cả hai namespace (SSR entry).
+Recipe custom cell/action có `/slots`, PHP declaration và Vue component được
+nhúng trực tiếp trong docs. Preview là custom action phía host, gọi execute rồi
+onFinish; browser 2026-09-14 xác nhận Preview Alpha rồi Beta ở SSR/CSR entry.
+Headless SSR entry đã kiểm tra search Beta, clear bằng bàn phím và sort descending.
+Console warning/error trống trong lượt kiểm tra; bằng chứng và giới hạn nằm ở
+`tests/Consumer/ui-catalog.md`. Follow-up CSR xác nhận headless search/clear/sort
+và multiple search/sort giữ namespace; chưa xác nhận DOM sau reload CSR.
 Chưa hoàn tất audit/chạy đủ năm recipe hoặc walkthrough onboarding; không coi
 docs build là bằng chứng browser cho race/history/focus.
 
@@ -676,6 +684,12 @@ types. Regression mới chỉ cho boundary hiện chưa được bảo vệ.
 được kết luận `no-change` thay vì mở rộng phạm vi.
 
 ### M04 — PHP hotspots và extension hooks
+
+**Hoàn tất 2026-09-14:** xem [Audit M04](#audit-m04-2026-09-14) cuối file.
+Đã tách built-in summary aggregation vào internal BuiltInSummaryResolver,
+giữ public facade/custom callbacks ở Table. Characterization pass trước move;
+sau move 93 tests/395 assertions, PHPStan và scoped Pint pass. State/query,
+pagination và các candidate còn lại kết luận không tách trong phạm vi M04.
 
 **Scope:** `Table.php` trước; chỉ mở `Column`, `Action`, `Export`, `Views` khi
 có coupling liên quan. Tests query, hooks, resource, exports/selection tương ứng.
@@ -1071,3 +1085,118 @@ strategy hoặc lý do `no-change`. Không biến phụ lục thành transcript 
   Còn ưu tiên: browser search/sort và history, navigation do host gọi, keyboard
   filter/overlay; sau đó UI04/UI05, DX03–DX07 và các maintenance/CI gates theo
   dependencies. Không coi số lượng test pass là thay thế cho browser evidence.
+
+## Audit M04 — 2026-09-14
+
+**Baseline:** checkout `69a374b`; `src/Table.php` có 1.567 dòng vật lý
+(gồm comment/dòng trống, không đồng nhất với số LOC executable). Audit đọc
+Table, AnonymousTable, Selection, Summary, ExportManager, NativeCsvExporter
+và các tests liên quan. Không thay đổi runtime/API trong lượt audit.
+
+### Kết luận và phạm vi thực tế
+
+Table có nhiều trách nhiệm thực thi ngoài khai báo/điều phối, nhưng chưa có
+bằng chứng cần viết lại toàn bộ. Chọn **summary aggregation** làm extraction
+nhỏ đầu tiên; không chia thành một loạt services/traits theo số dòng.
+Không tìm thấy facet-count pipeline trong `src` hiện tại. `selectableTotal`
+là đếm selection, không phải facet counts. Export execution đã ở
+`Exports/ExportManager.php` và exporters; Table giữ query/layout/summary API
+mà các luồng đó dùng lại. Không đưa execution trở lại Table hoặc tách trùng.
+
+### Responsibility map và thứ tự quan sát được
+
+| Đường | Điều phối hiện tại | Ràng buộc cần giữ |
+| --- | --- | --- |
+| Resource | `resolve` (232): validate declarations → resolve views → resolveState → normalizePaginationState → buildQuery → summaries → bulk/export authorization → selectable count → paginate → empty state → resource | Summary chạy trước pagination; empty-state check dùng queryForAll, không coi trang rỗng là dataset rỗng |
+| State | `resolveState` (879): merge saved state → TableState → normalizeSort → clear search nếu không searchable → normalizeFilters → normalizeColumns → normalizePinnedState → normalizeColumnLayout | Giữ URL namespace, explicit override, width reset marker và thứ tự hook |
+| Query | `buildQuery` (949): query → queryBuilderRequest → withQueryBuilder → ghi nhận joins → allowedFilters/allowedSorts → stabilizeJoinedQuery | Hook chạy trước filters/sorts; cờ dedup được chụp trước khi apply chúng, không tự đổi timing |
+| Full dataset | `queryForAll` (526): query → withQueryBuilder với request trống → join stabilization | Không đi qua search/filter state; không hợp nhất mù với queryForState |
+| Selection | `queryForSelection` (655): explicit dùng queryForAll + keys + declared sort; all matching dùng queryForState; rồi selectable scope và exclusions | Explicit keys không bỏ base scope; không ép cả hai nhánh dùng cùng filtered query |
+| Saved Views/export layout | normalizeViewState dùng resolveState; columnsForExport lọc exportable rồi tùy chọn visibility/order | Không dùng thẳng client layout; giữ normalizers override được |
+| Summary | `summariesForQuery` (577) dùng query đã scope; built-ins chạy một aggregate query, custom nhận clone riêng | Cùng đường được gọi từ resource và NativeCsvExporter; không paginate aggregate |
+| Pagination/row | paginate → full/simple/cursor helper → envelope → serializeRow | Full gọi paginationLinks override; cursor thêm PK tie-breaker, không đổi null/count envelope |
+| Row | transform → dataAttributesForModel → column values → cell URLs/meta → row actions → isSelectable/rowUrl → metadata | dataAttributes nhận dữ liệu sau transform nhưng trước column overwrite; không đảo thứ tự khi tách |
+
+### Extension hooks cần bảo toàn
+
+- **Public declarations/config:** query, columns, filters, actions, exports,
+  views, emptyState, name; make/build và fluent configuration giữ named arguments.
+- **Public reusable/overrideable surface:** selectableQuery, isSelectable,
+  dataAttributesForModel, normalizeViewState, normalizeSelectionState,
+  queryForState, queryForAll, queryForSelection, columnsForExport,
+  summariesForQuery, resolve/toArray và declaration lookup methods.
+- **Protected override points:** normalizeSort, normalizeFilters,
+  normalizeColumns, normalizeColumnLayout, allowedFilters, queryBuilderRequest,
+  withQueryBuilder, searchableColumns, paginate, paginationLinks, transform,
+  rowUrl, serializeRow. Dù không phải tất cả được quảng bá như stable API,
+  extraction cơ học phải giữ signature/visibility và virtual dispatch.
+- **Private implementation:** resolveState/stateRequest/buildQuery, join/cursor
+  stabilization, built-in summaries, pagination helpers/envelope, validation,
+  lazy-option header parsing và pinned helpers. Có thể move internals nhưng
+  không bypass public/protected hooks hoặc đổi output/error contracts.
+- AnonymousTable override query (clone Builder), transform và withQueryBuilder;
+  callback trả null vẫn giữ builder. Không thay bằng calls đến implementation
+  cố định trên Table hoặc singleton cache definitions/query.
+
+### Quyết định extraction
+
+| Candidate | Kết luận cho M04 | Bằng chứng/tradeoff |
+| --- | --- | --- |
+| Built-in summary execution, 611–649 | **Nên tách đầu tiên** | 39 dòng method chứa clone/reorder, grammar, fromSub, aggregate SQL, alias và cast; chỉ cần scoped Builder + columns, không dùng `$this` hay request/config. Đây là xử lý aggregate chuyên biệt đang nằm trong table facade |
+| Toàn bộ summariesForQuery | Giữ public facade và custom orchestration tại Table ở bước đầu | Custom resolver nhận chính Table, gọi qua container; giữ thứ tự built-in trước custom và mỗi custom một clone. Helper chỉ nhận dependency hẹp |
+| State/query pipeline | **Không tách trong lượt này** | Reuse đã tập trung ở resolveState/buildQuery; nhiều protected hooks và hai semantics queryForAll/queryForState. Service nhận cả Table/callback bundle sẽ làm khó theo dõi hơn |
+| Pagination | **Không tách trong lượt này** | Đã có ba private branches + envelope chung; coupling paginate/paginationLinks/serializeRow và cursor validation. Chưa có duplication đủ lợi để thêm TablePagination |
+| Selection/export coordination | **Không tách trong lượt này** | Execution đã ở Selection/ExportManager/exporters; Table cung cấp scope và layout, không nên tạo thêm lớp forwarding |
+| Declarations/row serialization | **Không tách trong lượt này** | Validation đã có helper, row serializer ngắn nhưng nhiều callbacks có thứ tự. Trait chỉ giảm LOC mà không giảm coupling |
+
+Đề xuất implementation kế tiếp trong M04: một internal helper cạnh
+`Summaries/Summary.php`, nhận Builder và danh sách summary columns, trả map
+giá trị built-in; giữ `Table::summariesForQuery()` signature và custom loop.
+Không nhận toàn Table, không query lại model từ default connection, không cache,
+không thêm binding/config/public extension point. Đây là giảm coupling có giới
+hạn, không tuyên bố sẽ làm Table nhỏ đi hàng trăm dòng hoặc tăng performance.
+
+### Test coverage và gates trước khi move
+
+Đã chạy focused Pest: **90 tests, 379 assertions pass** (SQLite local), gồm
+TableTest, SummaryTest, RelationshipQueryTest, SelectionTest, ExportTest.
+
+- SummaryTest đã bảo vệ một query cho built-ins, empty SQL values, join dedup,
+  grouped query, không query khi không có summary và custom result.
+- RelationshipQueryTest bảo vệ shared query hook trên resource/selection/export,
+  nhưng chỉ kiểm tra số lần customization `>= 3`, không khóa callback order.
+- TableTest đã có paginationLinks override, cursor stability và resource shape;
+  chưa tìm thấy subclass override tests cho normalize*/paginate/serializeRow.
+- ExportTest có summary footer và normalized scope/layout; SelectionTest có
+  explicit/all matching, exclusions và base/selectable scopes.
+
+Trước extraction summary, bổ sung characterization qua public API:
+
+1. Built-ins chạy trước custom; hai custom callbacks nhận query riêng, callback
+   đầu thay where/order không ảnh hưởng callback sau, query gốc hay result page.
+2. Custom nhận đúng instance Table và Column; override summariesForQuery vẫn
+   được gọi ở resource và CSV footer.
+3. Query summary giữ connection và thấy dữ liệu cùng transaction; giữ output
+   keys/types và SQL shape hiện có. Không dùng default DB facade trong helper.
+
+Chỉ thêm hook-order tests cho state/pagination/row nếu thực sự move các vùng đó;
+không tạo cả bộ characterization không liên quan cho extraction summary nhỏ.
+Sau move chạy lại focused Pest, PHPStan và format. Workflow `run-tests.yml`
+đã có MySQL/PostgreSQL jobs; audit này **chưa chạy remote matrix**. Nếu SQL đổi,
+không chốt tương đương chỉ dựa SQLite. Queue fingerprints/snapshots/persistence
+không nằm trong thay đổi được đề xuất.
+
+**Kết quả triển khai 2026-09-14:** M04 `done`. Thêm ba characterization tests
+trong SummaryTest: built-in/custom order + query isolation + đúng instance
+Table/Column; query giữ explicit connection và uncommitted transaction khi
+default connection không khả dụng; override summary được dùng ở resource/CSV.
+9 summary tests/56 assertions pass trước move. Sau move, focused suite nêu trên
+có 93 tests/395 assertions pass; PHPStan và scoped Pint pass.
+
+Helper `src/Summaries/BuiltInSummaryResolver.php` được đánh dấu `@internal`,
+nhận query/columns, không nhận Table/request, không có binding/config/cache.
+Method body đối chiếu nguyên văn với HEAD trước move (ngoại trừ tên/visibility)
+khớp; SQL construction không đổi. Chưa chạy MySQL/PostgreSQL remote trong lượt
+này; không tuyên bố đã pass matrix. Public summary facade và custom loop không
+đổi. Không có runtime defect được kết luận từ audit này. Các quyết định không
+tách ở trên kết thúc phạm vi M04 hiện tại, không tạo backlog refactor mới.

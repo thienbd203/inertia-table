@@ -6,8 +6,11 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Musing\InertiaTable\Columns\Column;
 use Musing\InertiaTable\Columns\NumberColumn;
 use Musing\InertiaTable\Columns\TextColumn;
+use Musing\InertiaTable\Exporters\NativeCsvExporter;
+use Musing\InertiaTable\Exports\Export;
 use Musing\InertiaTable\Filters\TextFilter;
 use Musing\InertiaTable\Summaries\SummaryAggregate;
 use Musing\InertiaTable\Table;
@@ -233,4 +236,96 @@ it('runs no summary query when none are declared', function () {
         ->and(collect(DB::getQueryLog())->pluck('query')->contains(
             fn (string $query) => str_contains($query, 'inertia_table_summary'),
         ))->toBeFalse();
+});
+
+it('runs built-ins before isolated custom callbacks with the original table and column', function () {
+    $table = new SummaryOrdersTable;
+    $query = $table->query()->where('category', 'retail')->orderBy('id');
+    $sql = $query->toSql();
+    $bindings = $query->getBindings();
+    $events = [];
+    $connection = $query->getConnection();
+    $connection->flushQueryLog();
+    $connection->enableQueryLog();
+    $expectedTable = $table;
+    $first = NumberColumn::make('first')->summaryUsing(
+        function (Builder $query, Column $column, Table $table) use (&$events, &$first, $expectedTable, $connection): int {
+            expect($table)->toBe($expectedTable)
+                ->and($column)->toBe($first)
+                ->and($query->getQuery()->orders)->toBeNull()
+                ->and(collect($connection->getQueryLog())->pluck('query')->filter(
+                    fn (string $sql) => str_contains($sql, 'inertia_table_summary'),
+                ))->toHaveCount(1);
+            $events[] = 'first';
+
+            return $query->where('amount', '>', 20)->orderByDesc('id')->count();
+        },
+    );
+    $second = NumberColumn::make('second')->summaryUsing(function (Builder $query) use (&$events): int {
+        $events[] = 'second';
+        expect($query->getQuery()->orders)->toBeNull();
+
+        return $query->count();
+    });
+    // Deliberately put built-ins after custom declarations.
+    $values = $table->summariesForQuery($query, [$first, $second, NumberColumn::make('id')->summary('count')]);
+
+    expect($values)->toBe(['id' => 3, 'first' => 1, 'second' => 3])
+        ->and($events)->toBe(['first', 'second'])
+        ->and($query->toSql())->toBe($sql)
+        ->and($query->getBindings())->toBe($bindings)
+        ->and($query->pluck('name')->all())->toBe(['Alpha', 'Beta', 'Delta']);
+});
+
+it('uses the supplied query connection and its uncommitted transaction', function () {
+    $query = SummaryOrderRecord::on('testing');
+    $connection = $query->getConnection();
+    $default = config('database.default');
+    $connection->beginTransaction();
+
+    try {
+        $connection->table('summary_orders')->insert([
+            'name' => 'Uncommitted', 'category' => 'retail', 'customer_id' => 9, 'amount' => 99,
+        ]);
+        config(['database.default' => 'unconfigured_summary_connection']);
+        $values = (new SummaryOrdersTable)->summariesForQuery(
+            $query->where('name', 'Uncommitted'),
+            [NumberColumn::make('id')->summary('count'), NumberColumn::make('amount')->summary('sum')],
+        );
+        expect($values['id'])->toBe(1)->and((float) $values['amount'])->toBe(99.0);
+    } finally {
+        config(['database.default' => $default]);
+        $connection->rollBack();
+    }
+
+    expect(SummaryOrderRecord::where('name', 'Uncommitted')->exists())->toBeFalse();
+});
+
+it('preserves summary overrides for table resources and CSV footers', function () {
+    $table = new class extends SummaryOrdersTable
+    {
+        public int $summaryCalls = 0;
+
+        public function summariesForQuery(Builder $query, ?array $columns = null): array
+        {
+            $this->summaryCalls++;
+
+            return [...parent::summariesForQuery($query, $columns), 'id' => 73];
+        }
+    };
+    expect($table->resolve(summaryRequest())->toArray()['summaries']['id'])->toBe(73);
+    $response = (new NativeCsvExporter)->download(
+        Request::create('/'), $table,
+        Export::make('summary')->withSummaries(),
+        $table->queryForAll(), [NumberColumn::make('id')->summary('count')],
+    );
+    ob_start();
+    try {
+        $response->sendContent();
+        $csv = ob_get_contents();
+    } finally {
+        ob_end_clean();
+    }
+    expect($table->summaryCalls)->toBe(2)
+        ->and(trim($csv))->toEndWith('73');
 });

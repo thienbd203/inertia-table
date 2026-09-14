@@ -6,6 +6,35 @@ origin below; port numbers change. `/topics` resets table URL state and gets a
 fresh SQLite database with Alpha (published), Beta (draft), Gamma (published).
 No user data is reset. Close menus before resetting the URL.
 
+## DX07 recipe browser check — 2026-09-14
+
+Checkout `d18784b`, packed consumer `inertia-table-consumer-AUGPlf`, default
+server mode at `http://127.0.0.1:60622`, Codex in-app browser, viewport 1280×720.
+Observed through browser accessibility/DOM state; no screenshot baseline.
+
+| Recipe | Steps and actual result | Status |
+| --- | --- | --- |
+| `/slots` | Preview Alpha then Beta changed the status to each matching name, stayed on the same URL, and left focus on the clicked button. | Pass, SSR entry |
+| `/slots?csr=1` | Preview Alpha then Beta updated the status on both clicks. | Pass, CSR entry |
+| `/headless` | Search Beta left only Beta; select-all/Backspace restored all three rows; Sort by name produced Gamma, Beta, Alpha with URL sort `-name`. | Pass, SSR entry |
+| `/multiple` | Search Gamma in Published kept Beta in Draft; search Beta in Draft then choose Published Name → Desc. URL retained both searches and Published `-name`; reload restored Gamma/Beta and both search inputs. | Pass, SSR entry |
+
+Captured warning/error console logs were empty after these checks. This is a
+manual smoke, not automated browser coverage or a cross-browser guarantee.
+Browser Back/Forward, narrow viewports, complete keyboard traversal and
+newcomer onboarding remain unverified in this run.
+An empty-string locator fill did not clear the headless search; normal keyboard
+selection and Backspace did. Do not treat that tooling result as a package bug
+without reproducing it through user input.
+
+CSR follow-up on the same checkout/consumer, origin `http://127.0.0.1:61755`:
+headless search Beta, keyboard clear and descending sort passed with
+Gamma/Beta/Alpha displayed. Multiple-table search retained Gamma/Beta, and
+Published descending sort retained both namespaces plus `csr=1` in the URL.
+Console warning/error logs were empty. Reload was invoked, but the immediate
+DOM capture was empty before the tab closed, so CSR post-reload restoration
+is not verified by this follow-up.
+
 ## Reproduction modes
 
 ```sh

@@ -3,6 +3,7 @@
 // A fresh SQLite memory database per request; never use host DB_* settings.
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 require __DIR__.'/TopicsTable.php';
+require __DIR__.'/SlotsTable.php';
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\ServiceProvider;
 use Musing\InertiaTable\InertiaTableServiceProvider;
+use Musing\InertiaTable\Tests\Consumer\SlotsTable;
 use Musing\InertiaTable\Tests\Consumer\Topic;
 use Musing\InertiaTable\Tests\Consumer\TopicsTable;
 use Orchestra\Testbench\Foundation\Application;
@@ -54,6 +56,9 @@ $app['router']->get('/headless', fn () => Inertia::render('Topics/Headless', [
 
 // Laravel emits the real page resource; the Node fixture renders this with Vue SSR.
 require __DIR__.'/multiple-tables.php';
+$app['router']->get('/slots', fn () => Inertia::render('Topics/Slots', [
+    'topics' => SlotsTable::make(),
+]));
 
 $response = $app['router']->dispatch($request);
 if ($response->getStatusCode() !== 200) {
