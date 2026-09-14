@@ -18,6 +18,7 @@ use Musing\InertiaTable\Exports\Export;
 use Musing\InertiaTable\Exports\ExportScope;
 use Musing\InertiaTable\Filters\Filter;
 use Musing\InertiaTable\Filters\SetFilter;
+use Musing\InertiaTable\Summaries\BuiltInSummaryResolver;
 use Musing\InertiaTable\Summaries\SummaryAggregate;
 use Musing\InertiaTable\Support\DataAttributes;
 use Musing\InertiaTable\Support\TableReference;
@@ -586,7 +587,7 @@ abstract class Table implements Arrayable
             return [];
         }
 
-        $values = $this->resolveBuiltInSummaries($query, $summaryColumns);
+        $values = (new BuiltInSummaryResolver)->resolve($query, $summaryColumns);
 
         foreach ($summaryColumns as $column) {
             $summary = $column->summaryDefinition();
@@ -598,54 +599,6 @@ abstract class Table implements Arrayable
             $customQuery = clone $query;
             $customQuery->reorder();
             $values[$column->attribute] = $summary->resolve($customQuery, $column, $this);
-        }
-
-        return $values;
-    }
-
-    /**
-     * @param  Builder<Model>  $query
-     * @param  array<int, Column>  $columns
-     * @return array<string, mixed>
-     */
-    private function resolveBuiltInSummaries(Builder $query, array $columns): array
-    {
-        $builtIns = array_values(array_filter(
-            $columns,
-            fn (Column $column) => $column->summaryDefinition()?->aggregateType() !== SummaryAggregate::Custom,
-        ));
-
-        if ($builtIns === []) {
-            return [];
-        }
-
-        $base = clone $query;
-        $base->reorder();
-        $baseQuery = $base->toBase();
-        $grammar = $baseQuery->getGrammar();
-        $summaryQuery = $baseQuery->newQuery()->fromSub($baseQuery, 'inertia_table_summary');
-        $aliases = [];
-
-        foreach ($builtIns as $index => $column) {
-            $summary = $column->summaryDefinition();
-            $aggregate = $summary?->aggregateType();
-            $attribute = $summary?->attribute();
-            $wrappedAttribute = $attribute === null ? null : $grammar->wrap($attribute);
-            $alias = "inertia_table_summary_{$index}";
-            $expression = $aggregate?->expression($wrappedAttribute)
-                ?? throw new LogicException('Unsupported built-in table summary.');
-            $summaryQuery->selectRaw("{$expression} AS {$grammar->wrap($alias)}");
-            $aliases[$column->attribute] = [$alias, $aggregate];
-        }
-
-        $row = (array) $summaryQuery->first();
-        $values = [];
-
-        foreach ($aliases as $attribute => [$alias, $aggregate]) {
-            $value = $row[$alias] ?? null;
-            $values[$attribute] = in_array($aggregate, [SummaryAggregate::Count, SummaryAggregate::CountDistinct], true)
-                ? (int) $value
-                : $value;
         }
 
         return $values;
