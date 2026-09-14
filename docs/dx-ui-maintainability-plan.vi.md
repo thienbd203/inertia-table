@@ -423,10 +423,15 @@ Headless recipe dùng trực tiếp file Vue của consumer (tránh docs/code dr
 có route `/headless` và kiểm tra SSR initial/partial search/empty response.
 Recipe hai bảng nhúng route/component consumer, dùng `/multiple` với hai query
 scope và namespace riêng. Check PHP partial response không trả prop bảng kia,
-SSR initial và sau merge props thủ công; chưa xác nhận navigation bằng browser.
+SSR initial và sau merge props thủ công. Browser 2026-09-14 xác nhận search riêng,
+sort Published và reload giữ cả hai namespace (SSR entry).
 Recipe custom cell/action có `/slots`, PHP declaration và Vue component được
 nhúng trực tiếp trong docs. Preview là custom action phía host, gọi execute rồi
-onFinish; smoke kiểm tra HTML slot, chưa đánh dấu click/hydration đã kiểm chứng.
+onFinish; browser 2026-09-14 xác nhận Preview Alpha rồi Beta ở SSR/CSR entry.
+Headless SSR entry đã kiểm tra search Beta, clear bằng bàn phím và sort descending.
+Console warning/error trống trong lượt kiểm tra; bằng chứng và giới hạn nằm ở
+`tests/Consumer/ui-catalog.md`. Follow-up CSR xác nhận headless search/clear/sort
+và multiple search/sort giữ namespace; chưa xác nhận DOM sau reload CSR.
 Chưa hoàn tất audit/chạy đủ năm recipe hoặc walkthrough onboarding; không coi
 docs build là bằng chứng browser cho race/history/focus.
 
