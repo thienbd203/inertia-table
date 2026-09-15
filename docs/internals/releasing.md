@@ -23,8 +23,11 @@ git push origin master v0.8.0
 
 ## Release gates
 
-The tag workflow calls the reusable PHP, JavaScript, and documentation
-workflows before publishing npm. npm provenance uses GitHub Actions OIDC and the
+The tag workflow calls the reusable PHP, JavaScript, documentation and contract
+workflows before publishing npm. The contract gate generates frontend URLs,
+checks PHP normalization and resource freshness, and runs the packed consumer.
+These workflow dependencies do not establish branch-protection required checks;
+verify repository rules separately. npm provenance uses GitHub Actions OIDC and the
 repository `NPM_TOKEN` secret.
 
 Packagist reads the Git tag from GitHub. The initial package registration must

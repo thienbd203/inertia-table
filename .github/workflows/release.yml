@@ -21,12 +21,17 @@ jobs:
     name: Documentation release gate
     uses: ./.github/workflows/run-docs.yml
 
+  contract-checks:
+    name: Contract and consumer release gate
+    uses: ./.github/workflows/run-contract-tests.yml
+
   publish-npm:
     name: Publish npm package
     needs:
       - php-checks
       - js-checks
       - docs-checks
+      - contract-checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

@@ -73,6 +73,21 @@ musing/inertia-table                 Laravel/PHP core
 
 For v0.1 the TypeScript core may live inside the Vue package, but its modules must remain free of Vue component and shadcn imports so it can be extracted without changing the resource contract.
 
+## Runtime ownership
+
+Internal ownership: `Table` coordinates declarations, state normalization and
+scoped queries. Its public `summariesForQuery()` remains the shared extension
+point for resources and CSV summaries. `Summaries/BuiltInSummaryResolver` is an
+internal aggregate executor receiving an already scoped builder and columns;
+it preserves that connection and clones before removing ordering. Custom
+summary callbacks remain in `Table`, each with its own clone. Export execution
+belongs to `Exports/ExportManager` and the exporter implementations.
+
+On the frontend, `useTable` owns navigation, lazy-request cancellation and
+layout scheduling together. `useActions` owns selection and action execution;
+polling has its own `usePolling` lifecycle. Keep public composable refs/methods
+and PHP override dispatch intact when changing these internals.
+
 ## Table resource v2
 
 ```ts

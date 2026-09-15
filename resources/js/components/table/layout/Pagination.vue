@@ -97,6 +97,7 @@ function goToPage(page: number): void {
             </span>
             <NativeSelect
                 wrapper-class="w-20 shrink-0"
+                :aria-label="i18n.t('rowsPerPage')"
                 :model-value="String(resource.state.perPage)"
                 @update:model-value="table.setPerPage(Number($event))"
             >

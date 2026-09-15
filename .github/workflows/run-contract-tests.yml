@@ -6,32 +6,42 @@ on:
     branches:
       - '**'
     paths:
-      - 'resources/js/url.ts'
-      - 'resources/js/types.ts'
-      - 'tests-js/contractUrl.test.ts'
-      - 'tests-js/contracts/resource.generated.ts'
-      - 'tests/ContractUrlTest.php'
-      - 'tests/ContractResourceTest.php'
-      - 'tests/Support/ContractTable.php'
-      - 'tests/Fixtures/url-contract-cases.json'
-      - '.github/workflows/run-contract-tests.yml'
+      - 'src/**'
+      - 'config/**'
+      - 'routes/**'
+      - 'database/**'
+      - 'lang/**'
+      - 'stubs/**'
+      - 'tests/**'
+      - 'resources/js/**'
+      - 'tests-js/**'
       - 'composer.json'
+      - 'composer.lock'
       - 'package.json'
       - 'package-lock.json'
+      - 'phpunit.xml.dist'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - '.github/workflows/run-contract-tests.yml'
   pull_request:
     paths:
-      - 'resources/js/url.ts'
-      - 'resources/js/types.ts'
-      - 'tests-js/contractUrl.test.ts'
-      - 'tests-js/contracts/resource.generated.ts'
-      - 'tests/ContractUrlTest.php'
-      - 'tests/ContractResourceTest.php'
-      - 'tests/Support/ContractTable.php'
-      - 'tests/Fixtures/url-contract-cases.json'
-      - '.github/workflows/run-contract-tests.yml'
+      - 'src/**'
+      - 'config/**'
+      - 'routes/**'
+      - 'database/**'
+      - 'lang/**'
+      - 'stubs/**'
+      - 'tests/**'
+      - 'resources/js/**'
+      - 'tests-js/**'
       - 'composer.json'
+      - 'composer.lock'
       - 'package.json'
       - 'package-lock.json'
+      - 'phpunit.xml.dist'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - '.github/workflows/run-contract-tests.yml'
 
 concurrency:
   group: run-contract-tests-${{ github.ref }}
@@ -39,9 +49,9 @@ concurrency:
 
 jobs:
   url-round-trip:
-    name: Node 22.12.0 · PHP 8.5 URL round-trip
+    name: Node 22.12.0 · PHP 8.5 contracts and consumer
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -70,3 +80,9 @@ jobs:
 
       - name: Verify PHP URL normalization
         run: INERTIA_TABLE_URL_CONTRACT_INPUT=build/contracts/urls.json vendor/bin/pest tests/ContractUrlTest.php
+
+      - name: Verify resource fixture freshness
+        run: vendor/bin/pest tests/ContractResourceTest.php
+
+      - name: Verify packed consumer types, CSR and SSR
+        run: npm run test:consumer
