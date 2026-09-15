@@ -30,6 +30,28 @@ These workflow dependencies do not establish branch-protection required checks;
 verify repository rules separately. npm provenance uses GitHub Actions OIDC and the
 repository `NPM_TOKEN` secret.
 
+## Required PR check and Dependabot
+
+`pr-checks.yml` runs on every pull request without path filtering. Its final
+`Required CI` job succeeds only when PHP, JavaScript, contracts/consumer and docs
+all succeed; a failed, cancelled or skipped suite fails that gate. Configure an
+active branch rule for `master` requiring this exact check after its first run.
+Do not require individual path-filtered push workflows instead.
+
+In repository Settings → General → Pull Requests, enable **Allow auto-merge**
+and **Allow merge commits** (the bot uses `--merge`). The Dependabot workflow
+only enables auto-merge for minor/patch updates on a protected target branch.
+An unprotected target produces a notice and leaves the PR open. It does not
+bypass checks, approve its own PR, or directly merge an unprotected branch.
+Repository settings require a maintainer with sufficient permissions.
+
+Major TypeScript updates are temporarily excluded from Dependabot while the
+current `vue-tsc` uses TypeScript 5's compiler entry points. Existing major PRs
+still need a maintainer decision; changing Dependabot configuration does not
+make their incompatible code pass. DTS v5 requires the explicit development
+dependency `@vue/language-core`; verify packed consumer declarations when
+upgrading it.
+
 Packagist reads the Git tag from GitHub. The initial package registration must
 point to `https://github.com/thienbd203/inertia-table`.
 

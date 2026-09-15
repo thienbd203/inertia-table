@@ -753,6 +753,17 @@ giải thích vì sao cấu trúc hiện tại tốt hơn phương án tách đ�
 
 ### M05 — CI kiểm tra đúng các đường contract
 
+**Sửa Actions theo phê duyệt 2026-09-15:** thêm pr-checks không paths filter,
+gọi bốn reusable workflows và gate Required CI với always + kiểm tra mọi result
+success. Reusable workflows giữ push paths nhưng bỏ pull_request riêng để tránh
+nhân đôi PR runs; concurrency thêm caller workflow tránh hủy release/PR lẫn nhau.
+Vitest chạy Node 22.22.2/24.15.0; consumer/build Node 20.19/22.22.2. DTS lên 5.1
+với explicit language-core 3.x, giữ TS5 và ignore TS major trong Dependabot.
+Bot không gọi auto-merge trên branch unprotected, chỉ notice; không bypass checks.
+Local: 149 tests pass trên Node22 và Node24; packed consumer pass Node20/22,
+types/docs pass. Thiết lập Required CI/auto-merge và xử lý PR TS7 đang mở còn cần
+quyền maintainer; không coi việc thêm YAML là đã bật branch protection.
+
 **Tiến độ 2026-09-14:** mở paths của run-contract-tests cho src/config/routes/
 database/lang/stubs/tests và frontend/build inputs ở cả push/PR. Workflow đó
 chạy URL bridge, resource freshness và packed consumer (Node 22.12/PHP 8.5),

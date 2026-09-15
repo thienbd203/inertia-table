@@ -3,6 +3,10 @@
 Use PHP 8.3 or newer and a Node version supported by `package.json`. Install
 both dependency sets before running the checks:
 
+Run repository tests with Node 22.22.2 or 24.15.0, matching CI. Vitest 5 does
+not support Node 20. Package build/consumer smoke still runs on Node 20.19.0
+to cover the package's declared engine range; that job does not execute Vitest.
+
 ```bash
 composer install
 npm ci
