@@ -8,15 +8,7 @@ on:
     paths:
       - 'resources/js/**'
       - 'tests-js/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'tsconfig.json'
-      - 'vite.config.ts'
-      - '.github/workflows/run-js-tests.yml'
-  pull_request:
-    paths:
-      - 'resources/js/**'
-      - 'tests-js/**'
+      - 'tests/Consumer/**'
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig.json'
@@ -24,7 +16,7 @@ on:
       - '.github/workflows/run-js-tests.yml'
 
 concurrency:
-  group: run-js-tests-${{ github.ref }}
+  group: run-js-tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -32,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: ['20.19.0', '22.12.0']
+        node: ['22.22.2', '24.15.0']
 
     name: Node ${{ matrix.node }}
 
@@ -63,6 +55,10 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Check shared-worker isolation
+        if: matrix.node == '22.22.2'
+        run: npm test -- --maxWorkers=1 --sequence.shuffle --sequence.seed=20260914
 
       - name: Build package
         run: npm run build

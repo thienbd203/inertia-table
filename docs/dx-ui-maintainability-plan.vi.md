@@ -117,7 +117,7 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | UI00 | Catalog kịch bản và baseline UI | P0 | M | Q00 | doing |
 | UI01 | Filter draft, lazy loading và focus | P0 | L | M01, UI00 | doing |
 | UI02 | Navigation/loading, URL và resource sync | P0 | L | UI01 | doing |
-| UI03 | Keyboard, labels và overlay accessibility | P1 | M | UI00, UI01 | todo |
+| UI03 | Keyboard, labels và overlay accessibility | P1 | M | UI00, UI01 | doing |
 | UI04 | Responsive, theme và visual consistency | P1 | M | UI00, UI03 | todo |
 | UI05 | Phản hồi action/export/view theo kết quả thật | P1 | M | UI02, UI03 | todo |
 | DX03 | PHP callback docs và fluent API typing | P1 | M | Q00 | doing |
@@ -125,11 +125,11 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | DX05 | Error messages và declaration validation | P1 | M | Q00 | done |
 | DX06 | Generator output nhỏ, rõ và chạy được | P1 | S | DX03, DX05 | done |
 | DX07 | Recipes và troubleshooting đã chạy thử | P1 | M | DX01–DX06, UI01–UI05 | doing |
-| M02 | Tách trách nhiệm nội bộ của useTable nếu có lợi | P2 | M | UI02, DX04 | todo |
-| M03 | Tách selection khỏi action execution nếu có lợi | P2 | M | UI05, DX04 | todo |
+| M02 | Tách trách nhiệm nội bộ của useTable nếu có lợi | P2 | M | UI02, DX04 | no-change |
+| M03 | Tách selection khỏi action execution nếu có lợi | P2 | M | UI05, DX04 | no-change |
 | M04 | Rà PHP extension hooks và thu gọn hotspot có bằng chứng | P2 | L | DX03, DX05 | done |
 | M05 | CI gates theo contract và consumer | P0 | M | DX02, DX04, M01 | doing |
-| M06 | Tài liệu ownership, maintenance và compatibility | P1 | S | M02–M05 | todo |
+| M06 | Tài liệu ownership, maintenance và compatibility | P1 | S | M02–M05 | doing |
 | M07 | Đo performance, sửa bottleneck đã xác nhận | P2 | M | UI01–UI05, M02–M04 | todo |
 | V01 | Kiểm chứng cuối và bàn giao theo tiêu chí | P0 | L | Tất cả task trên có kết luận | todo |
 
@@ -536,6 +536,12 @@ URL bridge nếu serialization/normalization thay đổi. So sánh request count
 
 ### UI03 — Keyboard, labels và focus của overlays
 
+**Tiến độ 2026-09-15:** toolbar search có aria-label giữ custom/translated
+searchPlaceholder; page-size native select có aria-label rowsPerPage (không
+phụ thuộc caption bị ẩn ở mobile). Renderer test xác nhận nhãn tiếng Việt
+trên native input/select; 38 renderer tests pass. Chưa coi toàn bộ keyboard,
+overlays hoặc screen-reader journey đã kiểm chứng.
+
 **Scope:** toolbar, headers, rows, filters, pagination, action/view dialogs,
 table composition; giữ vendored `components/ui` theo ranh giới hiện có.
 
@@ -639,6 +645,20 @@ test setup mới nếu cần và các component tests đang tự mount.
 
 ### M02 — Thu gọn useTable theo state ownership
 
+**Audit 2026-09-15 — no-change:** ownership hiện tại gồm navigation
+(search draft, debounce/layout timers, latestVisit, isNavigating), lazy options
+(loaded/loading/queued attributes, cancel token) và layout (order/width refs,
+resize state). Input chung là resource getter; output là public refs/methods.
+visit flush pending search/layout, hủy lazy request và chuyển requested options
+qua header; finish chỉ drain queue cho visit mới nhất. onScopeDispose hủy timers,
+lazy request và invalidates callbacks. Tách lazy/navigation thành hai owners
+sẽ phải truyền cả cancel/drain/header/timing protocol, chưa giảm coupling.
+Layout mutations dùng patchState/scheduleLayoutVisit chung; pure normalization
+order/width nhỏ, hiện không có call site thứ hai cần reuse. Chưa có bằng chứng
+lợi ích để tạo helper chỉ chuyển tiếp. Giữ facade và một visit path. Existing
+useTable tests bảo vệ normalize/layout, debounce/lazy races và disposal; quyết
+định không tách không thay thế các browser checks còn lại của UI02.
+
 **Scope:** `useTable.ts`, internal modules mới dưới `resources/js/` nếu cần,
 `useTable.test.ts`; không đổi `index.ts` runtime exports.
 
@@ -661,6 +681,20 @@ consumer và build. Không tái cấu trúc test theo tên hàm private mới.
 `no-change` có bằng chứng. File ngắn hơn chưa đủ để coi là hoàn tất.
 
 ### M03 — Selection và action execution có ranh giới rõ
+
+**Audit 2026-09-15 — no-change:** selection owns selected/excluded Sets,
+allSelected và anchor key; rowKey ưu tiên callback → metadata → id → index.
+Range chỉ áp dụng current page, bỏ unselectable rows; all matching lưu exclusions,
+count dùng selectableTotal. Watch chỉ reset khi search/filters đổi, không reset
+khi đổi page; không gọi đây là reset theo mọi resource identity. Confirmation
+đọc selection hiện tại; execute tạo descriptor dùng cho request/callback, queued
+acceptance clear selection, rejection giữ selection. Polling đã tách usePolling.
+Một selection composable riêng khả thi nhưng cần chuyển refs/computed/mutations
+và watch ownership mà chỉ có một consumer nội bộ; chưa giải quyết duplication
+hay lỗi cụ thể. Giữ nguyên để tránh tăng lớp trung gian, không gộp action/export
+engine. Existing tests có explicit/all, key fallback, Shift range, exclusions,
+page/filter changes, confirmation variants, queued acceptance/rejection/disposal.
+UI05 validation vẫn là task riêng; không đánh dấu UI05 hoàn tất theo audit này.
 
 **Scope:** `useActions.ts`, helper internal nếu cần; `useActions.test.ts`,
 Confirmation/queued dialog tests và headless consumer.
@@ -719,6 +753,45 @@ giải thích vì sao cấu trúc hiện tại tốt hơn phương án tách đ�
 
 ### M05 — CI kiểm tra đúng các đường contract
 
+**Sửa Actions theo phê duyệt 2026-09-15:** thêm pr-checks không paths filter,
+gọi bốn reusable workflows và gate Required CI với always + kiểm tra mọi result
+success. Reusable workflows giữ push paths nhưng bỏ pull_request riêng để tránh
+nhân đôi PR runs; concurrency thêm caller workflow tránh hủy release/PR lẫn nhau.
+Vitest chạy Node 22.22.2/24.15.0; consumer/build Node 20.19/22.22.2. DTS lên 5.1
+với explicit language-core 3.x, giữ TS5 và ignore TS major trong Dependabot.
+Bot không gọi auto-merge trên branch unprotected, chỉ notice; không bypass checks.
+Local: 149 tests pass trên Node22 và Node24; packed consumer pass Node20/22,
+types/docs pass. Thiết lập Required CI/auto-merge và xử lý PR TS7 đang mở còn cần
+quyền maintainer; không coi việc thêm YAML là đã bật branch protection.
+
+**Tiến độ 2026-09-14:** mở paths của run-contract-tests cho src/config/routes/
+database/lang/stubs/tests và frontend/build inputs ở cả push/PR. Workflow đó
+chạy URL bridge, resource freshness và packed consumer (Node 22.12/PHP 8.5),
+được release gọi lại và nằm trong `publish-npm.needs`. JS thêm consumer paths
+và shuffle single-worker với seed 20260914 ở Node 22; giữ matrix Node 20/22
+và PHP/DB hiện có. Local: URL/resource 2 tests/10 assertions pass, shuffle
+149 tests pass, packed consumer types/CSR/SSR/query pass; artifact URL thiếu
+bị fail đúng LogicException. YAML parse pass. Không chạy publish để thử.
+
+M05 còn `doing`: chưa có GitHub Actions run trên commit cuối, chưa xác minh
+required checks/branch protection. Consumer dùng phiên bản peer cài tại root
+(Inertia 3), không chứng minh toàn bộ range Inertia 2/3 hoặc Vue tối thiểu.
+Các PHP callback gates đã có ở PHPStan workflow; chưa gọi đó là release gate.
+Kiểm tra read-only branch protection `master` ngày 2026-09-15 trả HTTP 404;
+không suy ra chắc chắn không có rules (có thể do quyền/endpoint). Không thay đổi
+GitHub settings hoặc tự đặt required checks.
+
+**Xác minh bổ sung 2026-09-15:** API branch `master` trả `protected: false`,
+protection enabled false và required_status_checks enforcement off/checks rỗng;
+effective rules `/rules/branches/master` trả `[]`. Repo public, API identity
+hiện có pull=true nhưng push/admin=false. Kết luận master hiện không enforce
+required checks; không còn chỉ dựa vào 404. Không đổi cấu hình GitHub.
+Commit `231e9735b6788950a17f71c16c503cc868727b64` đã có PHP quality,
+PHPStan, docs, SQLite matrix và MySQL/PostgreSQL checks success. Run PHP:
+https://github.com/thienbd203/inertia-table/actions/runs/34844754903 .
+Các thay đổi workflow M05 còn ở working tree nên chưa có CI trên chúng;
+không gộp kết quả commit M04 với gate M05 mới. Đây là giới hạn còn lại của M05.
+
 **Scope:** `run-contract-tests.yml`, `run-js-tests.yml`, `run-tests.yml`,
 `release.yml`, manifests khi thêm focused script; consumer DX02.
 
@@ -745,6 +818,12 @@ cuối khi có quyền push. Test gate bắt artifact thiếu/sai bằng thử n
 consumer không dùng unit mock; reports không lẫn source test với integration.
 
 ### M06 — Tài liệu cho maintainer và compatibility
+
+**Tiến độ 2026-09-15:** architecture ghi ownership Table/summary helper,
+useTable/useActions/usePolling; development có test ownership, consumer limits,
+bug reproduction và focused commands; releasing ghi URL/resource/consumer
+dependencies cùng giới hạn branch protection. Không đổi SemVer/public API.
+Docs build pass; còn đối chiếu toàn bộ examples và cập nhật khi UI/CI chốt.
 
 **Scope:** `CLAUDE.md`, `docs/internals/architecture.md`, `development.md`,
 `api-stability.md`, `releasing.md`, `UPGRADING.md` và changelog khi có thay đổi.

@@ -1,0 +1,33 @@
+name: pr-checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  php:
+    uses: ./.github/workflows/run-tests.yml
+  javascript:
+    uses: ./.github/workflows/run-js-tests.yml
+  contracts:
+    uses: ./.github/workflows/run-contract-tests.yml
+  docs:
+    uses: ./.github/workflows/run-docs.yml
+  required:
+    name: Required CI
+    if: ${{ always() }}
+    needs: [php, javascript, contracts, docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every suite to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          printf '%s' "$RESULTS" | jq -e 'all(.[]; .result == "success")'

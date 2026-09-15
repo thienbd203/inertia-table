@@ -3,6 +3,10 @@
 Use PHP 8.3 or newer and a Node version supported by `package.json`. Install
 both dependency sets before running the checks:
 
+Run repository tests with Node 22.22.2 or 24.15.0, matching CI. Vitest 5 does
+not support Node 20. Package build/consumer smoke still runs on Node 20.19.0
+to cover the package's declared engine range; that job does not execute Vitest.
+
 ```bash
 composer install
 npm ci
@@ -81,3 +85,29 @@ INERTIA_TABLE_URL_CONTRACT_INPUT=build/contracts/urls.json vendor/bin/pest tests
 The PHP URL test skips when no input path is supplied. The generated URL
 artifact under `build/` is temporary and must not be committed; the TypeScript
 resource fixture is tracked in Git.
+
+## Test ownership and reproduction
+
+| Boundary | Check | What it proves |
+| --- | --- | --- |
+| PHP query/state/serialization | `vendor/bin/pest tests/TableTest.php tests/RelationshipQueryTest.php tests/SelectionTest.php` | Server allowlists, scoped queries, pagination and row metadata |
+| Summary and exports | `vendor/bin/pest tests/SummaryTest.php tests/ExportTest.php` | Aggregate query isolation, extension hooks and exported results |
+| PHP consumer callback types | `composer analyse:consumer` and `composer analyse:consumer:negative` | Valid consumer signatures compile and known invalid callbacks fail |
+| Headless state/actions | `npm test -- tests-js/useTable.test.ts tests-js/useActions.test.ts` | State transitions and request callbacks with the unit router mock |
+| Renderer | `npm test -- tests-js/DataTable.test.ts` | Component composition in happy-dom; not browser layout |
+| PHP/Vue bridge | Resource and URL commands above | Resource freshness and frontend URLs accepted by PHP |
+| Installed consumer | `npm run test:consumer` | npm tarball install, public types, CSR/SSR builds and real PHP responses |
+| Browser | `node tests/Consumer/serve.mjs` after the consumer check | Manual focus, navigation and hydration checks |
+
+The consumer uses root-installed peer versions, not every supported peer version.
+Its PHP bootstrap uses the checkout's Composer installation. See the
+[consumer README](https://github.com/thienbd203/inertia-table/tree/master/tests/Consumer)
+and [browser catalog](https://github.com/thienbd203/inertia-table/blob/master/tests/Consumer/ui-catalog.md)
+for exact scenarios and recorded limitations.
+
+For a bug report include package/host versions, table definition, sanitized URL,
+expected/actual result, and the smallest relevant request/response. Reproduce
+against a fixture database. Preserve the failing shuffle seed from test output;
+do not fix flaky tests by adding retries or shared state. Test query bugs on the
+affected database driver. For restricted local environments, PHPStan's `--debug`
+mode runs without parallel worker sockets.

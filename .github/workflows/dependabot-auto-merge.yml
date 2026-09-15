@@ -18,15 +18,28 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
+      - name: Check protected target branch
+        id: target
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          encoded_branch=$(jq -rn --arg branch "$BASE_BRANCH" '$branch | @uri')
+          protected=$(gh api "repos/$GITHUB_REPOSITORY/branches/$encoded_branch" --jq '.protected')
+          echo "protected=$protected" >> "$GITHUB_OUTPUT"
+          if [ "$protected" != "true" ]; then
+            echo "::notice::Auto-merge not enabled: configure branch protection and require Required CI first."
+          fi
+
       - name: Auto-merge Dependabot PRs for semver-minor updates
-        if: ${{steps.metadata.outputs.update-type == 'version-update:semver-minor'}}
+        if: ${{ steps.target.outputs.protected == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-minor' }}
         run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - name: Auto-merge Dependabot PRs for semver-patch updates
-        if: ${{steps.metadata.outputs.update-type == 'version-update:semver-patch'}}
+        if: ${{ steps.target.outputs.protected == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-patch' }}
         run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}

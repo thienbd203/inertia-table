@@ -6,42 +6,36 @@ on:
     branches:
       - '**'
     paths:
-      - 'resources/js/url.ts'
-      - 'resources/js/types.ts'
-      - 'tests-js/contractUrl.test.ts'
-      - 'tests-js/contracts/resource.generated.ts'
-      - 'tests/ContractUrlTest.php'
-      - 'tests/ContractResourceTest.php'
-      - 'tests/Support/ContractTable.php'
-      - 'tests/Fixtures/url-contract-cases.json'
-      - '.github/workflows/run-contract-tests.yml'
+      - 'src/**'
+      - 'config/**'
+      - 'routes/**'
+      - 'database/**'
+      - 'lang/**'
+      - 'stubs/**'
+      - 'tests/**'
+      - 'resources/js/**'
+      - 'tests-js/**'
       - 'composer.json'
+      - 'composer.lock'
       - 'package.json'
       - 'package-lock.json'
-  pull_request:
-    paths:
-      - 'resources/js/url.ts'
-      - 'resources/js/types.ts'
-      - 'tests-js/contractUrl.test.ts'
-      - 'tests-js/contracts/resource.generated.ts'
-      - 'tests/ContractUrlTest.php'
-      - 'tests/ContractResourceTest.php'
-      - 'tests/Support/ContractTable.php'
-      - 'tests/Fixtures/url-contract-cases.json'
+      - 'phpunit.xml.dist'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
       - '.github/workflows/run-contract-tests.yml'
-      - 'composer.json'
-      - 'package.json'
-      - 'package-lock.json'
 
 concurrency:
-  group: run-contract-tests-${{ github.ref }}
+  group: run-contract-tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   url-round-trip:
-    name: Node 22.12.0 · PHP 8.5 URL round-trip
+    name: Node ${{ matrix.node }} · PHP 8.5 contracts and consumer
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        node: ['20.19.0', '22.22.2']
 
     steps:
       - name: Checkout code
@@ -50,7 +44,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          node-version: '22.12.0'
+          node-version: ${{ matrix.node }}
           cache: npm
 
       - name: Setup PHP
@@ -66,7 +60,15 @@ jobs:
         run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress
 
       - name: Generate frontend URL contract artifact
+        if: matrix.node == '22.22.2'
         run: INERTIA_TABLE_URL_CONTRACT_OUTPUT=build/contracts/urls.json npm test -- tests-js/contractUrl.test.ts
 
       - name: Verify PHP URL normalization
+        if: matrix.node == '22.22.2'
         run: INERTIA_TABLE_URL_CONTRACT_INPUT=build/contracts/urls.json vendor/bin/pest tests/ContractUrlTest.php
+
+      - name: Verify resource fixture freshness
+        run: vendor/bin/pest tests/ContractResourceTest.php
+
+      - name: Verify packed consumer types, CSR and SSR
+        run: npm run test:consumer

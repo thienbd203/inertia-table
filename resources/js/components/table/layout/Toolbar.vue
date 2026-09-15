@@ -27,6 +27,7 @@ const {
                 type="search"
                 :model-value="table.search.value"
                 :placeholder="searchPlaceholder"
+                :aria-label="searchPlaceholder"
                 @update:model-value="(value) => table.setSearch(String(value))"
                 class="w-[200px]"
             />

@@ -707,6 +707,14 @@ describe("DataTable shadcn renderer", () => {
         expect(
             wrapper.get('input[type="search"]').attributes("placeholder"),
         ).toBe("Tìm kiếm…");
+        expect(
+            wrapper.get('input[type="search"]').attributes("aria-label"),
+        ).toBe("Tìm kiếm…");
+        expect(
+            wrapper
+                .get('select[data-slot="native-select"]')
+                .attributes("aria-label"),
+        ).toBe("Số dòng mỗi trang");
         expect(wrapper.text()).toContain("Thao tác");
         expect(wrapper.text()).toContain("Bộ lọc");
         expect(wrapper.text()).toContain("Cột");
