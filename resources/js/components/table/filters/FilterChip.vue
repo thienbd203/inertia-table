@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { X } from "@lucide/vue";
 import { computed } from "vue";
 import { clauseSymbol, filterDisplayValue } from "@/filters";
 import type { TableFilter, TableFilterState } from "@/types";
@@ -10,7 +9,6 @@ const props = defineProps<{
     state?: TableFilterState;
     displayValue?: string | null;
 }>();
-const emit = defineEmits<{ remove: [] }>();
 const { i18n } = useTableContext();
 const display = computed(
     () => props.displayValue ?? filterDisplayValue(props.filter, props.state),
@@ -18,10 +16,9 @@ const display = computed(
 </script>
 
 <template>
-    <div
-        class="tb-filter-chip space-x-1 py-1 ps-2 text-sm font-medium"
-        role="button"
-        tabindex="0"
+    <button
+        type="button"
+        class="tb-filter-chip space-x-1 ps-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         :aria-label="i18n.t('editFilter', { filter: filter.label })"
     >
         <span>{{ filter.label }}</span>
@@ -29,13 +26,5 @@ const display = computed(
             {{ clauseSymbol(state?.clause ?? filter.clauses[0] ?? "equals") }}
         </span>
         <em v-if="display">{{ display }}</em>
-        <button
-            type="button"
-            class="tb-remove-filter ms-2 h-full py-1 pe-2 text-gray-500 transition-colors hover:text-red-500"
-            :aria-label="i18n.t('removeFilter', { filter: filter.label })"
-            @click.stop="emit('remove')"
-        >
-            <X class="size-4" />
-        </button>
-    </div>
+    </button>
 </template>

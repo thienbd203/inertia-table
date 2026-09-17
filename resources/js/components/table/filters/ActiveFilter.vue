@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
+import { X } from "@lucide/vue";
 import {
     UiPopover,
     UiPopoverContent,
@@ -22,13 +23,21 @@ const emit = defineEmits<{
     remove: [];
 }>();
 const displayValue = ref<string | null>(null);
-const { resource } = useTableContext();
+const { resource, i18n } = useTableContext();
 const props = defineProps<{
     filter: TableFilter;
     autoOpen?: boolean;
 }>();
 const isOpen = ref(false);
 const filterEditor = ref<InstanceType<typeof FilterEditor> | null>(null);
+async function remove(event: MouseEvent) {
+    const trigger = (event.currentTarget as HTMLElement)
+        .closest(".tb-wrapper")
+        ?.querySelector<HTMLElement>("[data-add-filter-trigger]");
+    emit("remove");
+    await nextTick();
+    trigger?.focus();
+}
 const state = computed(
     () => resource.value.state.filters[props.filter.attribute],
 );
@@ -81,19 +90,32 @@ async function focusValueControl(event: Event) {
         <UiTooltipProvider>
             <UiTooltip>
                 <UiTooltipTrigger as-child>
-                    <span class="inline-flex">
+                    <span
+                        class="inline-flex items-center rounded-md border border-gray-400 bg-gray-200/75 py-1 text-xs font-medium text-gray-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    >
                         <UiPopover v-model:open="isOpen">
                             <UiPopoverTrigger
                                 as-child
-                                class="flex items-center rounded-md border border-gray-400 bg-gray-200/75 text-xs font-medium text-gray-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                                class="flex items-center rounded-md text-xs"
                             >
                                 <FilterChip
                                     :filter="filter"
                                     :state="state"
                                     :display-value="displayValue"
-                                    @remove="emit('remove')"
                                 />
                             </UiPopoverTrigger>
+                            <button
+                                type="button"
+                                class="tb-remove-filter ms-2 h-full rounded-md py-1 pe-2 text-gray-500 transition-colors hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                :aria-label="
+                                    i18n.t('removeFilter', {
+                                        filter: filter.label,
+                                    })
+                                "
+                                @click="remove"
+                            >
+                                <X class="size-4" aria-hidden="true" />
+                            </button>
                             <UiPopoverContent
                                 align="start"
                                 class="DropdownMenuContentAnimate w-fit"

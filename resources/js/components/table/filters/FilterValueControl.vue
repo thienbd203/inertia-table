@@ -193,7 +193,7 @@ defineExpose({
 
 <template>
     <div v-if="control !== 'none'" class="flex items-center gap-2 mt-2">
-        <Search v-if="showsSearchIcon" class="size-5" />
+        <Search v-if="showsSearchIcon" class="size-5" aria-hidden="true" />
 
         <UiDropdownMenu
             v-if="control === 'select' && allowsMultipleValues"
@@ -202,6 +202,7 @@ defineExpose({
             <UiDropdownMenuTrigger as-child>
                 <UiButton
                     ref="setTrigger"
+                    :aria-label="`${filter.label}: ${multipleSelectLabel}`"
                     variant="outline"
                     class="flex-1 justify-between font-normal"
                     :data-filter-value="filter.attribute"
@@ -236,6 +237,7 @@ defineExpose({
 
         <NativeSelect
             v-else-if="control === 'select'"
+            :aria-label="filter.label"
             ref="valueControl"
             class="flex-1"
             :model-value="setValue"
@@ -266,6 +268,7 @@ defineExpose({
                 ref="valueControl"
                 type="number"
                 :model-value="draftRange[0]"
+                :aria-label="i18n.t('filterMinimum', { filter: filter.label })"
                 :data-filter-value="filter.attribute"
                 @update:model-value="(value) => updateRange(0, value)"
             />
@@ -273,6 +276,7 @@ defineExpose({
                 v-if="filter.type !== 'date'"
                 :type="filter.type === 'date' ? 'date' : 'number'"
                 :model-value="draftRange[1]"
+                :aria-label="i18n.t('filterMaximum', { filter: filter.label })"
                 @update:model-value="(value) => updateRange(1, value)"
             />
         </div>
@@ -291,6 +295,7 @@ defineExpose({
             ref="valueControl"
             class="flex-1"
             :type="inputType"
+            :aria-label="filter.label"
             :model-value="draftInput"
             :data-filter-value="filter.attribute"
             @focus="isInputFocused = true"

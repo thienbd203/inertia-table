@@ -7,6 +7,7 @@ import {
 
 defineProps<{
     modelValue: string;
+    label: string;
     options: Array<{ label: string; value: string }>;
 }>();
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
@@ -19,9 +20,10 @@ function updateClause(value: unknown) {
 <template>
     <div class="flex items-center gap-2">
         <div>
-            <Filter class="size-5" />
+            <Filter class="size-5" aria-hidden="true" />
         </div>
         <NativeSelect
+            :aria-label="label"
             :model-value="modelValue"
             @update:model-value="updateClause"
         >
