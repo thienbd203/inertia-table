@@ -11,6 +11,7 @@ import {
 import type { TableFilter } from "@/types";
 import { useTableContext } from "@/context/tableContext";
 import { Funnel, Plus, X } from "@lucide/vue";
+import { ref } from "vue";
 
 defineProps<{
     filters: TableFilter[];
@@ -21,12 +22,19 @@ defineEmits<{
     clear: [];
 }>();
 const { i18n } = useTableContext();
+const openingEditor = ref(false);
+
+function restoreFocus(event: Event) {
+    // A newly added editor owns focus; Escape and Clear still return to Filters.
+    if (openingEditor.value) event.preventDefault();
+    openingEditor.value = false;
+}
 </script>
 
 <template>
     <UiDropdownMenu v-if="filters.length">
         <UiDropdownMenuTrigger as-child>
-            <UiButton variant="outline">
+            <UiButton variant="outline" data-add-filter-trigger>
                 <Funnel class="h-4 w-4" />
                 {{ i18n.t("filters") }}
             </UiButton>
@@ -34,7 +42,7 @@ const { i18n } = useTableContext();
         <UiDropdownMenuContent
             align="start"
             class="DropdownMenuContentAnimate"
-            @closeAutoFocus="(e) => e.preventDefault()"
+            @close-auto-focus="restoreFocus"
         >
             <UiDropdownMenuLabel>{{ i18n.t("addFilter") }}</UiDropdownMenuLabel>
             <UiDropdownMenuSeparator />
@@ -42,7 +50,10 @@ const { i18n } = useTableContext();
                 v-for="filter in filters"
                 :key="filter.attribute"
                 :disabled="activeAttributes.includes(filter.attribute)"
-                @select="$emit('add', filter.attribute)"
+                @select="
+                    openingEditor = true;
+                    $emit('add', filter.attribute);
+                "
             >
                 <Plus
                     class="size-4"

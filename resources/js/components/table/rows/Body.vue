@@ -123,7 +123,7 @@ function handleRowClick(event: MouseEvent, item: TableItem) {
                 :style="sticky.style(sticky.selectionColumn)"
             >
                 <UiCheckbox
-                    :aria-label="i18n.t('selectRow')"
+                    :aria-label="`${i18n.t('selectRow')} ${actions.rowKey(item, index)}`"
                     :model-value="actions.isItemSelected(item, index)"
                     :disabled="!actions.isItemSelectable(item)"
                     @click="handleSelectionClick($event, item, index)"

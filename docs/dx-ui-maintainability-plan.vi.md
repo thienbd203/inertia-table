@@ -117,7 +117,7 @@ test/CI ở lượt trước là lịch sử, không được chép thành basel
 | UI00 | Catalog kịch bản và baseline UI | P0 | M | Q00 | doing |
 | UI01 | Filter draft, lazy loading và focus | P0 | L | M01, UI00 | doing |
 | UI02 | Navigation/loading, URL và resource sync | P0 | L | UI01 | doing |
-| UI03 | Keyboard, labels và overlay accessibility | P1 | M | UI00, UI01 | doing |
+| UI03 | Keyboard, labels và overlay accessibility | P1 | M | UI00, UI01 | done (accepted scope) |
 | UI04 | Responsive, theme và visual consistency | P1 | M | UI00, UI03 | todo |
 | UI05 | Phản hồi action/export/view theo kết quả thật | P1 | M | UI02, UI03 | todo |
 | DX03 | PHP callback docs và fluent API typing | P1 | M | Q00 | doing |
@@ -535,6 +535,33 @@ URL bridge nếu serialization/normalization thay đổi. So sánh request count
 được; thao tác bảng A không cập nhật state/loading của bảng B ngoài chủ đích.
 
 ### UI03 — Keyboard, labels và focus của overlays
+
+**Tiến độ 2026-09-17:** bổ sung nhãn cho clause, scalar/select/multi-select và
+hai đầu numeric range (EN/VI); header đang sort có `aria-sort`; checkbox row
+phân biệt bằng row key. Sửa hai lỗi keyboard tái hiện được: chip filter dùng
+div nên Enter không mở editor; AddFilterMenu chặn trả focus cả khi Escape.
+Chip nay là native button, nút remove là sibling; remove trả focus về Filters
+trong cùng table. Không sửa vendored primitives.
+
+Kiểm chứng: 152 JS tests pass, typecheck pass; packed consumer kiểm tra types,
+CSR build, PHP queries và Vue SSR pass. Browser consumer `VlUr7b` (SSR,
+2026-09-17) xác nhận Enter mở lại chip và xóa bằng Enter trả focus về Filters;
+console không warning/error. Browser consumer `FAWXOV` trước thay đổi chip
+xác nhận Escape ở menu Filters trả focus về trigger, Escape trong dropdown
+options chỉ đóng dropdown con và trả focus về nút chọn options; Escape tiếp
+đóng editor và trả focus về chip.
+
+**Chốt theo phạm vi được maintainer chấp nhận (2026-09-17):** giữ giao diện
+chip với nút × trong cùng nền/viền; hai nút native vẫn độc lập. Sau chỉnh CSS,
+5 filter/focus tests pass; chưa kiểm tra lại hình ảnh trên playground.
+Maintainer chấp nhận UI03 ở mức hiện tại. Các kiểm tra chưa chạy dưới đây được
+ghi nhận là giới hạn kiểm chứng, không tự mở rộng công việc để làm tiếp.
+
+**Chưa kiểm chứng:** còn browser journey đầy đủ cho date/range, resize/reorder,
+pagination có nhiều trang, row/bulk action và view dialogs (focus trap, close,
+trigger mất sau response), loading/disabled; và screen reader thực. Tests hiện
+có cho resize/reorder/RTL và confirmation không thay thế các kiểm tra này.
+Chưa chạy VoiceOver/NVDA; không xem DOM/AX snapshot là screen-reader pass.
 
 **Tiến độ 2026-09-15:** toolbar search có aria-label giữ custom/translated
 searchPlaceholder; page-size native select có aria-label rowsPerPage (không

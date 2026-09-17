@@ -165,6 +165,13 @@ function reorderKeydown(event: KeyboardEvent, attribute: string) {
                 v-for="column in table.visibleColumns.value"
                 :key="column.attribute"
                 :data-column="column.attribute"
+                :aria-sort="
+                    sortDirection(column.attribute) === 'asc'
+                        ? 'ascending'
+                        : sortDirection(column.attribute) === 'desc'
+                          ? 'descending'
+                          : undefined
+                "
                 :data-alignment="column.alignment"
                 :data-sticky-side="
                     sticky.pinSide(column.attribute) ?? undefined

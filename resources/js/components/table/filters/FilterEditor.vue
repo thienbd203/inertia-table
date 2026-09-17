@@ -5,8 +5,10 @@ import { SlotOutlet } from "../shared";
 import FilterClauseSelect from "./FilterClauseSelect.vue";
 import FilterValueControl from "./FilterValueControl.vue";
 import { useFilterEditor } from "./useFilterEditor";
+import { useTableContext } from "@/context/tableContext";
 
 const props = defineProps<{ filter: TableFilter }>();
+const { i18n } = useTableContext();
 const emit = defineEmits<{
     close: [];
     "update:displayValue": [value: string | null];
@@ -39,6 +41,7 @@ defineExpose({
             <FilterClauseSelect
                 v-if="filter.showClause !== false && clauseOptions.length > 1"
                 :model-value="clause"
+                :label="i18n.t('filterCondition', { filter: filter.label })"
                 :options="clauseOptions"
                 @update:model-value="updateClause"
             />
