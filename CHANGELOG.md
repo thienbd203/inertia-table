@@ -2,7 +2,11 @@
 
 All notable changes to `inertia-table` will be documented in this file.
 
-## Unreleased
+## 1.0.0 - 2026-09-21
+
+First stable release of the Laravel package and Vue renderer. The documented
+public APIs follow semantic versioning; the table resource remains schema v2.
+See [API stability](docs/internals/api-stability.md) for compatibility guarantees.
 
 ### Added
 
@@ -19,10 +23,9 @@ All notable changes to `inertia-table` will be documented in this file.
   aggregate query.
 - A sticky-aware summary footer with per-cell/whole-footer slots, loading state,
   locale-aware formatting, and opt-in native CSV summary rows.
-- Signed, server-driven `SetFilter` option sources with debounced search, opaque
-  cursor pagination, dependency allowlists and independent authorization.
-- Optional facet counts derived from the normalized table query, selected-label
-  hydration, bounded client caching and loading/error/retry option states.
+- Lazy `SetFilter` options loaded when the editor is opened, with immediate
+  filter application and no Apply button. Remote filter sources are not supported.
+- Documentation site, runnable consumer examples, and PHP/Vue contract checks.
 - Filter resources now expose optional `clauseValueKinds` metadata so custom
   clauses can declare whether they accept one value, a range, or no value.
 
@@ -31,8 +34,6 @@ All notable changes to `inertia-table` will be documented in this file.
 - Queued exports now retain the dispatch locale through generation and lifecycle
   callbacks, expose a safe public failure message, and preserve a terminal
   failed status when preparation fails after idempotency reservation.
-- Remote set-filter cursor pages append the model key as a deterministic
-  tie-breaker when callers supply a non-unique order.
 - Expanded release validation across supported PHP, Laravel, Inertia, Node and
   database versions, with dependency audits before npm publishing.
 
@@ -40,6 +41,17 @@ All notable changes to `inertia-table` will be documented in this file.
 
 - Mapped column sorts now keep values that are outside the map after mapped
   values in both ascending and descending order.
+- Filter keyboard activation, focus restoration, accessible labels and header
+  sort announcements, while retaining the existing filter-chip appearance.
+
+### Known limitations
+
+- Lazy filter chips can display an option ID after reload instead of its label.
+- Resetting or switching Saved Views can retain empty draft filter chips.
+- The save-view dialog emits a missing-description accessibility warning.
+- Manual browser checks have not yet verified the complete export download,
+  queued-worker completion, responsive/theme matrix or screen-reader journeys.
+  Automated export coverage does not replace those manual checks.
 
 ## 0.7.0 - 2026-09-01
 
